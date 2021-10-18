@@ -1,0 +1,10 @@
+nstep stat 50
+nstep msdstat 50
+nstep bondstat 50
+nthread a 16
+nthread b 32
+
+nstep traj	10
+nstep bindtraj	20
+
+bindtraj threads	1	32	// atoms per thread and number of threads in block

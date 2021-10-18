@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D3C64755-F297-47D9-B23F-B5C8F255F897}</ProjectGuid>
+    <RootNamespace>aztotmd</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.4.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <FloatingPointExceptions>true</FloatingPointExceptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CudaCompile Include="cuAngles.cu" />
+    <CudaCompile Include="cuBonds.cu" />
+    <CudaCompile Include="cuCellList.cu" />
+    <CudaCompile Include="cuEjump.cu" />
+    <CudaCompile Include="cuElec.cu" />
+    <CudaCompile Include="cuInit.cu" />
+    <CudaCompile Include="cuMDfunc.cu" />
+    <CudaCompile Include="cuPairs.cu" />
+    <CudaCompile Include="cuSort.cu" />
+    <CudaCompile Include="cuStat.cu" />
+    <CudaCompile Include="cuTemp.cu" />
+    <CudaCompile Include="cuUtils.cu" />
+    <CudaCompile Include="cuVdW.cu" />
+    <CudaCompile Include="main.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="angles.h" />
+    <ClInclude Include="bonds.h" />
+    <ClInclude Include="box.h" />
+    <ClInclude Include="cell_list.h" />
+    <ClInclude Include="const.h" />
+    <ClInclude Include="cuAngles.h" />
+    <ClInclude Include="cuBonds.h" />
+    <ClInclude Include="cuCellList.h" />
+    <ClInclude Include="cuEjump.h" />
+    <ClInclude Include="cuInit.h" />
+    <ClInclude Include="cuMDfunc.h" />
+    <ClInclude Include="cuPairs.h" />
+    <ClInclude Include="cuSort.h" />
+    <ClInclude Include="cuTemp.h" />
+    <ClInclude Include="cuUtils.h" />
+    <ClInclude Include="cuVdW.h" />
+    <ClInclude Include="dataStruct.h" />
+    <ClInclude Include="defines.h" />
+    <ClInclude Include="ejump.h" />
+    <ClInclude Include="elec.h" />
+    <ClInclude Include="cuElec.h" />
+    <ClInclude Include="cuStruct.h" />
+    <ClInclude Include="cuStat.h" />
+    <ClInclude Include="integrators.h" />
+    <ClInclude Include="md_utils.h" />
+    <ClInclude Include="out_md.h" />
+    <ClInclude Include="rdf.h" />
+    <ClInclude Include="sys_init.h" />
+    <ClInclude Include="temperature.h" />
+    <ClInclude Include="utils.h" />
+    <ClInclude Include="vdw.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="angles.cpp" />
+    <ClCompile Include="bonds.cpp" />
+    <ClCompile Include="box.cpp" />
+    <ClCompile Include="cell_list.cpp" />
+    <ClCompile Include="ejump.cpp" />
+    <ClCompile Include="elec.cpp" />
+    <ClCompile Include="integrators.cpp" />
+    <ClCompile Include="md_utils.cpp" />
+    <ClCompile Include="out_md.cpp" />
+    <ClCompile Include="rdf.cpp" />
+    <ClCompile Include="sys_init.cpp" />
+    <ClCompile Include="temperature.cpp" />
+    <ClCompile Include="utils.cpp" />
+    <ClCompile Include="vdw.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.4.targets" />
+  </ImportGroup>
+</Project>
