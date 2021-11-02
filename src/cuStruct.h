@@ -10,7 +10,7 @@ struct cudaMD;
 struct cudaSpec
 {
     //VARIABLES
-    int number; // количество частиц данного сорта
+    int number; // ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г·Г Г±ГІГЁГ¶ Г¤Г Г­Г­Г®ГЈГ® Г±Г®Г°ГІГ 
 
     double displ; // displacement (for MSD calculation)
     double vaf;   // velocity autocorrelation function
@@ -76,8 +76,8 @@ struct statStruct
     FILE* out_file;
 };
 
-// структура для сохранения тех параметров CUDA, которые необходимо хранить на компе: 
-//  число атомов на блок/поток и т.д.
+// Г±ГІГ°ГіГЄГІГіГ°Г  Г¤Г«Гї Г±Г®ГµГ°Г Г­ГҐГ­ГЁГї ГІГҐГµ ГЇГ Г°Г Г¬ГҐГІГ°Г®Гў CUDA, ГЄГ®ГІГ®Г°Г»ГҐ Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г® ГµГ°Г Г­ГЁГІГј Г­Г  ГЄГ®Г¬ГЇГҐ: 
+//  Г·ГЁГ±Г«Г® Г ГІГ®Г¬Г®Гў Г­Г  ГЎГ«Г®ГЄ/ГЇГ®ГІГ®ГЄ ГЁ ГІ.Г¤.
 struct hostManagMD
 {
     int atPerThread, atPerBlock;        // number of atoms per thread and per block
@@ -350,7 +350,7 @@ struct cudaMD
 
     
     // For bypass of cell list
-    //! первые пары (0-1, 2-3, 4-5 и т.д.)
+    //! ГЇГҐГ°ГўГ»ГҐ ГЇГ Г°Г» (0-1, 2-3, 4-5 ГЁ ГІ.Г¤.)
     int nCell;          // the number of cells
     int nPair1, nPair;  // the number of the first cell pairs (cultivated by cell_list2a) and total cell pairs
     int4* cellPairs;   // x - index of the first cell in the pair, y - the second and z - type of pair, w - type of shift
@@ -367,8 +367,8 @@ struct cudaMD
     int nSpec;          // the number of species
     cudaSpec* specs;    // species properties
     float** chProd; // type[i]*charge * type[j].charge
-    cudaArray* texChProd;   // тоже самое в виде попробуем организовать в виде текстурной памяти
-    //! может сразу домножить на Fcoul_scale ?
+    cudaArray* texChProd;   // ГІГ®Г¦ГҐ Г±Г Г¬Г®ГҐ Гў ГўГЁГ¤ГҐ ГЇГ®ГЇГ°Г®ГЎГіГҐГ¬ Г®Г°ГЈГ Г­ГЁГ§Г®ГўГ ГІГј Гў ГўГЁГ¤ГҐ ГІГҐГЄГ±ГІГіГ°Г­Г®Г© ГЇГ Г¬ГїГІГЁ
+    //! Г¬Г®Г¦ГҐГІ Г±Г°Г Г§Гі Г¤Г®Г¬Г­Г®Г¦ГЁГІГј Г­Г  Fcoul_scale ?
 
     // electrostaitc
     //float* coulEng; // Coulomb energy as a function of distance
