@@ -12,15 +12,15 @@ void alloc_sort(int nAt, int nCell, cudaMD* hmd)
 
     cudaMalloc((void**)&hmd->sort_xyz, xyzsize);
     cudaMalloc((void**)&hmd->sort_vls, xyzsize);
-    cudaMalloc((void**)&hmd->sort_frs, xyzsize);        //! íå âñåãäà, âîçìîæíî, ÷òî òîëüêî åñëè åñòü ñâÿçè (ò.å. åñòü ÷òî-òî, ÷òî îïðåäåëÿåò ñèëû ïåðåä ñîðòèðîâêîé)
+    cudaMalloc((void**)&hmd->sort_frs, xyzsize);        //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã , Ã¢Ã®Ã§Ã¬Ã®Ã¦Ã­Ã®, Ã·Ã²Ã® Ã²Ã®Ã«Ã¼ÃªÃ® Ã¥Ã±Ã«Ã¨ Ã¥Ã±Ã²Ã¼ Ã±Ã¢Ã¿Ã§Ã¨ (Ã².Ã¥. Ã¥Ã±Ã²Ã¼ Ã·Ã²Ã®-Ã²Ã®, Ã·Ã²Ã® Ã®Ã¯Ã°Ã¥Ã¤Ã¥Ã«Ã¿Ã¥Ã² Ã±Ã¨Ã«Ã» Ã¯Ã¥Ã°Ã¥Ã¤ Ã±Ã®Ã°Ã²Ã¨Ã°Ã®Ã¢ÃªÃ®Ã©)
     cudaMalloc((void**)&hmd->sort_types, intsize);
     cudaMalloc((void**)&hmd->sort_ind, intsize);
-    cudaMalloc((void**)&hmd->sort_parents, intsize);    //! íå âñåãäà
-    cudaMalloc((void**)&hmd->sort_nbonds, intsize);     //! íå âñåãäà
-    cudaMalloc((void**)&hmd->sort_nangles, intsize);    //! íå âñåãäà
-    cudaMalloc((void**)&hmd->sort_oldTypes, intsize);   //! íå âñåãäà
-    cudaMalloc((void**)&hmd->cellIndexes, intsize);     //? ìîæåò ýòî îòíîñèòñÿ ê cell list, à íå ê sort?
-    cudaMalloc((void**)&hmd->insideCellIndex, intsize); //? ìîæåò ýòî îòíîñèòñÿ ê cell list, à íå ê sort?
+    cudaMalloc((void**)&hmd->sort_parents, intsize);    //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã 
+    cudaMalloc((void**)&hmd->sort_nbonds, intsize);     //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã 
+    cudaMalloc((void**)&hmd->sort_nangles, intsize);    //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã 
+    cudaMalloc((void**)&hmd->sort_oldTypes, intsize);   //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã 
+    cudaMalloc((void**)&hmd->cellIndexes, intsize);     //? Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã®Ã²Ã­Ã®Ã±Ã¨Ã²Ã±Ã¿ Ãª cell list, Ã  Ã­Ã¥ Ãª sort?
+    cudaMalloc((void**)&hmd->insideCellIndex, intsize); //? Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã®Ã²Ã­Ã®Ã±Ã¨Ã²Ã±Ã¿ Ãª cell list, Ã  Ã­Ã¥ Ãª sort?
     cudaMalloc((void**)&hmd->sort_masses, flsize);
     cudaMalloc((void**)&hmd->sort_rMasshdT, flsize);
     cudaMalloc((void**)(&hmd->sort_engs), flsize);          // for radiative thermostat only
@@ -35,7 +35,7 @@ void alloc_sort(int nAt, int nCell, cudaMD* hmd)
         arr[i] = i;
     data_to_device((void**)(&hmd->sort_trajs), arr, intsize);
 
-    //? ìîæåò ýòî îòíîñèòñÿ ê cell list, à íå ê sort?
+    //? Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã®Ã²Ã­Ã®Ã±Ã¨Ã²Ã±Ã¿ Ãª cell list, Ã  Ã­Ã¥ Ãª sort?
     intsize = int_size * nCell;
     cudaMalloc((void**)&hmd->firstAtomInCell, intsize);
     cudaMalloc((void**)&hmd->nAtInCell, intsize);
@@ -45,19 +45,19 @@ void free_sort(cudaMD* hmd)
 {
     cudaFree(hmd->sort_xyz);
     cudaFree(hmd->sort_vls);
-    cudaFree(hmd->sort_frs);        //! íå âñåãäà, âîçìîæíî, ÷òî òîëüêî åñëè åñòü ñâÿçè (ò.å. åñòü ÷òî-òî, ÷òî îïðåäåëÿåò ñèëû ïåðåä ñîðòèðîâêîé)
+    cudaFree(hmd->sort_frs);        //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã , Ã¢Ã®Ã§Ã¬Ã®Ã¦Ã­Ã®, Ã·Ã²Ã® Ã²Ã®Ã«Ã¼ÃªÃ® Ã¥Ã±Ã«Ã¨ Ã¥Ã±Ã²Ã¼ Ã±Ã¢Ã¿Ã§Ã¨ (Ã².Ã¥. Ã¥Ã±Ã²Ã¼ Ã·Ã²Ã®-Ã²Ã®, Ã·Ã²Ã® Ã®Ã¯Ã°Ã¥Ã¤Ã¥Ã«Ã¿Ã¥Ã² Ã±Ã¨Ã«Ã» Ã¯Ã¥Ã°Ã¥Ã¤ Ã±Ã®Ã°Ã²Ã¨Ã°Ã®Ã¢ÃªÃ®Ã©)
     cudaFree(hmd->sort_types);
     cudaFree(hmd->sort_ind);
-    cudaFree(hmd->sort_parents);    //! íå âñåãäà
-    cudaFree(hmd->sort_nbonds);     //! íå âñåãäà
-    cudaFree(hmd->sort_nangles);    //! íå âñåãäà    
-    cudaFree(hmd->sort_oldTypes);   //! íå âñåãäà
-    cudaFree(hmd->cellIndexes);     //? ìîæåò ýòî îòíîñèòñÿ ê cell list, à íå ê sort?
-    cudaFree(hmd->insideCellIndex); //? ìîæåò ýòî îòíîñèòñÿ ê cell list, à íå ê sort?
+    cudaFree(hmd->sort_parents);    //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã 
+    cudaFree(hmd->sort_nbonds);     //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã 
+    cudaFree(hmd->sort_nangles);    //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã     
+    cudaFree(hmd->sort_oldTypes);   //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã 
+    cudaFree(hmd->cellIndexes);     //? Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã®Ã²Ã­Ã®Ã±Ã¨Ã²Ã±Ã¿ Ãª cell list, Ã  Ã­Ã¥ Ãª sort?
+    cudaFree(hmd->insideCellIndex); //? Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã®Ã²Ã­Ã®Ã±Ã¨Ã²Ã±Ã¿ Ãª cell list, Ã  Ã­Ã¥ Ãª sort?
     cudaFree(hmd->sort_masses);
     cudaFree(hmd->sort_rMasshdT);
-    cudaFree(hmd->firstAtomInCell); //? ìîæåò ýòî îòíîñèòñÿ ê cell list, à íå ê sort?
-    cudaFree(hmd->nAtInCell);       //? ìîæåò ýòî îòíîñèòñÿ ê cell list, à íå ê sort?
+    cudaFree(hmd->firstAtomInCell); //? Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã®Ã²Ã­Ã®Ã±Ã¨Ã²Ã±Ã¿ Ãª cell list, Ã  Ã­Ã¥ Ãª sort?
+    cudaFree(hmd->nAtInCell);       //? Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã®Ã²Ã­Ã®Ã±Ã¨Ã²Ã±Ã¿ Ãª cell list, Ã  Ã­Ã¥ Ãª sort?
     cudaFree(hmd->sort_engs);    // for radiative thermostat only
     cudaFree(hmd->sort_radii);    // for radiative thermostat only
     cudaFree(hmd->sort_radstep);    // for radiative thermostat only
@@ -77,7 +77,7 @@ __global__ void refresh_arrays(int use_bnd, int use_ang, cudaMD* md)
 
     switch_pointers((void**)&(md->xyz), (void**)&(md->sort_xyz));
     switch_pointers((void**)&(md->vls), (void**)&(md->sort_vls));
-    switch_pointers((void**)&(md->frs), (void**)&(md->sort_frs));   //! íå âñåãäà, âîçìîæíî, ÷òî òîëüêî åñëè åñòü ñâÿçè (ò.å. åñòü ÷òî-òî, ÷òî îïðåäåëÿåò ñèëû ïåðåä ñîðòèðîâêîé)
+    switch_pointers((void**)&(md->frs), (void**)&(md->sort_frs));   //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã , Ã¢Ã®Ã§Ã¬Ã®Ã¦Ã­Ã®, Ã·Ã²Ã® Ã²Ã®Ã«Ã¼ÃªÃ® Ã¥Ã±Ã«Ã¨ Ã¥Ã±Ã²Ã¼ Ã±Ã¢Ã¿Ã§Ã¨ (Ã².Ã¥. Ã¥Ã±Ã²Ã¼ Ã·Ã²Ã®-Ã²Ã®, Ã·Ã²Ã® Ã®Ã¯Ã°Ã¥Ã¤Ã¥Ã«Ã¿Ã¥Ã² Ã±Ã¨Ã«Ã» Ã¯Ã¥Ã°Ã¥Ã¤ Ã±Ã®Ã°Ã²Ã¨Ã°Ã®Ã¢ÃªÃ®Ã©)
     switch_pointers((void**)&(md->types), (void**)&(md->sort_types));
     if (use_bnd)
     {
@@ -99,7 +99,7 @@ __global__ void refresh_arrays(int use_bnd, int use_ang, cudaMD* md)
     //printf("end refresh arrays\n");
 }
 
-/* óæå åñòü â äðóãîì ìîäóëå
+/* Ã³Ã¦Ã¥ Ã¥Ã±Ã²Ã¼ Ã¢ Ã¤Ã°Ã³Ã£Ã®Ã¬ Ã¬Ã®Ã¤Ã³Ã«Ã¥
 __global__ void clear_list(int cellPerBlock, int cellPerThread, cudaMD* md)
 {
     int i;
@@ -129,7 +129,7 @@ __device__ void count_cell(int index, float3 xyz, cudaMD* md)
 
 __global__ void calc_firstAtomInCell(cudaMD* md)
 // define first index of atom in ordered array corresponding to each cell
-//! ýòîò êîä ïî ñóòè ñåðèéíûé
+//! Ã½Ã²Ã®Ã² ÃªÃ®Ã¤ Ã¯Ã® Ã±Ã³Ã²Ã¨ Ã±Ã¥Ã°Ã¨Ã©Ã­Ã»Ã©
 {
     int i;
     int cnt = 0;
@@ -159,11 +159,11 @@ __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerTh
         // copy data to ordered arrays:
         md->sort_xyz[j] = md->xyz[i];
         md->sort_vls[j] = md->vls[i];
-        md->sort_frs[j] = md->frs[i];   //! íå âñåãäà, âîçìîæíî, ÷òî òîëüêî åñëè åñòü ñâÿçè (ò.å. åñòü ÷òî-òî, ÷òî îïðåäåëÿåò ñèëû ïåðåä ñîðòèðîâêîé)
+        md->sort_frs[j] = md->frs[i];   //! Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã , Ã¢Ã®Ã§Ã¬Ã®Ã¦Ã­Ã®, Ã·Ã²Ã® Ã²Ã®Ã«Ã¼ÃªÃ® Ã¥Ã±Ã«Ã¨ Ã¥Ã±Ã²Ã¼ Ã±Ã¢Ã¿Ã§Ã¨ (Ã².Ã¥. Ã¥Ã±Ã²Ã¼ Ã·Ã²Ã®-Ã²Ã®, Ã·Ã²Ã® Ã®Ã¯Ã°Ã¥Ã¤Ã¥Ã«Ã¿Ã¥Ã² Ã±Ã¨Ã«Ã» Ã¯Ã¥Ã°Ã¥Ã¤ Ã±Ã®Ã°Ã²Ã¨Ã°Ã®Ã¢ÃªÃ®Ã©)
         md->sort_types[j] = md->types[i];
         md->sort_masses[j] = md->masses[i];
         md->sort_rMasshdT[j] = md->rMasshdT[i];
-        if (md->tstat == 2) // radiative thermostat /! òóò äîëæíà áûòü êîíñòàíòà ctTermRadi
+        if (md->tstat == 2) // radiative thermostat /! Ã²Ã³Ã² Ã¤Ã®Ã«Ã¦Ã­Ã  Ã¡Ã»Ã²Ã¼ ÃªÃ®Ã­Ã±Ã²Ã Ã­Ã²Ã  ctTermRadi
         {
             md->sort_engs[j] = md->engs[i];    // for radiative thermostat only
             md->sort_radii[j] = md->radii[i];    // for radiative thermostat only
@@ -172,8 +172,8 @@ __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerTh
         //printf("SORT ATOMS bef use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
         if (use_bnd)
         {
-            // ñîðòèðîâêó ðîäèòèåëåé íóæíî äåëàòü â äâà äåéñòâèÿ, ñíà÷àëà ïåðåìåùàåì çíà÷åíèå ðîäèòåëÿ íà íîâîå ìåñòî
-            // à ïîñêîëüêó çíà÷åíèå ðîäèòåëÿ âñå åù¸ â ñòàðîé òåðìèíîëîãèè, îòäåëüíûì êåðíåëîì ïåðåñ÷èòûâàåì åãî
+            // Ã±Ã®Ã°Ã²Ã¨Ã°Ã®Ã¢ÃªÃ³ Ã°Ã®Ã¤Ã¨Ã²Ã¨Ã¥Ã«Ã¥Ã© Ã­Ã³Ã¦Ã­Ã® Ã¤Ã¥Ã«Ã Ã²Ã¼ Ã¢ Ã¤Ã¢Ã  Ã¤Ã¥Ã©Ã±Ã²Ã¢Ã¨Ã¿, Ã±Ã­Ã Ã·Ã Ã«Ã  Ã¯Ã¥Ã°Ã¥Ã¬Ã¥Ã¹Ã Ã¥Ã¬ Ã§Ã­Ã Ã·Ã¥Ã­Ã¨Ã¥ Ã°Ã®Ã¤Ã¨Ã²Ã¥Ã«Ã¿ Ã­Ã  Ã­Ã®Ã¢Ã®Ã¥ Ã¬Ã¥Ã±Ã²Ã®
+            // Ã  Ã¯Ã®Ã±ÃªÃ®Ã«Ã¼ÃªÃ³ Ã§Ã­Ã Ã·Ã¥Ã­Ã¨Ã¥ Ã°Ã®Ã¤Ã¨Ã²Ã¥Ã«Ã¿ Ã¢Ã±Ã¥ Ã¥Ã¹Â¸ Ã¢ Ã±Ã²Ã Ã°Ã®Ã© Ã²Ã¥Ã°Ã¬Ã¨Ã­Ã®Ã«Ã®Ã£Ã¨Ã¨, Ã®Ã²Ã¤Ã¥Ã«Ã¼Ã­Ã»Ã¬ ÃªÃ¥Ã°Ã­Ã¥Ã«Ã®Ã¬ Ã¯Ã¥Ã°Ã¥Ã±Ã·Ã¨Ã²Ã»Ã¢Ã Ã¥Ã¬ Ã¥Ã£Ã®
             md->sort_parents[j] = md->parents[i];
             md->sort_nbonds[j] = md->nbonds[i];
         }
@@ -183,7 +183,7 @@ __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerTh
             md->sort_nangles[j] = md->nangles[i];
         }
         //printf("SORT ATOMS bef use_ang || use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
-        //! èëè åñëè èñïîëüçóåòñÿ âûâîä òðàåêòîðèé!
+        //! Ã¨Ã«Ã¨ Ã¥Ã±Ã«Ã¨ Ã¨Ã±Ã¯Ã®Ã«Ã¼Ã§Ã³Ã¥Ã²Ã±Ã¿ Ã¢Ã»Ã¢Ã®Ã¤ Ã²Ã°Ã Ã¥ÃªÃ²Ã®Ã°Ã¨Ã©!
         if (use_bnd || use_ang)
         {
             md->sort_oldTypes[j] = md->oldTypes[i];
