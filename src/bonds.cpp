@@ -31,7 +31,7 @@ int read_bondlist(Atoms *atm, Field *field, Sim *sim)
    if (f == NULL)
    {
        printf("WARNING[a001] bond list is used, but there is no such file. No bonds are downloaded\n");
-       //! временно! эта штука и задает максимальное количество связи и аллоцирует место. Надо чтобы максимальное число связей загружалось из директивы
+       //! ГўГ°ГҐГ¬ГҐГ­Г­Г®! ГЅГІГ  ГёГІГіГЄГ  ГЁ Г§Г Г¤Г ГҐГІ Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГҐ ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г±ГўГїГ§ГЁ ГЁ Г Г«Г«Г®Г¶ГЁГ°ГіГҐГІ Г¬ГҐГ±ГІГ®. ГЌГ Г¤Г® Г·ГІГ®ГЎГ» Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГҐ Г·ГЁГ±Г«Г® Г±ГўГїГ§ГҐГ© Г§Г ГЈГ°ГіГ¦Г Г«Г®Г±Гј ГЁГ§ Г¤ГЁГ°ГҐГЄГІГЁГўГ»
        alloc_bonds(6000, field);
        return 0;
    }
@@ -269,7 +269,7 @@ int read_bond(int id, FILE *f, Field *field, Sim *sim)
          bond->r2min *= bond->r2min;      // because single r in filed file
 
          // define that species consist bonds can change their quantity
-         //! это нужно делать, после того, как загрузим все связи
+         //! ГЅГІГ® Г­ГіГ¦Г­Г® Г¤ГҐГ«Г ГІГј, ГЇГ®Г±Г«ГҐ ГІГ®ГЈГ®, ГЄГ ГЄ Г§Г ГЈГ°ГіГ§ГЁГ¬ ГўГ±ГҐ Г±ГўГїГ§ГЁ
      }
      else
      {
@@ -291,7 +291,7 @@ int read_bond(int id, FILE *f, Field *field, Sim *sim)
          bond->r2max *= bond->r2max;      // because single r in filed file
 
          // define that species consist bonds can change their quantity
-         //! это нужно делать, после того, как загрузим все связи
+         //! ГЅГІГ® Г­ГіГ¦Г­Г® Г¤ГҐГ«Г ГІГј, ГЇГ®Г±Г«ГҐ ГІГ®ГЈГ®, ГЄГ ГЄ Г§Г ГЈГ°ГіГ§ГЁГ¬ ГўГ±ГҐ Г±ГўГїГ§ГЁ
      }
      else if (strcmp(key, "br") == 0)    // breakable  bond
      {
@@ -418,7 +418,7 @@ int create_bond(int at1, int at2, int type, Atoms *atm, Field *field)
    //printf("try to create #%d between %s and %s\n", type, field->species[atm->types[at1]].name, field->species[atm->types[at2]].name);
 
 /* NOW CORRECT BOND TYPES VERIFIED NOT HERE
-   // сразу развернем связь как надо и проверим, правильно ли связана
+   // Г±Г°Г Г§Гі Г°Г Г§ГўГҐГ°Г­ГҐГ¬ Г±ГўГїГ§Гј ГЄГ ГЄ Г­Г Г¤Г® ГЁ ГЇГ°Г®ГўГҐГ°ГЁГ¬, ГЇГ°Г ГўГЁГ«ГјГ­Г® Г«ГЁ Г±ГўГїГ§Г Г­Г 
    if (field->bdata[type].spec1br == atm->types[at1])
       {
           if (field->bdata[type].spec2br != atm->types[at2])
@@ -426,7 +426,7 @@ int create_bond(int at1, int at2, int type, Atoms *atm, Field *field)
       }
    else
       {
-        //! тут ещё проверку правильный ли первый атом
+        //! ГІГіГІ ГҐГ№Вё ГЇГ°Г®ГўГҐГ°ГЄГі ГЇГ°Г ГўГЁГ«ГјГ­Г»Г© Г«ГЁ ГЇГҐГ°ГўГ»Г© Г ГІГ®Г¬
         if (field->bdata[type].spec2br != atm->types[at1])
             printf("(B)create wrong bond type[%d] between %s and %s\n", type+1, field->species[atm->types[at1]].name, field->species[atm->types[at2]].name);
 
@@ -441,7 +441,7 @@ int create_bond(int at1, int at2, int type, Atoms *atm, Field *field)
       }
 */
 
-   //!!!проверка все ли связи нормальные
+   //!!!ГЇГ°Г®ГўГҐГ°ГЄГ  ГўГ±ГҐ Г«ГЁ Г±ГўГїГ§ГЁ Г­Г®Г°Г¬Г Г«ГјГ­Г»ГҐ
    /*
    int flag = 0;
    int obond = -1;
@@ -488,7 +488,7 @@ int create_bond(int at1, int at2, int type, Atoms *atm, Field *field)
       t1aft = field->bdata[type].spec1;
       t2aft = field->bdata[type].spec2;
 
-      //! сразу поменяем типы, чтобы не было противоречий
+      //! Г±Г°Г Г§Гі ГЇГ®Г¬ГҐГ­ГїГҐГ¬ ГІГЁГЇГ», Г·ГІГ®ГЎГ» Г­ГҐ ГЎГ»Г«Г® ГЇГ°Г®ГІГЁГўГ®Г°ГҐГ·ГЁГ©
       atm->types[at1] = t1aft;
       atm->types[at2] = t2aft;
 
@@ -545,7 +545,7 @@ int create_bond(int at1, int at2, int type, Atoms *atm, Field *field)
       */
 
 
-      //! сделал это в начале процедуры
+      //! Г±Г¤ГҐГ«Г Г« ГЅГІГ® Гў Г­Г Г·Г Г«ГҐ ГЇГ°Г®Г¶ГҐГ¤ГіГ°Г»
       //atm->types[at1] = t1aft;
       //atm->types[at2] = t2aft;
       field->species[t1bef].number--;
@@ -563,7 +563,7 @@ int create_bond(int at1, int at2, int type, Atoms *atm, Field *field)
       //printf("Bond[%d] %s[%d]-%s[%d] between %s and %s is created!\n", type, sp[t1aft].name, at1, sp[t2aft].name, at2, sp[t1bef].name, sp[t2bef].name);
 
       /*
-      //!!!проверка все ли связи нормальные
+      //!!!ГЇГ°Г®ГўГҐГ°ГЄГ  ГўГ±ГҐ Г«ГЁ Г±ГўГїГ§ГЁ Г­Г®Г°Г¬Г Г«ГјГ­Г»ГҐ
       //printf("after bonding verif\n");
       flag = 0;
       for (j = 0; j < field->nBonds; j++)
@@ -617,12 +617,12 @@ void destroy_bond(int bnd, Atoms *atm, Field *field, Bond *bond)
 
    bond->number--;
 
-   //! теперь это в начале процедуры на всякий случай
+   //! ГІГҐГЇГҐГ°Гј ГЅГІГ® Гў Г­Г Г·Г Г«ГҐ ГЇГ°Г®Г¶ГҐГ¤ГіГ°Г» Г­Г  ГўГ±ГїГЄГЁГ© Г±Г«ГіГ·Г Г©
    atm->types[a1] = t1aft;
    atm->types[a2] = t2aft;
 
 /*
-   //!Поиск дубликатных связей
+   //!ГЏГ®ГЁГ±ГЄ Г¤ГіГЎГ«ГЁГЄГ ГІГ­Г»Гµ Г±ГўГїГ§ГҐГ©
    for (j = 0; j < field->nBonds; j++)
      for (k = j + 1; k < field->nBonds - 1; k++)
         if (field->at1[j] > -1)
@@ -674,7 +674,7 @@ void destroy_bond(int bnd, Atoms *atm, Field *field, Bond *bond)
    if (atm->parents[a2] == a1)
       atm->parents[a2] = p2;
 
-   //! поставил это в начале процедуры для избежания перезаписи
+   //! ГЇГ®Г±ГІГ ГўГЁГ« ГЅГІГ® Гў Г­Г Г·Г Г«ГҐ ГЇГ°Г®Г¶ГҐГ¤ГіГ°Г» Г¤Г«Гї ГЁГ§ГЎГҐГ¦Г Г­ГЁГї ГЇГҐГ°ГҐГ§Г ГЇГЁГ±ГЁ
    //atm->types[a1] = t1aft;
    //atm->types[a2] = t2aft;
 
@@ -687,7 +687,7 @@ void destroy_bond(int bnd, Atoms *atm, Field *field, Bond *bond)
    field->at1[bnd] = -1;   // flag of destroying
 
 /*
-   //!Поиск дубликатных связей
+   //!ГЏГ®ГЁГ±ГЄ Г¤ГіГЎГ«ГЁГЄГ ГІГ­Г»Гµ Г±ГўГїГ§ГҐГ©
    for (j = 0; j < field->nBonds; j++)
      for (k = j + 1; k < field->nBonds - 1; k++)
         if (field->at1[j] > -1)
@@ -1077,14 +1077,14 @@ void exec_bondlist(Atoms *atm, Field *field, Sim *sim, Box *bx)
    Bond *btypes = field->bdata;
    Spec *sp = field->species;
 
-   //! заменить на постоянный массив
+   //! Г§Г Г¬ГҐГ­ГЁГІГј Г­Г  ГЇГ®Г±ГІГ®ГїГ­Г­Г»Г© Г¬Г Г±Г±ГЁГў
    bInds = (int*)malloc(mxBr * int_size);
 
    //i = field->nBonds-1;
    //printf("exec_bondlist. Last bond: %d-%d %d\n", barrs->at1[i], barrs->at2[i], barrs->types[i]);
 
 /*
-   //! поиск дубликатных связей
+   //! ГЇГ®ГЁГ±ГЄ Г¤ГіГЎГ«ГЁГЄГ ГІГ­Г»Гµ Г±ГўГїГ§ГҐГ©
    for (j = 0; j < field->nBonds; j++)
      for (k = j + 1; k < field->nBonds - 1; k++)
         if (field->at1[j] > -1)
@@ -1182,7 +1182,7 @@ void exec_bondlist(Atoms *atm, Field *field, Sim *sim, Box *bx)
    }
 
    //remove breaking bonds
-   //! nbr и k почти одно и то же!
+   //! nbr ГЁ k ГЇГ®Г·ГІГЁ Г®Г¤Г­Г® ГЁ ГІГ® Г¦ГҐ!
    if (nbr)
    {
       j = field->nBonds - 1;
@@ -1218,7 +1218,7 @@ void exec_bondlist(Atoms *atm, Field *field, Sim *sim, Box *bx)
    sim->engBond = eng;
 
 /*
-   //! поиск дубликатных связей
+   //! ГЇГ®ГЁГ±ГЄ Г¤ГіГЎГ«ГЁГЄГ ГІГ­Г»Гµ Г±ГўГїГ§ГҐГ©
    for (j = 0; j < field->nBonds; j++)
      for (k = j + 1; k < field->nBonds - 1; k++)
         if (field->at1[j] > -1)
