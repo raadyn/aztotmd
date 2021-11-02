@@ -459,7 +459,7 @@ int read_field(Field *field, Sim *sim)
               res = 0;
           else
           {
-              sim->use_bnd = 2;     // если все хорошо, переводим флаг use_bnd в значение "изменяющиеся связи"
+              sim->use_bnd = 2;     // ГҐГ±Г«ГЁ ГўГ±ГҐ ГµГ®Г°Г®ГёГ®, ГЇГҐГ°ГҐГўГ®Г¤ГЁГ¬ ГґГ«Г ГЈ use_bnd Гў Г§Г­Г Г·ГҐГ­ГЁГҐ "ГЁГ§Г¬ГҐГ­ГїГѕГ№ГЁГҐГ±Гї Г±ГўГїГ§ГЁ"
               sim->use_linkage = 1;
           }
   }
@@ -638,7 +638,7 @@ int read_sim(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat)
               if (sim->use_linkage)
                   alloc_bonds(5000, field); //! define this default value somewhere
               else
-                  sim->use_bnd = 0;   // если связей сразу нет и нет возможности их образовыватьт, скидвываем флаг на 0
+                  sim->use_bnd = 0;   // ГҐГ±Г«ГЁ Г±ГўГїГ§ГҐГ© Г±Г°Г Г§Гі Г­ГҐГІ ГЁ Г­ГҐГІ ГўГ®Г§Г¬Г®Г¦Г­Г®Г±ГІГЁ ГЁГµ Г®ГЎГ°Г Г§Г®ГўГ»ГўГ ГІГјГІ, Г±ГЄГЁГ¤ГўГ»ГўГ ГҐГ¬ ГґГ«Г ГЈ Г­Г  0
           }
       }
   }
@@ -650,7 +650,7 @@ int read_sim(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat)
      if (sim->use_linkage)
          alloc_bonds(5000, field); //! define this default value somewhere
      else
-         sim->use_bnd = 0;   // если связей сразу нет и нет возможности их образовыватьт, скидвываем флаг на 0
+         sim->use_bnd = 0;   // ГҐГ±Г«ГЁ Г±ГўГїГ§ГҐГ© Г±Г°Г Г§Гі Г­ГҐГІ ГЁ Г­ГҐГІ ГўГ®Г§Г¬Г®Г¦Г­Г®Г±ГІГЁ ГЁГµ Г®ГЎГ°Г Г§Г®ГўГ»ГўГ ГІГјГІ, Г±ГЄГЁГ¤ГўГ»ГўГ ГҐГ¬ ГґГ«Г ГЈ Г­Г  0
   }
 
   // pre-defined angle list
@@ -726,7 +726,7 @@ int read_sim(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat)
   //Temperature and thermostat parameters
   if (read_tstat(f, tstat, atm->nAt))
   {
-     sim->tTemp = tstat->Temp;  //! вообщем-то это ненужный параметр, в sim - фактическая температура, в термостате - целевая
+     sim->tTemp = tstat->Temp;  //! ГўГ®Г®ГЎГ№ГҐГ¬-ГІГ® ГЅГІГ® Г­ГҐГ­ГіГ¦Г­Г»Г© ГЇГ Г°Г Г¬ГҐГІГ°, Гў sim - ГґГ ГЄГІГЁГ·ГҐГ±ГЄГ Гї ГІГҐГ¬ГЇГҐГ°Г ГІГіГ°Г , Гў ГІГҐГ°Г¬Г®Г±ГІГ ГІГҐ - Г¶ГҐГ«ГҐГўГ Гї
   }
   else
      res = 0;
@@ -828,11 +828,11 @@ int read_sim(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat)
         }
 
         sim->rElec *= r_scale;     
-        //sim->r2Elec *= r_scale;     //! убрать из sim это поле //! опечатка? rElec instead of r2Elec? corrected above
+        //sim->r2Elec *= r_scale;     //! ГіГЎГ°Г ГІГј ГЁГ§ sim ГЅГІГ® ГЇГ®Г«ГҐ //! Г®ГЇГҐГ·Г ГІГЄГ ? rElec instead of r2Elec? corrected above
         //sim->double_pars[dpMaxCutJump] = sim->r2Elec;
         sim->r2Elec = sim->rElec * sim->rElec;
 
-        //! если есть связи, то они могут разрушаться или изменяться в ходе эл переноса
+        //! ГҐГ±Г«ГЁ ГҐГ±ГІГј Г±ГўГїГ§ГЁ, ГІГ® Г®Г­ГЁ Г¬Г®ГЈГіГІ Г°Г Г§Г°ГіГёГ ГІГјГ±Гї ГЁГ«ГЁ ГЁГ§Г¬ГҐГ­ГїГІГјГ±Гї Гў ГµГ®Г¤ГҐ ГЅГ« ГЇГҐГ°ГҐГ­Г®Г±Г 
         if (sim->use_bnd == 1)
             sim->use_bnd = 2;
   }
@@ -1052,7 +1052,7 @@ int init_md(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat, Box *b
 
 
     // calculated derived parameters of a force field (0.5*dt/mass)
-    //! может перенести в read_field? 
+    //! Г¬Г®Г¦ГҐГІ ГЇГҐГ°ГҐГ­ГҐГ±ГІГЁ Гў read_field? 
     for (i = 0; i < field->nSpec; i++)
         field->species[i].rMass_hdt = 0.5 * sim->tSt / field->species[i].mass;
 
@@ -1121,10 +1121,10 @@ int init_md(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat, Box *b
 
 int init_serial(Atoms* atm, Field* field, Sim* sim, Elec* elec, TStat* tstat, Box* bx)
 // allocate auxilary arrays for serial code, define function variables
-//! вынести эту функцию в модуль отдельный для серийной версии, чтобы подключать по необходимости только её
+//! ГўГ»Г­ГҐГ±ГІГЁ ГЅГІГі ГґГіГ­ГЄГ¶ГЁГѕ Гў Г¬Г®Г¤ГіГ«Гј Г®ГІГ¤ГҐГ«ГјГ­Г»Г© Г¤Г«Гї Г±ГҐГ°ГЁГ©Г­Г®Г© ГўГҐГ°Г±ГЁГЁ, Г·ГІГ®ГЎГ» ГЇГ®Г¤ГЄГ«ГѕГ·Г ГІГј ГЇГ® Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г®Г±ГІГЁ ГІГ®Г«ГјГЄГ® ГҐВё
 {
     int res = 1;    // function result
-    //! здесь же инициализации rdf, массивов для Эвальда и т.д.
+    //! Г§Г¤ГҐГ±Гј Г¦ГҐ ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶ГЁГЁ rdf, Г¬Г Г±Г±ГЁГўГ®Гў Г¤Г«Гї ГќГўГ Г«ГјГ¤Г  ГЁ ГІ.Г¤.
 
     // try to initialize cell list:
     if ((sim->flags >> bfSimUseCList) & 1)
