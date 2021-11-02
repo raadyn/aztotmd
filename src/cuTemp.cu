@@ -39,10 +39,6 @@ void init_cuda_tstat(int nAt, TStat *tstat, cudaMD *hmd, hostManagMD *man)
             vecs[i] = make_float3((float)tstat->randVx[i], (float)tstat->randVy[i], (float)tstat->randVz[i]);
             engs[i] = 0.f;
             radii[i] = 0.577f + rand01() * 0.0001f;    // values must be initialized to avoid division by zero in some radii-dependet pair potential
-            //radii[i] = 0.577f;
-            //if (i % 200 == 0)
-              //  radii[i] = 0.578;
-            //radii[i] = 0.6f;
             radstep[i] = 0;
         }
         data_to_device((void**)(&hmd->engPhotons), phs, nAt * float_size);
@@ -96,13 +92,6 @@ __global__ void temp_scale(int atPerBlock, int atPerThread, cudaMD* md)
     else
         c = 1.f;
     k = sqrt(c * md->teKin / md->engKin);    //! it the same value for all threads
-    /*
-    if (blockIdx.x == 0)
-        if (threadIdx.x == 0)   
-        {
-            printf("vel sclaling k=%f\n", k);
-        }
-    */
 
     for (i = id0; i < N; i++)
     {
@@ -113,16 +102,7 @@ __global__ void temp_scale(int atPerBlock, int atPerThread, cudaMD* md)
         atomicAdd(&(md->nCult[i]), 1);
 #endif 
     }
-    
-    /*
-    //set kinetic energy equal to the target value
-    if (blockIdx.x == 0)
-        if (threadIdx.x == 0)   // 0th thread
-        {
-            md->engKin = md->teKin;
-        }
-
-     */
+  
 }
 //end 'temp_scale' function
 
@@ -140,18 +120,6 @@ __global__ void before_nose(cudaMD* md)
 #endif
     md->chit += md->tSt * (md->engKin - md->teKin) * md->rQmass;
     md->tscale = 1.f - md->tSt * md->chit;
-    //printf("tscale=%f\n", md->tscale);
-#ifdef DEBUG1_MODE
-    if ((md->tscale > 4.f)||(md->tscale < 0.f))
-    {
-        printf("tscale=%f chit=%f->%f Kin=%f int=%f | targ Kin=%f rQmass=%f\n", md->tscale, old_chit, md->chit, md->engKin, md->consInt, md->teKin, md->rQmass);
-        if (md->tscale > 4.f)
-            md->tscale = 0.98f;
-        if (md->tscale < 0.f)
-            md->tscale = 0.2;
-        md->chit = 0.f;
-    }
-#endif
 }
 
 __global__ void tstat_nose(int atPerBlock, int atPerThread, cudaMD* md)
@@ -164,10 +132,6 @@ __global__ void tstat_nose(int atPerBlock, int atPerThread, cudaMD* md)
 #ifdef DEBUG1_MODE
     float3 old_vel;
 #endif
-
-    //if (threadIdx.x == 0)
-      //  if (blockIdx.x == 0)
-        //    printf("tscale=%f\n", md->tscale);
 
     for (i = id0; i < N; i++)
     {
@@ -196,17 +160,6 @@ __global__ void after_nose(int refresh_kin, cudaMD* md)
         md->engKin = md->engKin * md->tscale * md->tscale;
     md->consInt += md->tSt * md->chit * md->qMassTau2;
     md->chit += md->tSt * (md->engKin - md->teKin) * md->rQmass; // new kinetic energy (отличие от первого действия этой процедуры)
-
-#ifdef DEBUG_MODE
-    int i;
-    if (threadIdx.x == 0)
-        for (i = 1; i < md->nBndTypes; i++)
-            if ((md->bondTypes[i].spec1 < 0) || (md->bondTypes[i].spec2 < 0) || (md->bondTypes[i].spec1 >= MX_SPEC) || (md->bondTypes[i].spec2 >= MX_SPEC))
-            {
-                printf("aft after_nose: bnd[%d] spec1=%d spec2=%d\n", i, md->bondTypes[i].spec1, md->bondTypes[i].spec2);
-                md->xyz[9999999999].x = 15.f;  // crash cuda
-            }
-#endif
 }
 
 __global__ void zero_engKin(cudaMD* md)
@@ -278,36 +231,6 @@ __device__ float3 rand_uvect(uint4 &var, cudaMD* md)
 {
     int rnd = rnd_xor128(var) % dnUvect;
     return md->uvects[rnd];
-
-/*
-    float3 res;
-    double x, y, z, cost;
-    unsigned int rnd, rnd1;
-    rnd = rnd_xor128(var) % 2;
-    //rnd = (rnd_xor128(md->ui4rnd) + blockIdx.x * blockDim.x + threadIdx.x) % 16;
-    rnd1 = rnd_xor128(var) % 4;
-    //rnd1 = (rnd_xor128(md->ui4rnd) + blockIdx.x * blockDim.x + threadIdx.x) % 16;
-
-    double theta = 3.14159265 * double(rnd) / 2.0;
-    double phi = 2 * 3.14159265 * double(rnd1) / 4.0;
-    sincos(theta, &z, &cost);
-    sincos(phi, &y, &x);
-    x *= cost;
-    y *= cost;
-    res = make_float3((float)x, (float)y, (float)z);
-*/
-
-    /*
-    rnd = rnd_xor128(var) % 2;
-    if (rnd)
-    {
-        res = make_float3(1.f, 0.f, 0.f);
-    }
-    else
-        res = make_float3(-1.f, 0.f, 0.f);
-    */
-    //printf("[%d, %d] rnd=%d rnd2=%d theta=%f phi=%f(%f, %f, %f)\n", blockIdx.x, threadIdx.x, rnd, rnd1, theta, phi, res.x, res.y, res.z);
-    //return res;
 }
 
 __device__ float3 rand_usphere(uint4& var, cudaMD* md)
@@ -363,9 +286,6 @@ __device__ float3 rand_neg_vect(float3 vect, uint4& var /*cudaMD* md*/)
     res.y /= leng;
     res.z /= leng;
 
-    //printf("vls(%f %f %f) and res(%f %f %f) leng=%f\n", vect.x, vect.y, vect.z, res.x, res.y, res.z, leng);
-
-    //printf("[%d, %d] rnd=%d rnd2=%d theta=%f phi=%f(%f, %f, %f)\n", blockIdx.x, threadIdx.x, rnd, rnd1, theta, phi, res.x, res.y, res.z);
     return res;
 }
 
@@ -401,9 +321,6 @@ __device__ float3 rand_pos_vect(float3 vect, uint4& var /*cudaMD* md*/)
     res.y /= leng;
     res.z /= leng;
 
-    //printf("vls(%f %f %f) and res(%f %f %f) leng=%f\n", vect.x, vect.y, vect.z, res.x, res.y, res.z, leng);
-
-    //printf("[%d, %d] rnd=%d rnd2=%d theta=%f phi=%f(%f, %f, %f)\n", blockIdx.x, threadIdx.x, rnd, rnd1, theta, phi, res.x, res.y, res.z);
     return res;
 }
 
@@ -411,12 +328,10 @@ __global__ void laser_cooling(int sign, int atPerBlock, int atPerThread, cudaMD*
 // adsorb photon with direction to atom and then radiate photon in random direction
 {
     __shared__ int indEng, indVect;
-    //__shared__ uint4 randVar;
     if (threadIdx.x == 0)
     {
         indEng = atomicAdd(&(md->curEng), 1);   // get current index in photon energies array
         indVect = atomicAdd(&(md->curVect), 1);   // get current index in photon energies array
-        //randVar = md->ui4rnd;
     }
     __syncthreads();
     uint4 randVar = md->ui4rnd;
@@ -435,7 +350,6 @@ __global__ void laser_cooling(int sign, int atPerBlock, int atPerThread, cudaMD*
     float3 vect;    // vector for velocity adding
 
     // v = v +– E/(c*m) * u
-    //! пока принебрежем рандомизацией внтури блока
     for (i = id0; i < N; i++)
     {
         ei = e0 + i;
@@ -449,28 +363,16 @@ __global__ void laser_cooling(int sign, int atPerBlock, int atPerThread, cudaMD*
         if (rmc * md->engPhotons[ei] * md->randVects[vi].x > 1.f)
             printf("too high momentum: rmc=%f photon[%d]=%f rand[%d]=%f i=%d id0=%d\n", rmc, e0 + i, md->engPhotons[ei], v0 + i, md->randVects[vi].x, i, id0);
 
-        //if (i == 0)
-          //  printf("therm eng[0]=%f sign=%d\n", md->engs[i], sign);
-
-        //if (i == 0)
-          //  printf("rand=%d\n", rnd_xor128(md->ui4rnd) % 10);
-        
         if (sign == 1)
         {
-            //if (md->engs[i] < 4.2)
-            {
-                //vect = md->randVects[vi];
-                //vect = rand_uvect(randVar);
                 pe = md->engPhotons[ei];
                 md->engs[i] += pe;
                 leng = float3_length(md->vls[i]);
                 if (leng > 0.f)
                     vect = make_float3(-md->vls[i].x / leng, -md->vls[i].y / leng, -md->vls[i].z / leng);
-            }
         }
         else
         {
-            //continue;
             if (md->engs[i] > 0.f) // 64.2 = enthalpy of argon at 298 K and 1 atm in eV/particle
             {
                 pe = md->engs[i];
@@ -479,26 +381,16 @@ __global__ void laser_cooling(int sign, int atPerBlock, int atPerThread, cudaMD*
             }
             else
                 continue;
-            // единичный вектор скорости, противоположный данному движению атома
-            //leng = float3_length(md->vls[i]);
-            //vect = make_float3(-md->vls[i].x / leng, -md->vls[i].y / leng, -md->vls[i].z / leng);
-            //vect = md->randVects[vi];
             vect = rand_uvect(randVar, md);
         }
 
-        // sign убрал из произведения, он определяет вектор направления
         md->vls[i].x = md->vls[i].x + rmc * pe * vect.x;
         md->vls[i].y = md->vls[i].y + rmc * pe * vect.y;
         md->vls[i].z = md->vls[i].z + rmc * pe * vect.z;
-        //printf("%d->%d,%d(%d, %d)) rmc=%f e=%f, v=%f: vel=%f -> %f\n", i, e0 + i, v0 + i, e0, v0, rmc, md->engPhotons[e0 + i], md->randVects[v0 + i].x, vls0, md->vls[i].x);
-        if (isnan(md->vls[i].x))
-            printf("v[%d]=%f -> %f, rmc=%f e=%f, v=%f sign=%d leng=%f\n", i, vls0, md->vls[i].x, rmc, md->engPhotons[ei], vect.x, sign, leng);
     }
     if (threadIdx.x == 0)
         rnd_xor128(md->ui4rnd);
-
 }
-
 
 __device__ float3 get_angled_vector(float3 invec, float cos_phi, float theta)
 // return unit vector at angle from given and with rotation angle theta
@@ -544,16 +436,11 @@ __device__ float3 get_angled_vector(float3 invec, float cos_phi, float theta)
     v3.y /= leng3;
     v3.z /= leng3;
 
-    //printf("verifiyng: v1^2=%f v2^2=%f v3^2=%f v1*v2=%f v1*v3=%f v2*v3=%f\n", float3_leng(v1), float3_leng(v2), float3_leng(v1), v1.x * v2.x + v1.y * v2.y + v1.z * v2.z, v1.x * v3.x + v1.y * v3.y + v1.z * v3.z, v3.x * v2.x + v3.y * v2.y + v3.z * v2.z);
 
     float sinPhi, sinTh, cosTh; //, cosPhi;
     //sincos(phi, &sinPhi, &cosPhi);
     sinPhi = sqrt(1 - cos_phi * cos_phi);
     sincos(theta, &sinTh, &cosTh);
-
-    //float x0 = cos_phi;// cosPhi;
-    //float y0 = sinPhi * sinTh;
-    //float z0 = sinPhi * cosTh;
 
     // parameteric equation of circle (+ point at initial vector, but with length of cosine phi):
     //r = r0 + R cos φ i1 / |i1 | +R sin φ j1 / |j1 |
@@ -571,21 +458,17 @@ __device__ int modify_vel(float3* vel, float mass, int sign, float eng, uint4 &r
     float rm = 1.f / mass;
     float v0 = float3_length(*vel);
 
-    //! отдельно обработать ситуацию, когда v0 == 0
     float in_sqrt = v0 * v0 + sign * 2.f * rm * eng;
     if (in_sqrt < 0.f)
         return 0;
     float v1 = sqrt(in_sqrt);
     // cosine theorem:
-    //float cosPhi = (mass * mass * (in_sqrt + v0 * v0) - eng * eng * revLight * revLight) / (2.f * mass * mass * v0 * v1); // in_sqrt = v1^2
     float cosPhi = (mass * mass * v1 * v1 + mass * mass * v0 * v0  - eng * eng * revLight * revLight) / (2.f * mass * mass * v0 * v1); // in_sqrt = v1^2
     if ((cosPhi < -1.f) || (cosPhi > 1.f))
     {
         printf("wrong cosine: %f v0=%f v1=%f mass=%f ph_eng=%f kin0=%f sign=%d ph_mom=%f mv=%f\n", cosPhi, v0, v1, mass, eng, mass * v0 * v0, sign, eng*revLight, mass * v0);
         return 0;
     }
-    printf("ok\n");
-
 
     // random angle from 0 to 2PI:
     float theta = (rnd_xor128(rnd_var) % 32) / 16 * 3.1415926f;
@@ -604,9 +487,6 @@ __device__ void adsorb_rand_photon(float3 *vel, float *int_eng, float mass, floa
     float u0 = *int_eng;
     float v02 = float3_sqr(*vel);   // square of initial velocity
     float3 rand_vect = rand_uvect(rand_var, md);
-    //float3 rand_vect = rand_usphere(rand_var, md);
-    //if (rand_vect.x < 0)
-      //  printf("rand(%f %f %f).x < 0\n", rand_vect.x, rand_vect.y, rand_vect.z);
 
     // momentum conservation:
     float ermc = eng * revLight / mass;
@@ -617,10 +497,6 @@ __device__ void adsorb_rand_photon(float3 *vel, float *int_eng, float mass, floa
     float v12 = float3_sqr(*vel);
     // energy conservation: old kinetic energy + photon energy = new kinetic energy + 'internal' energy
     *int_eng += eng + 0.5f * mass * (v02 - v12);
-    //if (blockIdx.x == 0)
-      //  if (threadIdx.x == 0)
-        //    printf("adsorb photon U=%f->%f: ph_e=%f, K0=%f K1=%f\n", u0, *int_eng, eng, eng + 0.5f * mass * (v02 - v12), eng, 0.5f * mass * v02, 0.5f * mass * v12);
-
     if (out)
         printf("adsorb photon U=%f->%f: ph_e=%f, K0=%f K1=%f v0=%f v1=%f\n", u0, *int_eng, eng, eng + 0.5f * mass * (v02 - v12), eng, 0.5f * mass * v02, 0.5f * mass * v12, sqrt(v02), sqrt(v12));
 
@@ -706,7 +582,6 @@ __device__ void radiate_photon2(float3* vel, float* int_eng, float mass, uint4& 
     // define photon energy
     rnd = rnd_xor128(rand_var) % 2048;
     
-    //! попробуем наоборот, выразим энергию как часть от внутренней, а потом сравним с 2vmc * cos
     float ph_eng = (float)rnd / 2048.f * (*int_eng * 0.99f);    // 0.99f - нужно подстраховаться, чтобы осталась энергия на изменение кинетической энергии
     float ermc = ph_eng * revLight / mass;
 
@@ -741,7 +616,6 @@ __device__ void radiate_photon2(float3* vel, float* int_eng, float mass, uint4& 
     rnd = rnd_xor128(rand_var) % 2048;
     float theta = (float)rnd / 1024.f * numPi;  // 0 .. 2PI
     float3 rand_vect = get_angled_vector(*vel, cos_phi, theta);
-    //printf("cos: %f\n", cos_phi);
 
     // momentum conservation:
     vel->x += ermc * rand_vect.x;   // -  because we chose positive cosine
@@ -751,8 +625,6 @@ __device__ void radiate_photon2(float3* vel, float* int_eng, float mass, uint4& 
     float v12 = float3_sqr(*vel);   // square of initial velocity
     // energy conservation:
     *int_eng -= (ph_eng + 0.5f * mass * (v12 - v02));
-    //if (out)
-       // printf("energy decreasing %f -> %f(%f). ph_e=%f, v0=%f v1=%f\n", u0, *int_eng, ph_eng + 0.5f * mass * (v12 - v02), ph_eng, v0, sqrt(v12));
 
 }
 
@@ -766,8 +638,6 @@ __device__ void radiate_photon3(float3* vel, float* int_eng, float mass, uint4& 
 
     float ph_eng = 0.9f * u0;
     float ermc = ph_eng * revLight / mass;
-
-
 
     // random radiation
     // or not so random
@@ -812,16 +682,6 @@ __device__ void radiate_photon3(float3* vel, float* int_eng, float mass, uint4& 
     float v12 = float3_sqr(*vel);   // square of initial velocity
     // energy conservation:
     *int_eng -= (ph_eng + 0.5f * mass * (v12 - v02));
-    if (out)
-       printf("energy decreasing %f -> %f(%f). ph_e=%f, v0=%f v1=%f dK=%f\n", u0, *int_eng, ph_eng + 0.5f * mass * (v12 - v02), ph_eng, sqrt(v02), sqrt(v12), 0.5f * mass * (v12 - v02));
-
-    if (flag)
-        printf("negative cosine %f -> %f(%f). ph_e=%f, v0=%f v1=%f dK=%f\n", u0, *int_eng, ph_eng + 0.5f * mass * (v12 - v02), ph_eng, sqrt(v02), sqrt(v12), 0.5f*mass*(v12-v02));
-
-    if (isnan(*int_eng))
-        printf("rad_photon3: U is nan: u0=%f ph_en=%f v02=%f v12=%f\n", u0, ph_eng, v02, v12);
-    if (isnan(vel->x))
-        printf("rad_photon3: v is nan\n");
 }
 
 
@@ -840,9 +700,7 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
     __syncthreads();
     uint4 randVar = md->ui4rnd;
 
-    //double leng;
     double pe;      // photon energy
-    //double vls0;
     int i, e0;// , v0;
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
@@ -850,14 +708,10 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
     e0 = indEng * atPerBlock + threadIdx.x * atPerThread - id0;
 
     int ei;// , vi;
-    //float3 vect;    // vector for velocity adding
-    //const float enth = 0.032f;// 0.0477f;     // constant enthalpy, temporary
     int rnd;
     double x, freq, teng = 0.f;
-    //double tm;  // time from previous radiation
 
     // v = v +– E/(c*m) * u
-    //! пока принебрежем рандомизацией внтури блока
     for (i = id0; i < N; i++)
     {
         // calculate time from previous photon adsorption/radiation:
@@ -869,11 +723,8 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
 
         // photon frequency
         pe = md->engPhotons[ei];
-        if (isnan(pe))
-            printf("step:%d, i=%d, photon energy is nan!\n", iStep, i);
 /*
         freq = pe * revPlank;
-
         if (freq * tm < 1.f)
         {
             rnd = rnd_xor128(randVar) % 2048;
@@ -881,10 +732,7 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
             if (x > freq * tm)
                 continue;
         }
-
 */
-        //if (i == 0)
-          //  printf("iStep=%d dStep=%d eng=%f\n", iStep, iStep - md->radstep[i], md->engs[i]);
 
         int rnd;
         rnd = rnd_xor128(randVar) % 8;
@@ -904,33 +752,16 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
                 radiate_photon3(&(md->vls[i]), &(md->engs[i]), md->masses[i], randVar, md, 0/*(i == 0)&&(iStep % 200 == 0)*/);
         }
 
-        if (isnan(md->vls[i].x))
-            printf("aft tstat 9 vls[%d].x is nan", i);
-        if (isnan(md->vls[i].y))
-            printf("aft tstat 9 vls[%d].y is nan", i);
-        if (isnan(md->vls[i].z))
-            printf("aft tstat 9 vls[%d].z is nan", i);
-
         // calculate atom radius (thermal exicated)
            // r = A/(B - eng)
         int tp = md->types[i];
         float restrE = min(md->engs[i], md->specs[tp].mxEng);
         md->radii[i] = md->specs[tp].radA / (md->specs[tp].radB - restrE);
-        //md->radii[i] = 0.577;
-        //printf("ra = %f\n", rad);
-
 
         teng += md->engs[i];
-        if (isnan(teng))
-            printf("aft tstat 9 teng is nan, step:%d", iStep);
 
         // refresh last radiation time
         //md->radstep[i] = iStep;
-
-
-        //printf("%d->%d,%d(%d, %d)) rmc=%f e=%f, v=%f: vel=%f -> %f\n", i, e0 + i, v0 + i, e0, v0, rmc, md->engPhotons[e0 + i], md->randVects[v0 + i].x, vls0, md->vls[i].x);
-        //if (isnan(md->vls[i].x))
-          //  printf("v[%d]=%f -> %f, rmc=%f e=%f, v=%f step=%d leng=%f\n", i, vls0, md->vls[i].x, rmc, md->engPhotons[ei], vect.x, iStep, leng);
     }
 
     atomicAdd(&engTemp, teng);
@@ -963,31 +794,10 @@ void apply_tstat(int iStep, TStat *tstat, Sim *sim, cudaMD *devMD, hostManagMD *
         cudaThreadSynchronize();
         after_nose<<<1, 1>>>(1, devMD);
         cudaThreadSynchronize();
-        //get_random << <man->nAtBlock, man->nAtThread >> > (devMD);
         break;
     case tpTermRadi:
-        //if ((iStep % tstat->step) == 0)
-          //  man->tstat_sign = 1;
-        //else
-          //  man->tstat_sign = 0;
-        //if ((iStep % 25 == 0)||(iStep < 2000))
-        //if (iStep < 5)
-        //if (iStep % 100 == 0)
-        if (iStep < 200)
-        {
-            tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
-            cudaThreadSynchronize();
-        }
-        if (iStep < 5000)
-        {
-            tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
-            cudaThreadSynchronize();
-        }
-        if (iStep % 50 == 0)
-        {
-            tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
-            cudaThreadSynchronize();
-        }
+        tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
+        cudaThreadSynchronize();
         break;
     }
 }
