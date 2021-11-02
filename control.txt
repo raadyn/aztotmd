@@ -1,0 +1,34 @@
+timestep 0.001 ps
+nstep 500000
+nequil  10000
+eqfreq 2500
+temperature 500.0	radi	0.2
+// nose 0.2
+init_vel	zero	0.0332
+//было zero/gaus/const/keng
+
+permittivity  1.0 
+//this is e in 1/(4pi * e *e0)
+
+cell_list	2.7
+max_neigh	185
+
+
+elec	fenn	8.0	0.4	6	6	6
+
+
+
+//RDF OUTPUT
+rdf	8.0   0.02	10	5000	-nucl
+
+
+eJump	0	1.7	metr
+
+// external field
+Ux		0.0
+
+//OUTPUT
+revcon		50000
+stat		200
+
+
