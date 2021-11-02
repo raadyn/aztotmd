@@ -212,12 +212,12 @@ void pass_periodic(int iat, int jat, Atoms *atm, Box *box, int &px, int &py, int
    //double dy = atm->ys[iat] - atm->ys[jat];
    //double dz = atm->zs[iat] - atm->zs[jat];
 
-   if (dx > box->ha) // второй атом в отрицательном отображении
+   if (dx > box->ha) // ГўГІГ®Г°Г®Г© Г ГІГ®Г¬ Гў Г®ГІГ°ГЁГ¶Г ГІГҐГ«ГјГ­Г®Г¬ Г®ГІГ®ГЎГ°Г Г¦ГҐГ­ГЁГЁ
      {
        px = -1;
      }
    else
-     if (dx < box->nha) //  второй атом в положительном отображении
+     if (dx < box->nha) //  ГўГІГ®Г°Г®Г© Г ГІГ®Г¬ Гў ГЇГ®Г«Г®Г¦ГЁГІГҐГ«ГјГ­Г®Г¬ Г®ГІГ®ГЎГ°Г Г¦ГҐГ­ГЁГЁ
        {
           px = 1;
        }
