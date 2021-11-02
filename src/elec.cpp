@@ -177,7 +177,7 @@ void ewald_rec(Atoms *atm, Field *field, Elec *elec, Box *bx, Sim *sim)
    int ky = elec->ky;
    int kz = elec->kz;
    Spec *sp = field->species;
-   // double rkcut2 = sim->rkcut2;  //! В DL_POLY это вычисляемая величина
+   // double rkcut2 = sim->rkcut2;  //! Г‚ DL_POLY ГЅГІГ® ГўГ»Г·ГЁГ±Г«ГїГҐГ¬Г Гї ГўГҐГ«ГЁГ·ГЁГ­Г 
    //printf("ewald_rec Nat=%d kx=%d ky=%d kz=%d  rkut2=%f\n", Nat, kx, ky, kz, ew->rkcut2);
 
    double **elc = elec->elc;
@@ -193,7 +193,7 @@ void ewald_rec(Atoms *atm, Field *field, Elec *elec, Box *bx, Sim *sim)
    double *cks = elec->cks;
 
    eng = 0.0;
-   //! тут всё верно для прямоугольной геометрии. Если ячейка будет кривая, код нужно править
+   //! ГІГіГІ ГўГ±Вё ГўГҐГ°Г­Г® Г¤Г«Гї ГЇГ°ГїГ¬Г®ГіГЈГ®Г«ГјГ­Г®Г© ГЈГҐГ®Г¬ГҐГІГ°ГЁГЁ. Г…Г±Г«ГЁ ГїГ·ГҐГ©ГЄГ  ГЎГіГ¤ГҐГІ ГЄГ°ГЁГўГ Гї, ГЄГ®Г¤ Г­ГіГ¦Г­Г® ГЇГ°Г ГўГЁГІГј
    for (i = 0; i < Nat; i++)
      {
         // exp (i 2pi * 0 * l) for em- and en- arrays this step omitted as they set in 'init_ewald'
@@ -269,7 +269,7 @@ void ewald_rec(Atoms *atm, Field *field, Elec *elec, Box *bx, Sim *sim)
                    // rk2 = (2pi * l / a)^2 + (2pi * m / b)^2 + (2pi * n / c)^2   !only for rectangular geometry!
                    //rk2 = twopi2 * (l * l * bx->ra2 + m * m * bx->rb2 + n * n * bx->rc2);
                    rk2 = rkx * rkx + rky * rky + rkz * rkz;
-                   //! у нас cuttof и rk2 возможно в разных единицах измерения, надо это провентилировать
+                   //! Гі Г­Г Г± cuttof ГЁ rk2 ГўГ®Г§Г¬Г®Г¦Г­Г® Гў Г°Г Г§Г­Г»Гµ ГҐГ¤ГЁГ­ГЁГ¶Г Гµ ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГї, Г­Г Г¤Г® ГЅГІГ® ГЇГ°Г®ГўГҐГ­ГІГЁГ«ГЁГ°Г®ГўГ ГІГј
                    //printf("rk2 * rkcut2 :  %f  *  %f\n", rk2, ew->rkcut2);
                    if (rk2 < elec->rkcut2) // cutoff
                      {
@@ -305,7 +305,7 @@ void ewald_rec(Atoms *atm, Field *field, Elec *elec, Box *bx, Sim *sim)
 
                         for (i = 0; i < Nat; i++)
                           {
-                             //! rkx = 2pi * l / a - посмотреть что быстрее, вводить rkx, rky и rkz или сделать как щас
+                             //! rkx = 2pi * l / a - ГЇГ®Г±Г¬Г®ГІГ°ГҐГІГј Г·ГІГ® ГЎГ»Г±ГІГ°ГҐГҐ, ГўГўГ®Г¤ГЁГІГј rkx, rky ГЁ rkz ГЁГ«ГЁ Г±Г¤ГҐГ«Г ГІГј ГЄГ ГЄ Г№Г Г±
                              x = akk * (cks[i] * sumC - ckc[i] * sumS);
                              // in DLPOLY there is a factor  4 * pi / V / (4piee0):
                              x *= elec->scale2;
@@ -329,7 +329,7 @@ void ewald_rec(Atoms *atm, Field *field, Elec *elec, Box *bx, Sim *sim)
 
     //printf("rvol=%f, coul-scale=%f,  eng=%f\n", bx->rvol, Fcoul_scale, eng);
 
-    //! надо ещё добавить эти постоянные члены
+    //! Г­Г Г¤Г® ГҐГ№Вё Г¤Г®ГЎГ ГўГЁГІГј ГЅГІГЁ ГЇГ®Г±ГІГ®ГїГ­Г­Г»ГҐ Г·Г«ГҐГ­Г»
     //printf("ewald_rec=%f\n", scale * eng);
     sim->engElec2 = elec->scale * eng;
 }
@@ -346,7 +346,7 @@ double coul_iter(double r2, double &r, double chprd, double alpha, double &eng)
 //  r2 - square of distance, chi, chj - charges of i and j particles
 //  chprd - production of charges
 //  eng - for saving energy
-//! тут надо ещё ввести эпсилон в закон кулона
+//! ГІГіГІ Г­Г Г¤Г® ГҐГ№Вё ГўГўГҐГ±ГІГЁ ГЅГЇГ±ГЁГ«Г®Г­ Гў Г§Г ГЄГ®Г­ ГЄГіГ«Г®Г­Г 
 {
    //double r;
    double ar; //alpha * r
@@ -356,7 +356,7 @@ double coul_iter(double r2, double &r, double chprd, double alpha, double &eng)
    //brute force calc:
    if (r == 0)
      r = sqrt(r2);  // if r is unknown, calculate it
-   //! надо предусмотреть вариант, когда r2 неизвестно
+   //! Г­Г Г¤Г® ГЇГ°ГҐГ¤ГіГ±Г¬Г®ГІГ°ГҐГІГј ГўГ Г°ГЁГ Г­ГІ, ГЄГ®ГЈГ¤Г  r2 Г­ГҐГЁГ§ГўГҐГ±ГІГ­Г®
    ar = alpha * r;
    erfcar = erfc(ar);
 
@@ -383,7 +383,7 @@ void prepare_elec(Atoms *atm, Field *field, Elec *elec, Sim *sim, Box *bx)
        elec->mr4a2 = -0.25 / elec->alpha / elec->alpha; // -1/(4a^2)
 
        elec->rkcut = kx * bx->ip1;
-       //! найти её один раз и вперёд - наименьшая среди ka * ipa
+       //! Г­Г Г©ГІГЁ ГҐВё Г®Г¤ГЁГ­ Г°Г Г§ ГЁ ГўГЇГҐГ°ВёГ¤ - Г­Г ГЁГ¬ГҐГ­ГјГёГ Гї Г±Г°ГҐГ¤ГЁ ka * ipa
        if (elec->rkcut > ky * bx->ip2)
          elec->rkcut = ky * bx->ip2;
        //printf("ip2=%f  2pi=%f rkcut=%f\n", bx->ip2, twopi, ew->rkcut);
@@ -396,7 +396,7 @@ void prepare_elec(Atoms *atm, Field *field, Elec *elec, Sim *sim, Box *bx)
 
        sim->engElec1 = ewald_const(atm, field->species, elec, bx); // constant part of Ewald
    }
-   else if (elec->type == tpElecFennel)  //! вообще тут надо поставить switch, а ещё вообще - вынести в read
+   else if (elec->type == tpElecFennel)  //! ГўГ®Г®ГЎГ№ГҐ ГІГіГІ Г­Г Г¤Г® ГЇГ®Г±ГІГ ГўГЁГІГј switch, Г  ГҐГ№Вё ГўГ®Г®ГЎГ№ГҐ - ГўГ»Г­ГҐГ±ГІГЁ Гў read
    {
        double aRc = elec->alpha * elec->rReal;
        elec->daipi2 = 2 * elec->alpha / sqrtpi;
@@ -407,30 +407,30 @@ void prepare_elec(Atoms *atm, Field *field, Elec *elec, Sim *sim, Box *bx)
 
 void direct_ewald(Spec *sp, int it, int jt, double r2, double r, Elec *elec, Sim *sim, double &force)
 {
-    if (sp[it].charged)  //! ещё одна возможная оптимизация, составить массив произведений зарядов [i][j]
-      if (sp[jt].charged) //! хотя не факт, что перемещение по двумерному массиву будет быстрее, чем два IF
+    if (sp[it].charged)  //! ГҐГ№Вё Г®Г¤Г­Г  ГўГ®Г§Г¬Г®Г¦Г­Г Гї Г®ГЇГІГЁГ¬ГЁГ§Г Г¶ГЁГї, Г±Г®Г±ГІГ ГўГЁГІГј Г¬Г Г±Г±ГЁГў ГЇГ°Г®ГЁГ§ГўГҐГ¤ГҐГ­ГЁГ© Г§Г Г°ГїГ¤Г®Гў [i][j]
+      if (sp[jt].charged) //! ГµГ®ГІГї Г­ГҐ ГґГ ГЄГІ, Г·ГІГ® ГЇГҐГ°ГҐГ¬ГҐГ№ГҐГ­ГЁГҐ ГЇГ® Г¤ГўГіГ¬ГҐГ°Г­Г®Г¬Гі Г¬Г Г±Г±ГЁГўГі ГЎГіГ¤ГҐГІ ГЎГ»Г±ГІГ°ГҐГҐ, Г·ГҐГ¬ Г¤ГўГ  IF
         force += coul_iter(r2, r, sp[it].charge * sp[jt].charge, elec->alpha, sim->engElec3);
 }
 
 void direct_coul(Spec* sp, int it, int jt, double r2, double r, Elec* elec, Sim* sim, double& force)
 {
-    if (sp[it].charged)  //! ещё одна возможная оптимизация, составить массив произведений зарядов [i][j]
-        if (sp[jt].charged) //! хотя не факт, что перемещение по двумерному массиву будет быстрее, чем два IF
+    if (sp[it].charged)  //! ГҐГ№Вё Г®Г¤Г­Г  ГўГ®Г§Г¬Г®Г¦Г­Г Гї Г®ГЇГІГЁГ¬ГЁГ§Г Г¶ГЁГї, Г±Г®Г±ГІГ ГўГЁГІГј Г¬Г Г±Г±ГЁГў ГЇГ°Г®ГЁГ§ГўГҐГ¤ГҐГ­ГЁГ© Г§Г Г°ГїГ¤Г®Гў [i][j]
+        if (sp[jt].charged) //! ГµГ®ГІГї Г­ГҐ ГґГ ГЄГІ, Г·ГІГ® ГЇГҐГ°ГҐГ¬ГҐГ№ГҐГ­ГЁГҐ ГЇГ® Г¤ГўГіГ¬ГҐГ°Г­Г®Г¬Гі Г¬Г Г±Г±ГЁГўГі ГЎГіГ¤ГҐГІ ГЎГ»Г±ГІГ°ГҐГҐ, Г·ГҐГ¬ Г¤ГўГ  IF
         {
             double kqq = sp[it].charge * sp[jt].charge * Fcoul_scale; // q[i]*q[j]*1/4pie0;
             //brute force calc:
             if (r == 0)
                 r = sqrt(r2);  // if r is unknown, calculate it
-            //! предусмотреть вариант, когда неизвестен r2?
-            sim->engElec3 += kqq / r;       //! а почему Elec3 ???
+            //! ГЇГ°ГҐГ¤ГіГ±Г¬Г®ГІГ°ГҐГІГј ГўГ Г°ГЁГ Г­ГІ, ГЄГ®ГЈГ¤Г  Г­ГҐГЁГ§ГўГҐГ±ГІГҐГ­ r2?
+            sim->engElec3 += kqq / r;       //! Г  ГЇГ®Г·ГҐГ¬Гі Elec3 ???
             force += kqq / r / r2;
         }
 }
 
 void fennel(Spec* sp, int it, int jt, double r2, double r, Elec* elec, Sim* sim, double& force)
 {
-    if (sp[it].charged)  //! ещё одна возможная оптимизация, составить массив произведений зарядов [i][j]
-        if (sp[jt].charged) //! хотя не факт, что перемещение по двумерному массиву будет быстрее, чем два IF
+    if (sp[it].charged)  //! ГҐГ№Вё Г®Г¤Г­Г  ГўГ®Г§Г¬Г®Г¦Г­Г Гї Г®ГЇГІГЁГ¬ГЁГ§Г Г¶ГЁГї, Г±Г®Г±ГІГ ГўГЁГІГј Г¬Г Г±Г±ГЁГў ГЇГ°Г®ГЁГ§ГўГҐГ¤ГҐГ­ГЁГ© Г§Г Г°ГїГ¤Г®Гў [i][j]
+        if (sp[jt].charged) //! ГµГ®ГІГї Г­ГҐ ГґГ ГЄГІ, Г·ГІГ® ГЇГҐГ°ГҐГ¬ГҐГ№ГҐГ­ГЁГҐ ГЇГ® Г¤ГўГіГ¬ГҐГ°Г­Г®Г¬Гі Г¬Г Г±Г±ГЁГўГі ГЎГіГ¤ГҐГІ ГЎГ»Г±ГІГ°ГҐГҐ, Г·ГҐГ¬ Г¤ГўГ  IF
         {
             if (r == 0)
                 r = sqrt(r2);  // if r is unknown, calculate it
@@ -438,7 +438,7 @@ void fennel(Spec* sp, int it, int jt, double r2, double r, Elec* elec, Sim* sim,
             double kqq = sp[it].charge * sp[jt].charge * Fcoul_scale; // q[i]*q[j]*1/4pie0;
             double ar = elec->alpha * r; //alpha * r
             double erfcar = erfc(ar);
-            sim->engElec3 += kqq * (erfcar * ir - elec->scale + elec->scale2 * (r - elec->rReal));        //! а почему Elec3 ???
+            sim->engElec3 += kqq * (erfcar * ir - elec->scale + elec->scale2 * (r - elec->rReal));        //! Г  ГЇГ®Г·ГҐГ¬Гі Elec3 ???
             force += kqq * ir * ((erfcar / r2 + elec->daipi2 * exp(-ar * ar) * ir) - elec->scale2);
         }
 }
