@@ -95,7 +95,7 @@ int out_msd(FILE *f, Atoms *atm, int N, Spec *spec, int NSp, Box *bx, double tm,
 
    for (i = 0; i < NSp; i++)
      {
-        spec[i].number = 0; //! âîîáùå íóæíî óáðàòü ýòî îòñþäà, à ìåíÿòü ýòè êîëè÷åñòâà âñåãäà, êîãäà äî ýòîãî äîõîäèò äåëî
+        spec[i].number = 0; //! Ã¢Ã®Ã®Ã¡Ã¹Ã¥ Ã­Ã³Ã¦Ã­Ã® Ã³Ã¡Ã°Ã Ã²Ã¼ Ã½Ã²Ã® Ã®Ã²Ã±Ã¾Ã¤Ã , Ã  Ã¬Ã¥Ã­Ã¿Ã²Ã¼ Ã½Ã²Ã¨ ÃªÃ®Ã«Ã¨Ã·Ã¥Ã±Ã²Ã¢Ã  Ã¢Ã±Ã¥Ã£Ã¤Ã , ÃªÃ®Ã£Ã¤Ã  Ã¤Ã® Ã½Ã²Ã®Ã£Ã® Ã¤Ã®ÃµÃ®Ã¤Ã¨Ã² Ã¤Ã¥Ã«Ã®
         spec[i].displ = 0.0;
      }
 
@@ -254,7 +254,7 @@ int out_ncn(Atoms* atm, Field* field, Box* bx, Sim* sim, char* fname)
                     res = 0;
                 }
                 ligOrders[id1][id2] = nLigands[id1] + 1;        // as 0 is reserved for no pair
-                // ïîðÿäîê ïàðû â âûâîäå
+                // Ã¯Ã®Ã°Ã¿Ã¤Ã®Ãª Ã¯Ã Ã°Ã» Ã¢ Ã¢Ã»Ã¢Ã®Ã¤Ã¥
                 pairInds[id1][nLigands[id1]] = i;
                 ligRad2s[id1][id2] = r * r;
                 nLigands[id1]++;
