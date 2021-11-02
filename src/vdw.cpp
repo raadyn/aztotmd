@@ -210,7 +210,7 @@ const eng vdw_e[nVdWType + 1] = {NULL, e_lj, e_buckingham, e_746, e_bhm, NULL };
 const double r4scale = r_scale * r_scale * r_scale * r_scale;
 const double r6scale = r4scale * r_scale * r_scale;
 const double r8scale = r4scale * r4scale;
-// массивы для каждого параметра в парном потенциале. Элемент массива - тип потенциала
+// Г¬Г Г±Г±ГЁГўГ» Г¤Г«Гї ГЄГ Г¦Г¤Г®ГЈГ® ГЇГ Г°Г Г¬ГҐГІГ°Г  Гў ГЇГ Г°Г­Г®Г¬ ГЇГ®ГІГҐГ­Г¶ГЁГ Г«ГҐ. ГќГ«ГҐГ¬ГҐГ­ГІ Г¬Г Г±Г±ГЁГўГ  - ГІГЁГЇ ГЇГ®ГІГҐГ­Г¶ГЁГ Г«Г 
 const double vdw_scale0[nVdWType + 1] = {0, 4*E_scale, E_scale/*A[eV]*/, E_scale * r_scale * r6scale/*A[eV*A^7]*/, E_scale/*A[eV]*/, E_scale/*A[eV]*/, E_scale/*A[eV]*/, E_scale * r_scale};
                              // for LJ p0 =  4*epsilon //(?)
 const double vdw_scale1[nVdWType + 1] = {0, r_scale, r_scale, E_scale*r4scale/*B[eVA^4]*/, 1.0/r_scale/*B[1/A]*/, r_scale, r_scale, E_scale * r4scale * r_scale};
@@ -325,7 +325,7 @@ double vdw_iter(double r2, VdW *vdw, double &eng)
 
          eng += vdw->p0 * sr6 * (sr6 - 1.0);
          return vdw->p2 * r2i * sr6 * (2.0 * sr6 - 1.0);
-         //break; /// break после return не имеет смысла
+         //break; /// break ГЇГ®Г±Г«ГҐ return Г­ГҐ ГЁГ¬ГҐГҐГІ Г±Г¬Г»Г±Г«Г 
 
        case bh_type:    // U = A exp(-r/ro) - C/r^6
          r2i = 1.0 / r2;
@@ -353,7 +353,7 @@ double vdw_iter(double r2, VdW *vdw, double &eng)
 
          eng += r4i * (vdw->p0 * r2i * ri - vdw->p1 - vdw->p2 * r2i);
          return r4i * r2i * (7.0 * vdw->p0 * r2i * ri - 4.0 * vdw->p1 - 6.0 * vdw->p2 * r2i);
-         //break; /// break после return не имеет смысла
+         //break; /// break ГЇГ®Г±Г«ГҐ return Г­ГҐ ГЁГ¬ГҐГҐГІ Г±Г¬Г»Г±Г«Г 
     }
 }
 // end 'vdw_iter' function
