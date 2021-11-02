@@ -180,16 +180,16 @@ int out_velocities(Atoms *atm, Field *field, char *fname)
    for (i = 0; i < field->nSpec; i++)
        if (field->species[i].number)
        {
-           delete[] vels[i];
-           delete[] vxs[i];
-           delete[] vys[i];
-           delete[] vzs[i];
+           free(vels[i]);
+           free(vxs[i]);
+           free(vys[i]);
+           free(vzs[i]);
        }
-   delete[] vels;
-   delete[] vxs;
-   delete[] vys;
-   delete[] vzs;
-   delete[] curInds;
+   free(vels);
+   free(vxs);
+   free(vys);
+   free(vzs);
+   free(curInds);
    return 1;
 }
 
@@ -493,13 +493,13 @@ int out_cn(Atoms *atm, Field *field, Box *bx, Sim *sim, char *fname)
    fclose(f);
 
    for (i = 0; i < nPair; i++)
-     delete[] out[i];
-   delete[] out;
+       free(out[i]);
+   free(out);
    for (i = 0; i < nA; i++)
-     delete[] coords[i];
-   delete[] coords;
-   delete[] ligTypes;
-   delete[] cenTypes;
+       free(coords[i]);
+   free(coords);
+   free(ligTypes);
+   free(cenTypes);
    return 1;
 }
 

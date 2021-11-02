@@ -567,24 +567,24 @@ int read_atoms_box(Atoms* atm, Field *field, Sim *sim, Box *box)
 void free_atoms(Atoms *atm)
 // deallocate atom arrays
 {
-   delete[] atm->types;
-   delete[] atm->xs;
-   delete[] atm->ys;
-   delete[] atm->zs;
-   delete[] atm->vxs;
-   delete[] atm->vys;
-   delete[] atm->vzs;
-   delete[] atm->fxs;
-   delete[] atm->fys;
-   delete[] atm->fzs;
-   delete[] atm->x0s;
-   delete[] atm->y0s;
-   delete[] atm->z0s;
-   delete[] atm->vx0;
-   delete[] atm->vy0;
-   delete[] atm->vz0;
-   delete[] atm->nBonds;
-   delete[] atm->parents;
+   free (atm->types);
+   free (atm->xs);
+   free (atm->ys);
+   free (atm->zs);
+   free(atm->vxs);
+   free(atm->vys);
+   free(atm->vzs);
+   free(atm->fxs);
+   free(atm->fys);
+   free(atm->fzs);
+   free(atm->x0s);
+   free(atm->y0s);
+   free(atm->z0s);
+   free(atm->vx0);
+   free(atm->vy0);
+   free(atm->vz0);
+   free(atm->nBonds);
+   free(atm->parents);
 }
 
 int read_sim(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat)
@@ -1026,10 +1026,10 @@ void free_neighbors(Atoms *atm, Sim *sim)
    }
    */
 
-   delete[] sim->nNbors;
-   delete[] sim->nbors;
-   delete[] sim->distances;
-   delete[] sim->tnbors;
+   free(sim->nNbors);
+   free(sim->nbors);
+   free(sim->distances);
+   free(sim->tnbors);
 }
 // end 'free_neighbors' function
 
@@ -1251,20 +1251,20 @@ void free_field(Field *field)
     {
         for (i = 0; i < field->nSpec; i++)
         {
-            delete[] field->bond_matrix[i];
-            delete[] field->bonding_matr[i];
-            delete[] field->bindR2matrix[i];
+            free(field->bond_matrix[i]);
+            free(field->bonding_matr[i]);
+            free(field->bindR2matrix[i]);
         }
-        delete[] field->bond_matrix;
-        delete[] field->bonding_matr;
-        delete[] field->bindR2matrix;
+        free(field->bond_matrix);
+        free(field->bonding_matr);
+        free(field->bindR2matrix);
 
-        delete[] field->bdata;
+        free(field->bdata);
         if (field->nBonds)
         {
-            delete[] field->at1;
-            delete[] field->at2;
-            delete[] field->bTypes;
+            free(field->at1);
+            free(field->at2);
+            free(field->bTypes);
         }
     }
 
@@ -1273,15 +1273,15 @@ void free_field(Field *field)
     if (field->nVdW)
     {
         for (i = 0; i < field->nSpec; i++)
-            delete[] field->vdws[i];
-        delete[] field->vdws;
-        delete[] field->pairpots;
+            free(field->vdws[i]);
+        free(field->vdws);
+        free(field->pairpots);
     }
 
-    delete[] field->snames;
-    delete[] field->nnames;
-    delete[] field->nnumbers;
-    delete[] field->species;
+    free(field->snames);
+    free(field->nnames);
+    free(field->nnumbers);
+    free(field->species);
 }
 // end 'free_field' function
 
@@ -1301,7 +1301,7 @@ void free_serial(Atoms *atm, Field *field, Elec *elec, Sim *sim)
      free_clist(sim);
 
    if (sim->nVarSpec)
-     delete[] sim->varSpecs;
+       free(sim->varSpecs);
 }
 // end 'free_serial' function
 

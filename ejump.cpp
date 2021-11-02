@@ -90,10 +90,10 @@ void free_ejump(Sim *sim, Field *field)
    int i;
    for (i = 0; i < field->nSpec; i++)
      {
-       delete[] sim->jumps[i];
+       free(sim->jumps[i]);
      }
 
-   delete[] sim->electrons;
+   free(sim->electrons);
 }
 // end 'free_ejump' function
 

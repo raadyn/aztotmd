@@ -11,6 +11,7 @@
 #include "const.h"  // kB
 #include "cuInit.h"
 #include "utils.h"  // int_size..
+#include "temperature.h"
 #include "cuStat.h" // init_cuda_stat, free_cuda_stat
 #include "cuUtils.h"
 #ifdef USE_FASTLIST
@@ -41,7 +42,7 @@ void bonds_to_host(int4* buffer, cudaMD* hmd, /*int number,*/ Field* fld, hostMa
     cudaMemcpy(btypes, (void*)(&hmd->bondTypes[1]), sz, cudaMemcpyDeviceToHost);
     for (i = 1; i < fld->nBdata; i++)
         fld->bdata[i].number = btypes[i - 1].count;
-    delete[] btypes;
+    free(btypes);
  }
 
 void angles_to_host(int4* buffer, cudaMD* md, Field* fld, hostManagMD* man)
@@ -224,7 +225,7 @@ void bonds_to_device(Atoms *atm, Field *fld, Sim *sim, cudaMD *hmd, hostManagMD 
         bndTypes[i].ltCount = 0;
     }
     data_to_device((void**)&(hmd->bondTypes), bndTypes, fld->nBdata * sizeof(cudaBond));
-    delete[] bndTypes;
+    free(bndTypes);
 
     int4* bnds = (int4*)malloc(fld->nBonds * int4_size);
     for (i = 0; i < fld->nBonds; i++)
@@ -233,7 +234,7 @@ void bonds_to_device(Atoms *atm, Field *fld, Sim *sim, cudaMD *hmd, hostManagMD 
     }
     cudaMalloc((void**)&(hmd->bonds), fld->mxBonds * int4_size);
     cudaMemcpy(hmd->bonds, bnds, fld->nBonds * int4_size, cudaMemcpyHostToDevice);
-    delete[] bnds;
+    free(bnds);
 
     data_to_device((void**)&(hmd->nbonds), atm->nBonds, nsize);
 
@@ -246,7 +247,7 @@ void bonds_to_device(Atoms *atm, Field *fld, Sim *sim, cudaMD *hmd, hostManagMD 
         data_to_device((void**)&(int_int_array[i]), fld->bond_matrix[i], fld->nSpec * int_size);
     }
     data_to_device((void**)&(hmd->def_bonds), int_int_array, fld->nSpec * pointer_size);
-    delete[] int_int_array;
+    free(int_int_array);
 
     // parents are -1?
     /*
@@ -281,9 +282,9 @@ void bonds_to_device(Atoms *atm, Field *fld, Sim *sim, cudaMD *hmd, hostManagMD 
         data_to_device((void**)&(hmd->bindBonds), int_int_array, fld->nSpec * pointer_size);
         data_to_device((void**)&(hmd->bindR2), fl_fl_array, fld->nSpec * pointer_size);
 
-        delete[] int_int_array;
-        delete[] fl_fl_array;
-        delete[] fl_array;
+        free(int_int_array);
+        free(fl_fl_array);
+        free(fl_array);
     }
 }
 
@@ -556,9 +557,9 @@ void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cud
     data_to_device((void**)&(hmd->cellPairs), pairs1, hmd->nPair * sizeof(int4));
     data_to_device((void**)&(hmd->cellShifts), shifts1, hmd->nPair * sizeof(float3));
 
-    delete[] cxyz;
-    delete[] pairs1;
-    delete[] shifts1;
+    free(cxyz);
+    free(pairs1);
+    free(shifts1);
 
     int** d_cells;
     int* cells_i;
@@ -573,7 +574,7 @@ void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cud
     }
     cudaMemcpy(d_cells, h_cells, nCell * sizeof(int*), cudaMemcpyHostToDevice);
     hmd->cells = d_cells;
-    delete[] h_cells;
+    free(h_cells);
 }
 // end 'init_cellList' function'
 
@@ -663,9 +664,8 @@ void init_singleAtomCellList(float minRad, float maxR2, int nAt, Elec* elec, Sim
     data_to_device((void**)&(hmd->neighCells), neighList, nCell * pointer_size);
     data_to_device((void**)&(hmd->nNeighCell), nNeigh, nCell * int_size);
 
-    delete[] nNeigh;
-    delete[] neighList;
-    //delete[] list;
+    free(nNeigh);
+    free(neighList);
     free(list);
 
     printf("single atom cell list. Last n = %d\n", n);
@@ -784,11 +784,11 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     data_to_device((void**)&(h_md->types), atm->types, nsize);
     data_to_device((void**)&(h_md->masses), h_masses, flsize);
     data_to_device((void**)&(h_md->rMasshdT), h_rMasshdT, flsize);
-    delete[] h_xyz;
-    delete[] h_vls;
-    delete[] h_frc;
-    delete[] h_masses;
-    delete[] h_rMasshdT;
+    free(h_xyz);
+    free(h_vls);
+    free(h_frc);
+    free(h_masses);
+    free(h_rMasshdT);
 
 
     cudaSpec* h_specs = (cudaSpec*)malloc(fld->nSpec * sizeof(cudaSpec));
@@ -835,10 +835,10 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
         }
         //array_to_device((void**)&(h_md->chProd[i]), qiqj, fld->nSpec * sizeof(float));
         cudaMemcpy(chProd_i, h_chProd[i], fld->nSpec * float_size, cudaMemcpyHostToDevice);
-        delete[] h_chProd[i];
+        free(h_chProd[i]);
         h_chProd[i] = chProd_i;
         cudaMemcpy(vdw_i, h_vdw[i], fld->nSpec * pointer_size, cudaMemcpyHostToDevice);
-        delete[] h_vdw[i];
+        free(h_vdw[i]);
         h_vdw[i] = vdw_i;
         h_specs[i].number = fld->species[i].number;
         h_specs[i].displ = 0.0;
@@ -1065,7 +1065,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 #endif
 
     // statistics
-    init_cuda_stat(h_md, man, sim, fld);
+    init_cuda_stat(h_md, man, sim, fld, tstat);
     init_cuda_rdf(fld, sim, man, h_md);
     //! нафиг, уже внутри init_cuda_rdf решаем делать n_ или обычный
     if (sim->nuclei_rdf)
@@ -1108,7 +1108,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
         }
         cudaMalloc((void**)&(h_md->angles), fld->mxAngles * sizeof(int4));
         cudaMemcpy(h_md->angles, int4_array, fld->mxAngles * sizeof(int4), cudaMemcpyHostToDevice);
-        delete[] int4_array;
+        free(int4_array);
 
         cudaAngle* tang = (cudaAngle*)malloc(sizeof(cudaAngle) * fld->nAdata);
         for (i = 1; i < fld->nAdata; i++)   // i = 0 not interesting as just reffered to no angle
@@ -1120,7 +1120,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
             tang[i].p2 = (float)fld->adata[i].p2;
         }
         data_to_device((void**)&(h_md->angleTypes), tang, sizeof(cudaAngle) * fld->nAdata);
-        delete[] tang;
+        free(tang);
 
         if (sim->use_angl)
         {
@@ -1138,7 +1138,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 
             data_to_device((void**)&(h_md->nangles), int_array/*2*/, nsize);
             //data_to_device((void**)&(h_md->oldTypes), int_array, nsize);
-            delete[] int_array;
+            free(int_array);
             //delete[] int_array2;
 
             int_array = (int*)malloc(fld->nSpec * int_size);
@@ -1153,7 +1153,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 
     if (sim->use_angl || sim->use_bnd)
     {
-        delete[] int_array;
+        free(int_array);
     }
 
     // electron jumps
@@ -1183,17 +1183,17 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     man->nAtPtr = h_somePtrs[0];
     man->nBndPtr = h_somePtrs[1];
     man->nAngPtr = h_somePtrs[2];
-    delete[] h_somePtrs;
+    free(h_somePtrs);
 
-    delete[] h_specs;
-    delete[] h_ppots;
+    free(h_specs);
+    free(h_ppots);
     for (i = 0; i < fld->nSpec; i++)
     {
         //delete[] h_chProd[i];
         //delete[] h_vdw[i];
     }
-    delete[] h_chProd;
-    delete[] h_vdw;
+    free(h_chProd);
+    free(h_vdw);
 
     return d_md;
 }
@@ -1240,15 +1240,15 @@ void md_to_host(Atoms* atm, Field* fld, cudaMD *hmd, cudaMD *dmd, hostManagMD* m
         atm->vys[i] = vls[i].y;
         atm->vzs[i] = vls[i].z;
     }
-    delete[] xyz;
-    delete[] vls;
+    free(xyz);
+    free(vls);
 
     // copy correct number of particles (if variable number)
     cudaSpec* hsps = (cudaSpec*)malloc(fld->nSpec * sizeof(cudaSpec));
     cudaMemcpy(hsps, hmd->specs, fld->nSpec * sizeof(cudaSpec), cudaMemcpyDeviceToHost);
     for (i = 0; i < fld->nSpec; i++)
         fld->species[i].number = hsps[i].number;
-    delete[] hsps;
+    free(hsps);
 
     // copy bonds and angles
     int mx_int4 = fld->mxBonds;     // one buffer variable for both bonds and angles
@@ -1257,7 +1257,7 @@ void md_to_host(Atoms* atm, Field* fld, cudaMD *hmd, cudaMD *dmd, hostManagMD* m
     int4* int4_arr = (int4*)malloc(int4_size * mx_int4);
     bonds_to_host(int4_arr, hmd, fld, man);
     angles_to_host(int4_arr, hmd, fld, man);
-    delete[] int4_arr;
+    free(int4_arr);
 }
 
 void free_device_md(cudaMD* dmd, hostManagMD* man, Sim* sim, Field* fld, TStat *tstat, cudaMD *hmd)
@@ -1369,6 +1369,6 @@ void free_device_md(cudaMD* dmd, hostManagMD* man, Sim* sim, Field* fld, TStat *
     cudaFree(hmd->nCult);
 #endif
     cudaFree(dmd);
-    delete hmd;
+    free(hmd);
 }
 // end 'final_cudaMD' function

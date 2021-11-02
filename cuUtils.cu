@@ -21,7 +21,7 @@ void cuda2DFree(void** addr, int n)
     for (i = 0; i < n; i++)
         cudaFree(ptrs[i]);
     cudaFree(addr);
-    delete[] ptrs;
+    free(ptrs);
 }
 
 __device__ void inc_float3(float3 *var, float3 inc)

@@ -247,13 +247,13 @@ void free_angles(Field *field)
     {
         if (field->nAngles)
         {
-            delete[] field->centrs;
-            delete[] field->lig1;
-            delete[] field->lig2;
-            delete[] field->angTypes;
+            free(field->centrs);
+            free(field->lig1);
+            free(field->lig2);
+            free(field->angTypes);
         }
 
-        delete[] field->adata;
+        free(field->adata);
     }
 }
 

@@ -172,7 +172,7 @@ int out_rdf(Field *field, Box *box, Sim *sim, char *fname)
    }
 
    fclose(f);
-   delete[] nAnB;
+   free(nAnB);
    return 1; // success
 }
 // end 'out_rdf' function
@@ -183,8 +183,8 @@ void free_rdf(Sim *sim, Field *field)
    int i;
 
    for (i = 0; i < field->nPair; i++)
-     delete[] sim->rdf[i];
+       free(sim->rdf[i]);
 
-   delete[] sim->rdf;
+   free(sim->rdf);
 }
 // end 'free_rdf' function
