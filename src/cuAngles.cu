@@ -61,7 +61,7 @@ __global__ void refresh_angles(int iStep, int atPerBlock, int atPerThread, cudaM
 							//printf("bnd %d = (%d %d)\n", i, md->bonds[i].x, md->bonds[i].y);
 							nei[cnt] = md->bonds[i].y;
 							cnt++;
-							n--;	// ÷òîáû âûéòè êîãäà îáðàáîòàåì äîñòàòî÷íîå ÷èñëî ñâÿçåé
+							n--;	// Ã·Ã²Ã®Ã¡Ã» Ã¢Ã»Ã©Ã²Ã¨ ÃªÃ®Ã£Ã¤Ã  Ã®Ã¡Ã°Ã Ã¡Ã®Ã²Ã Ã¥Ã¬ Ã¤Ã®Ã±Ã²Ã Ã²Ã®Ã·Ã­Ã®Ã¥ Ã·Ã¨Ã±Ã«Ã® Ã±Ã¢Ã¿Ã§Ã¥Ã©
 						}
 						else if (md->bonds[i].y == iat)
 						{
@@ -99,7 +99,7 @@ __global__ void refresh_angles(int iStep, int atPerBlock, int atPerThread, cudaM
 							
 						}
 #endif
-						//! â äåáàãå - ïðîâåðêó íà ìàêñèìóì
+						//! Ã¢ Ã¤Ã¥Ã¡Ã Ã£Ã¥ - Ã¯Ã°Ã®Ã¢Ã¥Ã°ÃªÃ³ Ã­Ã  Ã¬Ã ÃªÃ±Ã¨Ã¬Ã³Ã¬
 						md->angles[ang] = make_int4(iat, nei[i], nei[j], t);
 						//printf("(%d) thred[%d] i=%d j=%d\n", iStep, threadIdx.x, i, j);
 					}
@@ -110,7 +110,7 @@ __global__ void refresh_angles(int iStep, int atPerBlock, int atPerThread, cudaM
 			md->nangles[iat] = n;
 
 			// recalculate number of particels and reset flag
-			//! âîîáùå ïëîõî, ÷òî ïåðåñ÷åò êîëè÷åñòâà ÷àñòèö èäåò çäåñü, â óãëàõ. Åñëè óãëîâ íåò, êîë-âà ÷àñòèö íå áóäóò îáíîâëÿòüñÿ
+			//! Ã¢Ã®Ã®Ã¡Ã¹Ã¥ Ã¯Ã«Ã®ÃµÃ®, Ã·Ã²Ã® Ã¯Ã¥Ã°Ã¥Ã±Ã·Ã¥Ã² ÃªÃ®Ã«Ã¨Ã·Ã¥Ã±Ã²Ã¢Ã  Ã·Ã Ã±Ã²Ã¨Ã¶ Ã¨Ã¤Ã¥Ã² Ã§Ã¤Ã¥Ã±Ã¼, Ã¢ Ã³Ã£Ã«Ã Ãµ. Ã…Ã±Ã«Ã¨ Ã³Ã£Ã«Ã®Ã¢ Ã­Ã¥Ã², ÃªÃ®Ã«-Ã¢Ã  Ã·Ã Ã±Ã²Ã¨Ã¶ Ã­Ã¥ Ã¡Ã³Ã¤Ã³Ã² Ã®Ã¡Ã­Ã®Ã¢Ã«Ã¿Ã²Ã¼Ã±Ã¿
 			if (md->oldTypes[iat] != md->types[iat])
 			{
 				atomicAdd(&(md->specs[md->types[iat]].number), 1);
@@ -126,7 +126,7 @@ __global__ void clear_angles(cudaMD* md)
 {
 	//printf("clear angles\n");
 	
-	// íå çíàþ, êàê ñäåëàòü ïàðàëëåëüíûé, âîò ñåðèéíûé âàðèàíò:
+	// Ã­Ã¥ Ã§Ã­Ã Ã¾, ÃªÃ Ãª Ã±Ã¤Ã¥Ã«Ã Ã²Ã¼ Ã¯Ã Ã°Ã Ã«Ã«Ã¥Ã«Ã¼Ã­Ã»Ã©, Ã¢Ã®Ã² Ã±Ã¥Ã°Ã¨Ã©Ã­Ã»Ã© Ã¢Ã Ã°Ã¨Ã Ã­Ã²:
 	int i = 0;
 	int j = md->nAngle - 1;
 
@@ -190,7 +190,7 @@ __global__ void apply_angles(int iStep, int angPerBlock, int angPerThread, cudaM
 	for (i = id0; i < N; i++)
 		if (md->angles[i].w)
 		{
-/*  ê ñîæàëåíèþ ïðèéäåòñÿ ïåðåíåñòè ýòó ÷àñòü ñðàçó ïîñëå ñîðòèðîâêè, ïîñêîëüêó îíà âàæíà äëÿ ïðîöåäóðû refresh_angles, ÷òî èäåò âíà÷àëå
+/*  Ãª Ã±Ã®Ã¦Ã Ã«Ã¥Ã­Ã¨Ã¾ Ã¯Ã°Ã¨Ã©Ã¤Ã¥Ã²Ã±Ã¿ Ã¯Ã¥Ã°Ã¥Ã­Ã¥Ã±Ã²Ã¨ Ã½Ã²Ã³ Ã·Ã Ã±Ã²Ã¼ Ã±Ã°Ã Ã§Ã³ Ã¯Ã®Ã±Ã«Ã¥ Ã±Ã®Ã°Ã²Ã¨Ã°Ã®Ã¢ÃªÃ¨, Ã¯Ã®Ã±ÃªÃ®Ã«Ã¼ÃªÃ³ Ã®Ã­Ã  Ã¢Ã Ã¦Ã­Ã  Ã¤Ã«Ã¿ Ã¯Ã°Ã®Ã¶Ã¥Ã¤Ã³Ã°Ã» refresh_angles, Ã·Ã²Ã® Ã¨Ã¤Ã¥Ã² Ã¢Ã­Ã Ã·Ã Ã«Ã¥
 			// take sorting into account
 #ifdef USE_FASTLIST
 			md->angles[i].x = md->sort_ind[md->angles[i].x];
@@ -240,7 +240,7 @@ __device__ void angle_hcos(int4* angle, cudaAngle* type, cudaMD* md, float& eng)
 	int l1 = angle->y;
 	int l2 = angle->z;
 
-	//! è òóò åù¸ ìîæíî ñõèòðèòü, ñðàçó âçÿòü ðàññòîÿíèÿ èç bonds, âåäü angle ìîæåò áûòü òîëüêî ìåæäó bonds
+	//! Ã¨ Ã²Ã³Ã² Ã¥Ã¹Â¸ Ã¬Ã®Ã¦Ã­Ã® Ã±ÃµÃ¨Ã²Ã°Ã¨Ã²Ã¼, Ã±Ã°Ã Ã§Ã³ Ã¢Ã§Ã¿Ã²Ã¼ Ã°Ã Ã±Ã±Ã²Ã®Ã¿Ã­Ã¨Ã¿ Ã¨Ã§ bonds, Ã¢Ã¥Ã¤Ã¼ angle Ã¬Ã®Ã¦Ã¥Ã² Ã¡Ã»Ã²Ã¼ Ã²Ã®Ã«Ã¼ÃªÃ® Ã¬Ã¥Ã¦Ã¤Ã³ bonds
 
 	// vector ij
 	float xij = md->xyz[l1].x - md->xyz[c].x;
