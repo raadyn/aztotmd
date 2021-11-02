@@ -45,7 +45,7 @@ void photon_engs(int n, double* engs, double T)
     {
         a = 0.0;
         b = 1.0;
-        // ñäåëàåì çàùèòó îò áåñêîíå÷íîãî äàëüíåéøåãî öèêëà, ïðîèçâåäåíèå ra*rb äîëæíî áûòü ìåíüøå íóëÿ
+        // Ã±Ã¤Ã¥Ã«Ã Ã¥Ã¬ Ã§Ã Ã¹Ã¨Ã²Ã³ Ã®Ã² Ã¡Ã¥Ã±ÃªÃ®Ã­Ã¥Ã·Ã­Ã®Ã£Ã® Ã¤Ã Ã«Ã¼Ã­Ã¥Ã©Ã¸Ã¥Ã£Ã® Ã¶Ã¨ÃªÃ«Ã , Ã¯Ã°Ã®Ã¨Ã§Ã¢Ã¥Ã¤Ã¥Ã­Ã¨Ã¥ ra*rb Ã¤Ã®Ã«Ã¦Ã­Ã® Ã¡Ã»Ã²Ã¼ Ã¬Ã¥Ã­Ã¼Ã¸Ã¥ Ã­Ã³Ã«Ã¿
         do
         {
             x = rand01();
@@ -57,14 +57,14 @@ void photon_engs(int n, double* engs, double T)
         r = func(x, y, theta);
 
         k = 0;
-        while ((r > eps) || (r < -eps)) // ïðè ýòèõ óñëîâèÿõ y - òî ÷òî íàì íóæíî
+        while ((r > eps) || (r < -eps)) // Ã¯Ã°Ã¨ Ã½Ã²Ã¨Ãµ Ã³Ã±Ã«Ã®Ã¢Ã¨Ã¿Ãµ y - Ã²Ã® Ã·Ã²Ã® Ã­Ã Ã¬ Ã­Ã³Ã¦Ã­Ã®
         {
             if ((r * ra) < 0)
             {
                 b = y;
                 y = 0.5 * (a + y);
             }
-            else //! âîîáùå òóò íóæíî ïðîâåðèòü r * rc < 0 - íî ÿ òàê ïîíèìàþ, äðóãèõ âàðèàíòîâ íåò
+            else //! Ã¢Ã®Ã®Ã¡Ã¹Ã¥ Ã²Ã³Ã² Ã­Ã³Ã¦Ã­Ã® Ã¯Ã°Ã®Ã¢Ã¥Ã°Ã¨Ã²Ã¼ r * rc < 0 - Ã­Ã® Ã¿ Ã²Ã Ãª Ã¯Ã®Ã­Ã¨Ã¬Ã Ã¾, Ã¤Ã°Ã³Ã£Ã¨Ãµ Ã¢Ã Ã°Ã¨Ã Ã­Ã²Ã®Ã¢ Ã­Ã¥Ã²
             {
                 a = y;
                 y = 0.5 * (y + b);
@@ -186,7 +186,7 @@ int read_tstat(FILE *f, TStat *tstat, int nAt)
                    //k++;
                }
            }
-           // ñëåäóþùèé âàðèàíòû äëÿ ñèììåòðèè
+           // Ã±Ã«Ã¥Ã¤Ã³Ã¾Ã¹Ã¨Ã© Ã¢Ã Ã°Ã¨Ã Ã­Ã²Ã» Ã¤Ã«Ã¿ Ã±Ã¨Ã¬Ã¬Ã¥Ã²Ã°Ã¨Ã¨
            for (i = 0; i < nPhi; i++)
            {
                phi = (double)i / nPhi * twopi;
@@ -225,7 +225,7 @@ int read_tstat(FILE *f, TStat *tstat, int nAt)
            // verify
            printf("tot number of unit vectors=%d\n", k);
            double sx = 0.0, sy = 0.0, sz = 0.0;
-           double sx2 = 0.0, sy2 = 0.0, sz2 = 0.0; // ñðàâíèì êâàäðàòû ÷òîáû ïîñìîòðåòü ïðåèìóùåñòâåííîñòü íàïðàâëåíèé
+           double sx2 = 0.0, sy2 = 0.0, sz2 = 0.0; // Ã±Ã°Ã Ã¢Ã­Ã¨Ã¬ ÃªÃ¢Ã Ã¤Ã°Ã Ã²Ã» Ã·Ã²Ã®Ã¡Ã» Ã¯Ã®Ã±Ã¬Ã®Ã²Ã°Ã¥Ã²Ã¼ Ã¯Ã°Ã¥Ã¨Ã¬Ã³Ã¹Ã¥Ã±Ã²Ã¢Ã¥Ã­Ã­Ã®Ã±Ã²Ã¼ Ã­Ã Ã¯Ã°Ã Ã¢Ã«Ã¥Ã­Ã¨Ã©
            double sqr;
            for (i = 0; i < k; i++)
            {
@@ -353,7 +353,7 @@ double tstat_nose(Atoms *atm, Sim *sim, TStat *tstat)
    }
    kinE = sim->engKin * scale * scale;
    tstat->conint += sim->tSt * tstat->chit * tstat->qMassTau2;
-   tstat->chit += sim->tSt * (kinE - tstat->tKin) * tstat->rQmass; // new kinetic energy (îòëè÷èå îò ïåðâîãî äåéñòâèÿ ýòîé ïðîöåäóðû)
+   tstat->chit += sim->tSt * (kinE - tstat->tKin) * tstat->rQmass; // new kinetic energy (Ã®Ã²Ã«Ã¨Ã·Ã¨Ã¥ Ã®Ã² Ã¯Ã¥Ã°Ã¢Ã®Ã£Ã® Ã¤Ã¥Ã©Ã±Ã²Ã¢Ã¨Ã¿ Ã½Ã²Ã®Ã© Ã¯Ã°Ã®Ã¶Ã¥Ã¤Ã³Ã°Ã»)
 
    return kinE;
 }
