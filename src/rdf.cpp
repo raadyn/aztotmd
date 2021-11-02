@@ -39,7 +39,7 @@ int read_rdf(FILE *f, Sim *sim)
 
 void init_rdf(Sim* sim, Box* box)
 {
-    /// надо сделать, чтобы при считывании параметров, все производные автоматически расчитывались
+    /// Г­Г Г¤Г® Г±Г¤ГҐГ«Г ГІГј, Г·ГІГ®ГЎГ» ГЇГ°ГЁ Г±Г·ГЁГІГ»ГўГ Г­ГЁГЁ ГЇГ Г°Г Г¬ГҐГІГ°Г®Гў, ГўГ±ГҐ ГЇГ°Г®ГЁГ§ГўГ®Г¤Г­Г»ГҐ Г ГўГІГ®Г¬Г ГІГЁГ·ГҐГ±ГЄГЁ Г°Г Г±Г·ГЁГІГ»ГўГ Г«ГЁГ±Гј
     double minR = sim->rRDF;
     if (minR > box->la)  //! temp
         minR = box->la;
@@ -55,7 +55,7 @@ int alloc_rdf(Sim *sim, Field *field, Box *box)
    // counters and helper variables
    sim->nRDFout = 0;
 
-   //! часть повторяется с init_rdf, посмотреть
+   //! Г·Г Г±ГІГј ГЇГ®ГўГІГ®Г°ГїГҐГІГ±Гї Г± init_rdf, ГЇГ®Г±Г¬Г®ГІГ°ГҐГІГј
    //seek min of sim.maxR or box.maxLength
    if (minR > box->maxLength)
      minR = box->maxLength;
@@ -151,7 +151,7 @@ int out_rdf(Field *field, Box *box, Sim *sim, char *fname)
          fprintf(f, "%s-%s ", field->species[i].name, field->species[j].name);
          nAnB[k] = field->species[i].number * field->species[j].number;
          if (i == j)
-           nAnB[k] *= 0.5; // для одинаковой пары мы должны домножить результат на 2 (или в два раза уменьшить знаментаель)
+           nAnB[k] *= 0.5; // Г¤Г«Гї Г®Г¤ГЁГ­Г ГЄГ®ГўГ®Г© ГЇГ Г°Г» Г¬Г» Г¤Г®Г«Г¦Г­Г» Г¤Г®Г¬Г­Г®Г¦ГЁГІГј Г°ГҐГ§ГіГ«ГјГІГ ГІ Г­Г  2 (ГЁГ«ГЁ Гў Г¤ГўГ  Г°Г Г§Г  ГіГ¬ГҐГ­ГјГёГЁГІГј Г§Г­Г Г¬ГҐГ­ГІГ ГҐГ«Гј)
          k++;
      }
    fprintf(f, "\n");
