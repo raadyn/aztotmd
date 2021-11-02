@@ -113,7 +113,7 @@ __device__ float cu_er_buck(float r2, float &r, cudaVdW* vdw)
 }
 
 __device__ float cu_fer_bmh(float r2, float& r, cudaVdW* vdw, float& eng)
-// calculate force and energy (with r) by Born–Mayer–Huggins pair potential: U = Aexp[B(s-r)] - C/r^6 - D/r^8
+// calculate force and energy (with r) by Bornâ€“Mayerâ€“Huggins pair potential: U = Aexp[B(s-r)] - C/r^6 - D/r^8
 {
     float r2i = 1.f / r2;
     float r4i = r2i * r2i;
@@ -127,7 +127,7 @@ __device__ float cu_fer_bmh(float r2, float& r, cudaVdW* vdw, float& eng)
 }
 
 __device__ float cu_fe_bmh(float r2, cudaVdW* vdw, float& eng)
-// calculate force and energy by Born–Mayer–Huggins pair potential: U = Aexp[B(s-r)] - C/r^6 - D/r^8
+// calculate force and energy by Bornâ€“Mayerâ€“Huggins pair potential: U = Aexp[B(s-r)] - C/r^6 - D/r^8
 {
     float r2i = 1.f / r2;
     float r = sqrt(r2);
@@ -138,7 +138,7 @@ __device__ float cu_fe_bmh(float r2, cudaVdW* vdw, float& eng)
 }
 
 __device__ float cu_e_bmh(float r2, cudaVdW* vdw)
-// calculate energy by Born–Mayer–Huggins pair potential: U = Aexp[B(s-r)] - C/r^6 - D/r^8
+// calculate energy by Bornâ€“Mayerâ€“Huggins pair potential: U = Aexp[B(s-r)] - C/r^6 - D/r^8
 {
     float r2i = 1.f / r2;
     float r = sqrt(r2);
@@ -148,7 +148,7 @@ __device__ float cu_e_bmh(float r2, cudaVdW* vdw)
 }
 
 __device__ float cu_er_bmh(float r2, float &r, cudaVdW* vdw)
-// calculate energy by Born–Mayer–Huggins pair potential: U = Aexp[B(s-r)] - C/r^6 - D/r^8
+// calculate energy by Bornâ€“Mayerâ€“Huggins pair potential: U = Aexp[B(s-r)] - C/r^6 - D/r^8
 {
     float r2i = 1.f / r2;
     float r4i = r2i * r2i;
@@ -241,7 +241,7 @@ __device__ float surk_pot(float r2, float rad1, float rad2, cudaVdW* vdw, float&
     //rad1 = 0.577;
     //rad2 = 0.577;
 
-    float Ñ2ir_sum = vdw->p1 / (vdw->p2 * rad1 + vdw->p3 * rad2);   // C2 / (ka + lb)
+    float Ã‘2ir_sum = vdw->p1 / (vdw->p2 * rad1 + vdw->p3 * rad2);   // C2 / (ka + lb)
     float r_prod = rad1 * rad2;
     float C1ab2 = r_prod * r_prod * vdw->p0;        // C1 * a^2 b^2
     float r6 = r2 * r2 * r2;
@@ -249,11 +249,11 @@ __device__ float surk_pot(float r2, float rad1, float rad2, cudaVdW* vdw, float&
     float ir6 = 1.f / r6;
     float ir = 1.f / r;
 
-    float val = r_prod * ir6 * (C1ab2 * ir - Ñ2ir_sum);
+    float val = r_prod * ir6 * (C1ab2 * ir - Ã‘2ir_sum);
     //printf("U=%f: ra=%f rb=%f (%f %f %f %f)\n", val, rad1, rad2, vdw->p0, vdw->p1, vdw->p2, vdw->p3);
 
     eng += val;
-    return r_prod * ir6 / r2 * (7.f * C1ab2 * ir - 6.f * Ñ2ir_sum);
+    return r_prod * ir6 / r2 * (7.f * C1ab2 * ir - 6.f * Ã‘2ir_sum);
 }
 
 
