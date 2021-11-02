@@ -9,6 +9,7 @@
 #include "cuStat.h"
 #include "cuUtils.h"
 #include "box.h"
+#include "temperature.h"
 
 // чтобы не писать однотипные функции и вводить однотипные переменные дл€ каждого рода статистик,
 //  теперь все статистики сохран€ютс€ в один буфер, и управл€ютс€ одной послдеовательностью 
@@ -93,7 +94,7 @@ void add_stat(int ndata, int size, /*int nstep,*/ int dstep, double dt, int &tot
 
 // дл€ каждой статистики надо задать ndata и nstep, а также dstep и dtime = (dstep * timestep)
 // кроме того, надо выбрать наибольший размер статистики, чтобы задать буфер, а на девайсе разместить суммарный буфер и определить свдиги дл€ каждой статистики
-void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld)
+void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld, TStat* tstat)
 // prepare data for statistics output on host side
 {
     int i, j;
@@ -107,6 +108,11 @@ void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld)
     //! функци€ add_stat должна вызыватьс€ единожды дл€ каждой из статистик
     int nparam = 12;
     int params_size = nparam * float_size;
+    if (tstat->type == tpTermRadi)
+    {
+        nparam++;
+        params_size += float_size;
+    }
     if (fld->nBdata) // add bond energy to stat:
     {
         nparam++;
@@ -237,6 +243,8 @@ __global__ void prepare_stat_addr(cudaMD* md)
     add_stat(index, &(md->engVdW), 1, shift, md);
     add_stat(index, &(md->engCoul1), 1, shift, md);
     add_stat(index, &(md->engCoul2), 1, shift, md);
+    if (md->tstat == tpTermRadi)
+        add_stat(index, &(md->engTemp), 1, shift, md);
     if (md->use_bnd)
       add_stat(index, &(md->engBond), 1, shift, md);
     if (md->use_angl)
@@ -289,7 +297,7 @@ __global__ void prepare_stat_addr(cudaMD* md)
     }
 }
 
-void start_stat(hostManagMD* man, Field *fld, Sim *sim)
+void start_stat(hostManagMD* man, Field *fld, Sim *sim, TStat *tstat)
 // open statistics file, reset counters
 {
     int i;
@@ -298,6 +306,8 @@ void start_stat(hostManagMD* man, Field *fld, Sim *sim)
     man->stat.out_file = fopen("stat.dat", "w");
     // header (first line):
     fprintf(man->stat.out_file, "time\tstep\tengTot\tengKin\tengVdW\tengCoul1\tengCoul2");
+    if (tstat->type == tpTermRadi)
+        fprintf(man->stat.out_file, "\tengTerm");
     if (fld->nBdata)
         fprintf(man->stat.out_file, "\tengBnd");
     if (fld->nAdata)
@@ -308,6 +318,8 @@ void start_stat(hostManagMD* man, Field *fld, Sim *sim)
 
     // header (second line: +units)
     fprintf(man->stat.out_file, "\ntime, ps\tstep, n\tengTot, eV\tengKin, eV\tengVdW, eV\tengCoul1, eV\tengCoul2, eV");
+    if (tstat->type == tpTermRadi)
+        fprintf(man->stat.out_file, "\tengTerm, eV");
     if (fld->nBdata)
         fprintf(man->stat.out_file, "\tengBnd, eV");
     if (fld->nAdata)
@@ -399,8 +411,8 @@ void free_cuda_stat(cudaMD* hmd, hostManagMD* man)
     cudaFree(hmd->stat_shifts);
     cudaFree(hmd->stat_types);
 
-    delete[]  man->stat_types;
-    delete[] man->stat_buffer;
+    free(man->stat_types);
+    free(man->stat_buffer);
 }
 
 void init_cuda_rdf(Field *fld, Sim *sim, hostManagMD *man, cudaMD *hmd)
@@ -418,7 +430,7 @@ void init_cuda_rdf(Field *fld, Sim *sim, hostManagMD *man, cudaMD *hmd)
 void free_cuda_rdf(hostManagMD* man, cudaMD* hmd)
 {
     cudaFree(hmd->rdf);
-    delete[] man->rdf_buffer;
+    free(man->rdf_buffer);
 }
 
 __global__ void brute_rdf(int nSpec, int nPair, float idRDF, float r2max, cudaMD *md)
@@ -567,12 +579,12 @@ void rdf_iter(int step, Field *fld, Sim *sim, hostManagMD *man, cudaMD *hmd, cud
             }
 
         //protection from buffer overfull: clear buffer
-        if (man->rdf_count > 1000)
+        if (man->rdf_count > 500)
         {
             n = sim->nRDF * fld->nPair;
             for (i = 0; i < n; i++)
                 man->rdf_buffer[i] = 0.f;
-            cudaMemcpy((void**)&(hmd->rdf), man->rdf_buffer, man->rdf_size, cudaMemcpyHostToDevice);
+            cudaMemcpy(hmd->rdf, man->rdf_buffer, man->rdf_size, cudaMemcpyHostToDevice);
             man->rdf_count = 0;
         }
 
@@ -596,7 +608,7 @@ void init_cuda_nrdf(Field* fld, Sim* sim, hostManagMD* man, cudaMD* hmd)
 void free_cuda_nrdf(hostManagMD* man, cudaMD* hmd)
 {
     cudaFree(hmd->nrdf);
-    delete[] man->nrdf_buffer;
+    free(man->nrdf_buffer);
 }
 
 __global__ void brute_nrdf(int nSpec, int nNucl, int nPair, int n_nPair, float idRDF, float r2max, cudaMD* md)
@@ -903,7 +915,7 @@ void free_cuda_trajs(cudaMD* hmd, hostManagMD* man)
 // free memory on both device and host side
 {
     cudaFree(hmd->traj_buf);
-    delete[] man->traj_buffer;
+    free(man->traj_buffer);
 }
 
 void init_cuda_bindtrajs(Sim* sim, cudaMD* hmd, hostManagMD* man)
@@ -1081,5 +1093,5 @@ void free_cuda_bindtrajs(cudaMD* hmd, hostManagMD* man)
 {
     cudaFree(hmd->bindtraj_atoms);
     cudaFree(hmd->bindtraj_buf);
-    delete[] man->bindtraj_buffer;
+    free(man->bindtraj_buffer);
 }

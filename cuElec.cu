@@ -77,8 +77,8 @@ void init_realEwald_tex(cudaMD *md, float mxRange, float alpha)
 
 
 
-    delete[] eng;
-    delete[] frc;
+    free(eng);
+    free(frc);
 }
 
 void free_realEwald_tex(cudaMD* md)

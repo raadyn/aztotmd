@@ -384,14 +384,14 @@ void free_tstat(TStat* tstat)
     switch (tstat->type)
     {
         case tpTermRadi:
-            delete[] tstat->photons;
-            delete[] tstat->randVx;
-            delete[] tstat->randVy;
-            delete[] tstat->randVz;
+            free(tstat->photons);
+            free(tstat->randVx);
+            free(tstat->randVy);
+            free(tstat->randVz);
 
-            delete[] tstat->uvectX;
-            delete[] tstat->uvectY;
-            delete[] tstat->uvectZ;
+            free(tstat->uvectX);
+            free(tstat->uvectY);
+            free(tstat->uvectZ);
             break;
     }
 }

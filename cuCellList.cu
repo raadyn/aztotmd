@@ -296,8 +296,8 @@ void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cu
 
     data_to_device((void**)&(hmd->cellPairs), pairs, hmd->nPair * int4_size);
     data_to_device((void**)&(hmd->cellShifts), shifts, hmd->nPair * float3_size);
-    delete[] pairs;
-    delete[] shifts;
+    free(pairs);
+    free(shifts);
 
     // define variables for calling pair bypass functions
     man->pairPerBlock = pairPerBlock;
@@ -414,9 +414,9 @@ void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd,
     data_to_device((void**)&(hmd->nFirstPairs), nPair, hmd->nCell * int_size);
     data_to_device((void**)&(hmd->firstPairs), pairs_arr, hmd->nCell * pointer_size);
     data_to_device((void**)&(hmd->firstShifts), shifts_arr, hmd->nCell * pointer_size);
-    delete[] nPair;
-    delete[] pairs_arr;
-    delete[] shifts_arr;
+    free(nPair);
+    free(pairs_arr);
+    free(shifts_arr);
 
     // maximal possible number of rest pairs:
     int maxPairs = npairs(hmd->nCell) - totPairs;
@@ -439,10 +439,10 @@ void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd,
 
     data_to_device((void**)&(hmd->cellBlocks), cellBlocks, k * sizeof(int4));
     data_to_device((void**)&(hmd->secShifts), secShifts, k * pointer_size);
-    delete[] cellBlocks;
-    delete[] secShifts;
-    delete[] pairs;
-    delete[] shifts;
+    free(cellBlocks);
+    free(secShifts);
+    free(pairs);
+    free(shifts);
 
     man->pairBlockA = nBlock;
     man->pairBlockB = k;
@@ -485,8 +485,8 @@ void init_bypass5(Elec *elec, Field *fld, cudaMD *hmd, hostManagMD* man)
     data_to_device((void**)&(hmd->cellPairs), pairs, hmd->nPair * int4_size);
     data_to_device((void**)&(hmd->cellShifts), shifts, hmd->nPair * float3_size);
 
-    delete[] pairs;
-    delete[] shifts;
+    free(pairs);
+    free(shifts);
 
     man->pairBlockA = hmd->nCell;
     man->pairThreadA = 16;
@@ -532,10 +532,10 @@ void init_bypass6(int cellInBlock, int nAt, Elec* elec, Field* fld, cudaMD* hmd,
 
     data_to_device((void**)&(hmd->cellBlocks), cellBlocks, k * int4_size);
     data_to_device((void**)&(hmd->secShifts), secShifts, k * pointer_size);
-    delete[] cellBlocks;
-    delete[] secShifts;
-    delete[] pairs;
-    delete[] shifts;
+    free(cellBlocks);
+    free(secShifts);
+    free(pairs);
+    free(shifts);
 
     man->pairBlockA = hmd->nCell;
     man->pairBlockB = k;
@@ -571,7 +571,7 @@ void alloc_2dlist(int nCell, cudaMD *hmd)
         cudaMalloc((void**)&(cells[i]), (hmd->maxAtPerCell + 1) * int_size);
     }
     data_to_device((void**)&(hmd->cells), cells, nCell * pointer_size);
-    delete[] cells;
+    free(cells);
 }
 
 void free_2dlist(cudaMD *hmd)

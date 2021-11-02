@@ -38,7 +38,11 @@ void init_cuda_tstat(int nAt, TStat *tstat, cudaMD *hmd, hostManagMD *man)
             phs[i] = (float)tstat->photons[i];
             vecs[i] = make_float3((float)tstat->randVx[i], (float)tstat->randVy[i], (float)tstat->randVz[i]);
             engs[i] = 0.f;
-            radii[i] = 0.5f;    // values must be initialized to avoid division by zero in some radii-dependet pair potential
+            radii[i] = 0.577f + rand01() * 0.0001f;    // values must be initialized to avoid division by zero in some radii-dependet pair potential
+            //radii[i] = 0.577f;
+            //if (i % 200 == 0)
+              //  radii[i] = 0.578;
+            //radii[i] = 0.6f;
             radstep[i] = 0;
         }
         data_to_device((void**)(&hmd->engPhotons), phs, nAt * float_size);
@@ -52,11 +56,11 @@ void init_cuda_tstat(int nAt, TStat *tstat, cudaMD *hmd, hostManagMD *man)
         for (i = 0; i < nUvect; i++)
             uvs[i] = make_float3((float)tstat->uvectX[i], (float)tstat->uvectY[i], (float)tstat->uvectZ[i]);
         data_to_device((void**)(&hmd->uvects), uvs, nUvect * float3_size);
-        delete[] uvs;
+        free(uvs);
 
         // for sorting (if applied):
-        delete[] phs;
-        delete[] vecs;
+        free(phs);
+        free(vecs);
         break;
     }
 }
@@ -78,14 +82,20 @@ __global__ void temp_scale(int atPerBlock, int atPerThread, cudaMD* md)
 // naive scale velocities to target kinetic energy
 {
     int i;
-    float k;
+    float k, c;
 
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
 
     if (md->engKin == 0.f)
         return;
-    k = sqrt(md->teKin / md->engKin);    //! it the same value for all threads
+
+    // correction for radiative thermostat (according to our theory the correct kinetic energy at temperature T is sufficienlty lower that it follows from MKT)
+    if (md->tstat == tpTermRadi)
+        c = 0.25f;
+    else
+        c = 1.f;
+    k = sqrt(c * md->teKin / md->engKin);    //! it the same value for all threads
     /*
     if (blockIdx.x == 0)
         if (threadIdx.x == 0)   
@@ -876,39 +886,43 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
         //if (i == 0)
           //  printf("iStep=%d dStep=%d eng=%f\n", iStep, iStep - md->radstep[i], md->engs[i]);
 
-        //rnd = rnd_xor128(randVar) % 2;
-        // вообще эти события не связанные, вероятность излучения и поглощения не должны зависеть друг от друга
-        //if (x == 0)
-        //int rnd;
-        //rnd = rnd_xor128(randVar) % 2048;
-        //if (rnd < 1024)
+        int rnd;
+        rnd = rnd_xor128(randVar) % 8;
+        //if (rnd < 2)
+        //if ((iStep) % 2 == 0)
           adsorb_rand_photon(&(md->vls[i]), &(md->engs[i]), md->masses[i], pe, randVar, md, 0/*i == 0*/);
         //else
           //  radiate_photon(&(md->vls[i]), &(md->engs[i]), md->masses[i], randVar, md);
            //radiate_photon2(&(md->vls[i]), &(md->engs[i]), md->masses[i], randVar, md, i == 0);
         //rnd = rnd_xor128(randVar) % 2048;
         //if (rnd < 1024)
-            if (md->engs[i] > 1e-4)
+        if (md->engs[i] > 1e-4)
+        {
+            //rnd = rnd_xor128(randVar) % 8;
+            //if (rnd < 8)
+            //if ((iStep) % 2 == 1)
                 radiate_photon3(&(md->vls[i]), &(md->engs[i]), md->masses[i], randVar, md, 0/*(i == 0)&&(iStep % 200 == 0)*/);
+        }
 
-            if (isnan(md->vls[i].x))
-                printf("aft tstat 9 vls[%d].x is nan", i);
-            if (isnan(md->vls[i].y))
-                printf("aft tstat 9 vls[%d].y is nan", i);
-            if (isnan(md->vls[i].z))
-                printf("aft tstat 9 vls[%d].z is nan", i);
+        if (isnan(md->vls[i].x))
+            printf("aft tstat 9 vls[%d].x is nan", i);
+        if (isnan(md->vls[i].y))
+            printf("aft tstat 9 vls[%d].y is nan", i);
+        if (isnan(md->vls[i].z))
+            printf("aft tstat 9 vls[%d].z is nan", i);
 
-         // calculate atom radius (thermal exicated)
-            // r = A/(B - eng)
-            int tp = md->types[i];
-            float restrE = min(md->engs[i], md->specs[tp].mxEng);
-            md->radii[i] = md->specs[tp].radA / (md->specs[tp].radB - restrE);
-            //printf("ra = %f\n", rad);
+        // calculate atom radius (thermal exicated)
+           // r = A/(B - eng)
+        int tp = md->types[i];
+        float restrE = min(md->engs[i], md->specs[tp].mxEng);
+        md->radii[i] = md->specs[tp].radA / (md->specs[tp].radB - restrE);
+        //md->radii[i] = 0.577;
+        //printf("ra = %f\n", rad);
 
 
-           teng += md->engs[i];
-           if (isnan(teng))
-               printf("aft tstat 9 teng is nan, step:%d", iStep);
+        teng += md->engs[i];
+        if (isnan(teng))
+            printf("aft tstat 9 teng is nan, step:%d", iStep);
 
         // refresh last radiation time
         //md->radstep[i] = iStep;
@@ -956,16 +970,24 @@ void apply_tstat(int iStep, TStat *tstat, Sim *sim, cudaMD *devMD, hostManagMD *
           //  man->tstat_sign = 1;
         //else
           //  man->tstat_sign = 0;
-        //tstat_radi3 <<<man->nAtBlock, man->nAtThread>>>(man->tstat_sign, man->atPerBlock, man->atPerThread, devMD);
-        //laser_cooling<<<man->nAtBlock, man->nAtThread>>>(man->tstat_sign, man->atPerBlock, man->atPerThread, devMD);
-        //man->tstat_sign = iStep % 30;    // for radi4
-        //tstat_radi6<<<man->nAtBlock, man->nAtThread>>>(man->tstat_sign, man->atPerBlock, man->atPerThread, devMD);
-        //man->tstat_sign *= -1;      // for previous variant, now is meaningless
-        //tstat_radi7 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
-        //tstat_radi8 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
         //if ((iStep % 25 == 0)||(iStep < 2000))
-        tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
-        cudaThreadSynchronize();
+        //if (iStep < 5)
+        //if (iStep % 100 == 0)
+        if (iStep < 200)
+        {
+            tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
+            cudaThreadSynchronize();
+        }
+        if (iStep < 5000)
+        {
+            tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
+            cudaThreadSynchronize();
+        }
+        if (iStep % 50 == 0)
+        {
+            tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
+            cudaThreadSynchronize();
+        }
         break;
     }
 }

@@ -238,6 +238,9 @@ __device__ float surk_pot(float r2, float rad1, float rad2, cudaVdW* vdw, float&
 //   U = ri*rj*(C1 ri^2 rj^2 / rij^7 - C2 / (ki*ri + kj * rj) / r^6
 //   p0 = C1, p1 = C2, p2 = ki, p3 = kj
 {
+    //rad1 = 0.577;
+    //rad2 = 0.577;
+
     float Ñ2ir_sum = vdw->p1 / (vdw->p2 * rad1 + vdw->p3 * rad2);   // C2 / (ka + lb)
     float r_prod = rad1 * rad2;
     float C1ab2 = r_prod * r_prod * vdw->p0;        // C1 * a^2 b^2

@@ -317,14 +317,14 @@ void free_clist(Sim *sim)
 {
     int i;
 
-    delete[] sim->clist;
-    delete[] sim->chead;
+    free(sim->clist);
+    free(sim->chead);
 
     for (i = 0; i < sim->nHead; i++)
-      delete[] sim->lstHNeig[i];
+        free(sim->lstHNeig[i]);
 
-    delete[] sim->nHeadNeig;
-    delete[] sim->lstHNeig;
+    free(sim->nHeadNeig);
+    free(sim->lstHNeig);
 }
 // end free_clist function
 

@@ -1212,7 +1212,7 @@ void exec_bondlist(Atoms *atm, Field *field, Sim *sim, Box *bx)
       field->nBonds = j;
    }
 
-   delete[] bInds;
+   free(bInds);
    //if (isnan(eng))
      // printf("bonds eng: NAN\n");
    sim->engBond = eng;
@@ -1285,6 +1285,6 @@ void bond_out(Atoms *atm, Field *field, Box *bx, char *fname)
 
 
    for (i = 1; i < field->nBdata; i++)
-       delete[] r[i - 1];
-   delete[] r;
+       free(r[i - 1]);
+   free(r);
 }

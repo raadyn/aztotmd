@@ -2,13 +2,13 @@
 #define CUSTAT_H
 
 //__global__ void write_stat(int iStep, int ind0, int shift, cudaMD* md);
-void start_stat(hostManagMD* man, Field* fld, Sim* sim);
+void start_stat(hostManagMD* man, Field* fld, Sim* sim, TStat* tstat);
 void end_stat(hostManagMD* man, Field* fld, Sim* sim, cudaMD* hmd, double dt);
 void stat_iter(int step, hostManagMD* man, statStruct* stat, cudaMD* dmd, cudaMD* hmd, double dt);
 
 
 //void copy_stat(FILE* f, cudaMD* hmd, hostManagMD* man, int size, int type_shift, int nstep, int ndata, int dstep, double dtime, int step0, double time0);
-void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field* fld);
+void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field* fld, TStat* tstat);
 __global__ void prepare_stat_addr(cudaMD* md);
 void free_cuda_stat(cudaMD* hmd, hostManagMD* man);
 

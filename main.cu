@@ -108,12 +108,12 @@ int out_thermalchar(Atoms* atm, Field* field, char* fname, cudaMD* md)
     for (i = 0; i < field->nSpec; i++)
         if (field->species[i].number)
         {
-            delete[] engs[i];
-            delete[] rads[i];
+            free(engs[i]);
+            free(rads[i]);
         }
-    delete[] engs;
-    delete[] rads;
-    delete[] curInds;
+    free(engs);
+    free(rads);
+    free(curInds);
     return 1;
 }
 
@@ -272,7 +272,7 @@ int main()
     prepare_stat_addr << < 1, 1>> > (devMD);
 
     int iStep = 0;
-    start_stat(man, field, sim);
+    start_stat(man, field, sim, tstat);
     if (sim->frTraj)
         start_traj(atoms, man, field, sim);
     if (sim->nBindTrajAtoms)
@@ -431,7 +431,7 @@ int main()
         out_thermalchar(atoms, field, "tchars.dat", hostMD);
 
     free_device_md(devMD, man, sim, field, tstat, hostMD);
-    delete man;
+    free(man);
 
     out_atoms(atoms, atoms->nAt, field->species, box, "revcon.xyz");
     if (field->nBdata)
@@ -449,12 +449,12 @@ int main()
     if (res)
         free_md(atoms, field, tstat);
 
-    delete box;
-    delete atoms;
-    delete elec;
-    delete tstat;
-    delete field;
-    delete sim;
+    free(box);
+    free(atoms);
+    free(elec);
+    free(tstat);
+    free(field);
+    free(sim);
 
     int final_time = time(NULL);
     int res_time = final_time - start_time;

@@ -461,26 +461,26 @@ void free_ewald(Elec *elec, Atoms *atm)
    // free elc and els arrays: only 2 elements as we will fill [0..N][0] elements by [0..N][k] elements
    for (i = 0; i < atm->nAt; i++)
      {
-        delete[] elec->elc[i];
-        delete[] elec->els[i];
-        delete[] elec->emc[i];
-        delete[] elec->ems[i];
-        delete[] elec->enc[i];
-        delete[] elec->ens[i];
+        free(elec->elc[i]);
+        free(elec->els[i]);
+        free(elec->emc[i]);
+        free(elec->ems[i]);
+        free(elec->enc[i]);
+        free(elec->ens[i]);
      }
 
-   delete[] elec->elc;
-   delete[] elec->els;
-   delete[] elec->emc;
-   delete[] elec->ems;
-   delete[] elec->enc;
-   delete[] elec->ens;
+   free(elec->elc);
+   free(elec->els);
+   free(elec->emc);
+   free(elec->ems);
+   free(elec->enc);
+   free(elec->ens);
 
    // free lmc, lms, ckc, cks buffer-arrays:
-   delete[] elec->lmc;
-   delete[] elec->lms;
-   delete[] elec->ckc;
-   delete[] elec->cks;
+   free(elec->lmc);
+   free(elec->lms);
+   free(elec->ckc);
+   free(elec->cks);
 }
 // end 'free_ewald' function
 
