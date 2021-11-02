@@ -53,14 +53,14 @@ __device__ void put_periodic(float3& xyz, float3 vel, float mass, int type, cuda
     xyz.x -= (float)(nx * md->leng.x);
     xyz.y -= (float)(ny * md->leng.y);
     xyz.z -= (float)(nz * md->leng.z);
-    //! раньше было так
+    //! Г°Г Г­ГјГёГҐ ГЎГ»Г«Г® ГІГ ГЄ
     /*
     xyz.x -= (float)(floor((double)xyz.x * (double)md->revLeng.x) * (double)md->leng.x);
     xyz.y -= (float)(floor((double)xyz.y * (double)md->revLeng.y) * (double)md->leng.y);
     xyz.z -= (float)(floor((double)xyz.z * (double)md->revLeng.z) * (double)md->leng.z);
     */
 
-    // подстраховка
+    // ГЇГ®Г¤Г±ГІГ°Г ГµГ®ГўГЄГ 
     if (xyz.x >= md->leng.x)
         xyz.x = 0.f;
     if (xyz.y >= md->leng.y)
@@ -68,7 +68,7 @@ __device__ void put_periodic(float3& xyz, float3 vel, float mass, int type, cuda
     if (xyz.z >= md->leng.z)
         xyz.z = 0.f;
 
-    // счетчики
+    // Г±Г·ГҐГІГ·ГЁГЄГЁ
     if (nx > 0)
     {
         atomicAdd(&md->specAcBoxPos[type].x, 1); // counter of crossing in a positive direction
@@ -221,12 +221,12 @@ __device__ void pass_periodic(int id1, int id2, cudaMD *md, int& px, int& py, in
     //double dy = atm->ys[iat] - atm->ys[jat];
     //double dz = atm->zs[iat] - atm->zs[jat];
 
-    if (dx > md->halfLeng.x) // второй атом в отрицательном отображении
+    if (dx > md->halfLeng.x) // ГўГІГ®Г°Г®Г© Г ГІГ®Г¬ Гў Г®ГІГ°ГЁГ¶Г ГІГҐГ«ГјГ­Г®Г¬ Г®ГІГ®ГЎГ°Г Г¦ГҐГ­ГЁГЁ
     {
         px = -1;
     }
     else
-        if (dx < -md->halfLeng.x) //  второй атом в положительном отображении
+        if (dx < -md->halfLeng.x) //  ГўГІГ®Г°Г®Г© Г ГІГ®Г¬ Гў ГЇГ®Г«Г®Г¦ГЁГІГҐГ«ГјГ­Г®Г¬ Г®ГІГ®ГЎГ°Г Г¦ГҐГ­ГЁГЁ
         {
             px = 1;
         }
@@ -251,15 +251,15 @@ __device__ void keep_in_cell(int index, float3 xyz, cudaMD* md)
         printf("keep in cell: xyz=(%f; %f; %f)revsizes:[%f %f %f] c = %d\n", xyz.x, xyz.y, xyz.z, md->cRevSize.x, md->cRevSize.y, md->cRevSize.z, c);
     if (c < 0)
         printf("keep in cell: xyz=(%f; %f; %f) c = %d\n", xyz.x, xyz.y, xyz.z, c);
-    //! или может не вычислять это, а хранить индекс ячейки в трехмерном массиве в texture_memory
-    //!    и обращаться по приведненным координатм [x / md->cSize.x][y / md->cSize.y]
-    //!    есть ли в этом смысл?
+    //! ГЁГ«ГЁ Г¬Г®Г¦ГҐГІ Г­ГҐ ГўГ»Г·ГЁГ±Г«ГїГІГј ГЅГІГ®, Г  ГµГ°Г Г­ГЁГІГј ГЁГ­Г¤ГҐГЄГ± ГїГ·ГҐГ©ГЄГЁ Гў ГІГ°ГҐГµГ¬ГҐГ°Г­Г®Г¬ Г¬Г Г±Г±ГЁГўГҐ Гў texture_memory
+    //!    ГЁ Г®ГЎГ°Г Г№Г ГІГјГ±Гї ГЇГ® ГЇГ°ГЁГўГҐГ¤Г­ГҐГ­Г­Г»Г¬ ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ¬ [x / md->cSize.x][y / md->cSize.y]
+    //!    ГҐГ±ГІГј Г«ГЁ Гў ГЅГІГ®Г¬ Г±Г¬Г»Г±Г«?
 
 
-    //! традиционный способ
+    //! ГІГ°Г Г¤ГЁГ¶ГЁГ®Г­Г­Г»Г© Г±ГЇГ®Г±Г®ГЎ
     //md->clist[index] = atomicExch(&md->chead[c], index);
 
-    //! прямой способ
+    //! ГЇГ°ГїГ¬Г®Г© Г±ГЇГ®Г±Г®ГЎ
     j = atomicAdd(&(md->cells[c][0]), 1);    // increase the number of particles in cell[c] (it keeps in the 0th element of cell[cell_index] array)
     if (j >= md->maxAtPerCell)
         printf("at[%d](%f,%f,%f) too many atoms (%d) in the cell[%d]\n", index, xyz.x, xyz.y, xyz.z, j, c);
@@ -348,7 +348,7 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
         shEngElField = 0;
         if (blockIdx.x == 0)
         {
-            //     md->engElecField = 0;  //! убрать в reset
+            //     md->engElecField = 0;  //! ГіГЎГ°Г ГІГј Гў reset
 #ifdef TX_CHARGE
             /*
             float p1, p2, p3, p4;
@@ -472,9 +472,9 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
         //  Eng = q * x * dU/dx
         engElecField += charge * (md->xyz[i].x * md->elecField.x + md->xyz[i].y * md->elecField.y + md->xyz[i].z * md->elecField.z);
 
-        //! сброшу здесь, хотя при использовании cell_list это не обязательно, это нужно если мы используем all_pair
-        //! теперь обязательно, поскольку apply_bonds выполняется до cell_list
-        //! а ещё обязательно, поскольку используется внешнее эл. поле
+        //! Г±ГЎГ°Г®ГёГі Г§Г¤ГҐГ±Гј, ГµГ®ГІГї ГЇГ°ГЁ ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ Г­ГЁГЁ cell_list ГЅГІГ® Г­ГҐ Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г®, ГЅГІГ® Г­ГіГ¦Г­Г® ГҐГ±Г«ГЁ Г¬Г» ГЁГ±ГЇГ®Г«ГјГ§ГіГҐГ¬ all_pair
+        //! ГІГҐГЇГҐГ°Гј Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г®, ГЇГ®Г±ГЄГ®Г«ГјГЄГі apply_bonds ГўГ»ГЇГ®Г«Г­ГїГҐГІГ±Гї Г¤Г® cell_list
+        //! Г  ГҐГ№Вё Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г®, ГЇГ®Г±ГЄГ®Г«ГјГЄГі ГЁГ±ГЇГ®Г«ГјГ§ГіГҐГІГ±Гї ГўГ­ГҐГёГ­ГҐГҐ ГЅГ«. ГЇГ®Г«ГҐ
         md->frs[i] = make_float3(-charge * md->elecField.x, -charge * md->elecField.y, -charge * md->elecField.z);    // F = -q * dU/dx
 
         if (md->use_bnd == 2)   // variable bonds
