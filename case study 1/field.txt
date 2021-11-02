@@ -1,0 +1,13 @@
+spec 1
+Ar	Ar	39.9	0.0	0.0
+red-ox 0
+vdw 1
+Ar	Ar	lnjs	4.0    0.01006	3.3952
+
+
+
+
+
+Ar	He-	buck	6.0    300.0     0.7    0.0
+He-	He-	buck	6.0    300.0     0.7    0.0
+
