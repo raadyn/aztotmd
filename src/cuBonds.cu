@@ -17,7 +17,7 @@ __device__ void try_to_bind(float r2, int id1, int id2, int spec1, int spec2, cu
 #endif
     //printf("try to bind\n");
 
-    // надо бы исключить самосвязывание, хотя бы попытаться
+    // Г­Г Г¤Г® ГЎГ» ГЁГ±ГЄГ«ГѕГ·ГЁГІГј Г±Г Г¬Г®Г±ГўГїГ§Г»ГўГ Г­ГЁГҐ, ГµГ®ГІГї ГЎГ» ГЇГ®ГЇГ»ГІГ ГІГјГ±Гї
     if (md->parents[id1] == id2)
         return;
     if (md->parents[id2] == id1)
@@ -32,10 +32,10 @@ __device__ void try_to_bind(float r2, int id1, int id2, int spec1, int spec2, cu
 
             if (atomicMin(&(md->r2Min[id1]), r2Int) > r2Int)    // replace was sucessfull
             {
-                // тут есть опасность, что пока мы приступили к этому, кто-то уже перезаписал минимум, ну принебрежем этим, кто успел тот и успел
+                // ГІГіГІ ГҐГ±ГІГј Г®ГЇГ Г±Г­Г®Г±ГІГј, Г·ГІГ® ГЇГ®ГЄГ  Г¬Г» ГЇГ°ГЁГ±ГІГіГЇГЁГ«ГЁ ГЄ ГЅГІГ®Г¬Гі, ГЄГІГ®-ГІГ® ГіГ¦ГҐ ГЇГҐГ°ГҐГ§Г ГЇГЁГ±Г Г« Г¬ГЁГ­ГЁГ¬ГіГ¬, Г­Гі ГЇГ°ГЁГ­ГҐГЎГ°ГҐГ¦ГҐГ¬ ГЅГІГЁГ¬, ГЄГІГ® ГіГ±ГЇГҐГ« ГІГ®ГІ ГЁ ГіГ±ГЇГҐГ«
                 //atomicExch(&(md->neighToBind[id1]), id2);   
                 
-                // !можно наверно и без атомик:
+                // !Г¬Г®Г¦Г­Г® Г­Г ГўГҐГ°Г­Г® ГЁ ГЎГҐГ§ Г ГІГ®Г¬ГЁГЄ:
                 md->neighToBind[id1] = id2 + 1;     // as 0 is reserved for no bind
                 md->canBind[id1] = 1;
                 //atomicExch(&(md->canBind[id1]), 1);
@@ -44,10 +44,10 @@ __device__ void try_to_bind(float r2, int id1, int id2, int spec1, int spec2, cu
             // similar for the second atom
             if (atomicMin(&(md->r2Min[id2]), r2Int) > r2Int)    // replace was sucessfull
             {
-                // тут есть опасность, что пока мы приступили к этому, кто-то уже перезаписал минимум, ну принебрежем этим, кто успел тот и успел
+                // ГІГіГІ ГҐГ±ГІГј Г®ГЇГ Г±Г­Г®Г±ГІГј, Г·ГІГ® ГЇГ®ГЄГ  Г¬Г» ГЇГ°ГЁГ±ГІГіГЇГЁГ«ГЁ ГЄ ГЅГІГ®Г¬Гі, ГЄГІГ®-ГІГ® ГіГ¦ГҐ ГЇГҐГ°ГҐГ§Г ГЇГЁГ±Г Г« Г¬ГЁГ­ГЁГ¬ГіГ¬, Г­Гі ГЇГ°ГЁГ­ГҐГЎГ°ГҐГ¦ГҐГ¬ ГЅГІГЁГ¬, ГЄГІГ® ГіГ±ГЇГҐГ« ГІГ®ГІ ГЁ ГіГ±ГЇГҐГ«
                 //atomicExch(&(md->neighToBind[id2]), id1);   
 
-                // !можно наверно и без атомик:
+                // !Г¬Г®Г¦Г­Г® Г­Г ГўГҐГ°Г­Г® ГЁ ГЎГҐГ§ Г ГІГ®Г¬ГЁГЄ:
                 md->neighToBind[id2] = id1 + 1;     // as 0 is reserved for no bind
                 md->canBind[id2] = 1;
                 //atomicExch(&(md->canBind[id2]), 1);
@@ -118,7 +118,7 @@ __device__ void exclude_parents(int id1, int id2, cudaMD* md)
     if (clear_1 || clear_2)
     {
         for (i = 0; i < md->nBond; i++)
-            if (md->bonds[i].z != 0)    // сюда же входит и связь id1-id2, поскольку она предварительно была обнулена в apply_bonds
+            if (md->bonds[i].z != 0)    // Г±ГѕГ¤Г  Г¦ГҐ ГўГµГ®Г¤ГЁГІ ГЁ Г±ГўГїГ§Гј id1-id2, ГЇГ®Г±ГЄГ®Г«ГјГЄГі Г®Г­Г  ГЇГ°ГҐГ¤ГўГ Г°ГЁГІГҐГ«ГјГ­Г® ГЎГ»Г«Г  Г®ГЎГ­ГіГ«ГҐГ­Г  Гў apply_bonds
             {
                 if (md->bonds[i].x == id1)
                 {
@@ -168,7 +168,7 @@ __device__ void exclude_parents(int id1, int id2, cudaMD* md)
             }
 
         // end loop by replacing parents
-        if (clear_1)    // если даже после этого не очистились - зануляем
+        if (clear_1)    // ГҐГ±Г«ГЁ Г¤Г Г¦ГҐ ГЇГ®Г±Г«ГҐ ГЅГІГ®ГЈГ® Г­ГҐ Г®Г·ГЁГ±ГІГЁГ«ГЁГ±Гј - Г§Г Г­ГіГ«ГїГҐГ¬
             md->parents[id1] = -1;
         if (clear_2)    
             md->parents[id2] = -1;
@@ -229,8 +229,8 @@ __device__ void exclude_parents(int id1, int id2, cudaMD* md)
         i++;
     }
     
-    //! на всякий случай (на самом деле, если такое случилось, что-то пошло не так, завернуть в DEBUG)
-    if (clear_1)    // если даже после этого не очистились - зануляем
+    //! Г­Г  ГўГ±ГїГЄГЁГ© Г±Г«ГіГ·Г Г© (Г­Г  Г±Г Г¬Г®Г¬ Г¤ГҐГ«ГҐ, ГҐГ±Г«ГЁ ГІГ ГЄГ®ГҐ Г±Г«ГіГ·ГЁГ«Г®Г±Гј, Г·ГІГ®-ГІГ® ГЇГ®ГёГ«Г® Г­ГҐ ГІГ ГЄ, Г§Г ГўГҐГ°Г­ГіГІГј Гў DEBUG)
+    if (clear_1)    // ГҐГ±Г«ГЁ Г¤Г Г¦ГҐ ГЇГ®Г±Г«ГҐ ГЅГІГ®ГЈГ® Г­ГҐ Г®Г·ГЁГ±ГІГЁГ«ГЁГ±Гј - Г§Г Г­ГіГ«ГїГҐГ¬
         md->parents[id1] = -1;
     if (clear_2)
         md->parents[id2] = -1;
@@ -261,10 +261,10 @@ __device__ void exclude_H_parent(int hid, int pid, cudaMD* md)
                     }
                 }
 
-            //! на всякий случай (вдруг что-то пошло не так, завернуть в дебаг)
+            //! Г­Г  ГўГ±ГїГЄГЁГ© Г±Г«ГіГ·Г Г© (ГўГ¤Г°ГіГЈ Г·ГІГ®-ГІГ® ГЇГ®ГёГ«Г® Г­ГҐ ГІГ ГЄ, Г§Г ГўГҐГ°Г­ГіГІГј Гў Г¤ГҐГЎГ ГЈ)
             if (md->parents[hid] == pid)
             {
-                md->parents[hid] = -1;      // если даже после этого не очистились - зануляем
+                md->parents[hid] = -1;      // ГҐГ±Г«ГЁ Г¤Г Г¦ГҐ ГЇГ®Г±Г«ГҐ ГЅГІГ®ГЈГ® Г­ГҐ Г®Г·ГЁГ±ГІГЁГ«ГЁГ±Гј - Г§Г Г­ГіГ«ГїГҐГ¬
             }
         }
         else // if there are no bonds with the atom, just reset its parent
@@ -345,7 +345,7 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
 #endif
       if (md->bonds[iBnd].z)  // the bond is not broken
       {
-/*  к сожалению прийдется перенести эту часть сразу после сортировки, поскольку она важна для процедуры refresh_angles, что идет вначале
+/*  ГЄ Г±Г®Г¦Г Г«ГҐГ­ГЁГѕ ГЇГ°ГЁГ©Г¤ГҐГІГ±Гї ГЇГҐГ°ГҐГ­ГҐГ±ГІГЁ ГЅГІГі Г·Г Г±ГІГј Г±Г°Г Г§Гі ГЇГ®Г±Г«ГҐ Г±Г®Г°ГІГЁГ°Г®ГўГЄГЁ, ГЇГ®Г±ГЄГ®Г«ГјГЄГі Г®Г­Г  ГўГ Г¦Г­Г  Г¤Г«Гї ГЇГ°Г®Г¶ГҐГ¤ГіГ°Г» refresh_angles, Г·ГІГ® ГЁГ¤ГҐГІ ГўГ­Г Г·Г Г«ГҐ
           // take sorting into account
 #ifdef USE_FASTLIST
           md->bonds[iBnd].x = md->sort_ind[md->bonds[iBnd].x];
@@ -424,7 +424,7 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
           // end initial stage
           while (loop)
           {
-             if (save_lt)       // этот флаг кроме всего прочего, символизирует, что вначале нам уже потребовалось переопределить связь, при повторном прохождении цикла, он всегда будет true
+             if (save_lt)       // ГЅГІГ®ГІ ГґГ«Г ГЈ ГЄГ°Г®Г¬ГҐ ГўГ±ГҐГЈГ® ГЇГ°Г®Г·ГҐГЈГ®, Г±ГЁГ¬ГўГ®Г«ГЁГ§ГЁГ°ГіГҐГІ, Г·ГІГ® ГўГ­Г Г·Г Г«ГҐ Г­Г Г¬ ГіГ¦ГҐ ГЇГ®ГІГ°ГҐГЎГ®ГўГ Г«Г®Г±Гј ГЇГҐГ°ГҐГ®ГЇГ°ГҐГ¤ГҐГ«ГЁГІГј Г±ГўГїГ§Гј, ГЇГ°ГЁ ГЇГ®ГўГІГ®Г°Г­Г®Г¬ ГЇГ°Г®ГµГ®Г¦Г¤ГҐГ­ГЁГЁ Г¶ГЁГЄГ«Г , Г®Г­ ГўГ±ГҐГЈГ¤Г  ГЎГіГ¤ГҐГІ true
              {
                  //def = md->def_bonds[spec1][spec2];
                  def = evol_bondtype(cur_bnd, spec1, spec2, md);
@@ -438,8 +438,8 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
                  }
                  else
                  {
-                     //! меняем связь и поехали дальше
-                     if (def < 0)  // если обратная, меняем опять же порядок атомов в связи
+                     //! Г¬ГҐГ­ГїГҐГ¬ Г±ГўГїГ§Гј ГЁ ГЇГ®ГҐГµГ Г«ГЁ Г¤Г Г«ГјГёГҐ
+                     if (def < 0)  // ГҐГ±Г«ГЁ Г®ГЎГ°Г ГІГ­Г Гї, Г¬ГҐГ­ГїГҐГ¬ Г®ГЇГїГІГј Г¦ГҐ ГЇГ®Г°ГїГ¤Г®ГЄ Г ГІГ®Г¬Г®Гў Гў Г±ГўГїГ§ГЁ
                      {
                          invert_bond(id1, id2, spec1, spec2, &(md->bonds[iBnd]));
                          def = -def;
@@ -498,7 +498,7 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
                  if (old != spec1)
                  {
                      spec1 = old;
-                     spec2 = md->types[id2];   // обновляю значение 2го типа атома, вдруг оно тоже изменилось
+                     spec2 = md->types[id2];   // Г®ГЎГ­Г®ГўГ«ГїГѕ Г§Г­Г Г·ГҐГ­ГЁГҐ 2ГЈГ® ГІГЁГЇГ  Г ГІГ®Г¬Г , ГўГ¤Г°ГіГЈ Г®Г­Г® ГІГ®Г¦ГҐ ГЁГ§Г¬ГҐГ­ГЁГ«Г®Г±Гј
                      // return to begin of the cycle
                  }
                  else      // types[id1] have been changed
@@ -508,8 +508,8 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
                      old_spec2 = spec2;
                      while ((old = atomicCAS(&(md->types[id2]), old_spec2, new_spec2)) != old_spec2)
                      {
-                         //! наихудший вариант: А успели поменять, а Б - нет
-                         // представляем, что у нас была связь A-old и она реагирует также на такую длину связи
+                         //! Г­Г ГЁГµГіГ¤ГёГЁГ© ГўГ Г°ГЁГ Г­ГІ: ГЂ ГіГ±ГЇГҐГ«ГЁ ГЇГ®Г¬ГҐГ­ГїГІГј, Г  ГЃ - Г­ГҐГІ
+                         // ГЇГ°ГҐГ¤Г±ГІГ ГўГ«ГїГҐГ¬, Г·ГІГ® Гі Г­Г Г± ГЎГ»Г«Г  Г±ГўГїГ§Гј A-old ГЁ Г®Г­Г  Г°ГҐГ ГЈГЁГ°ГіГҐГІ ГІГ ГЄГ¦ГҐ Г­Г  ГІГ ГЄГіГѕ Г¤Г«ГЁГ­Гі Г±ГўГїГ§ГЁ
 
                          //def = md->def_bonds[spec1][old];
                          def = evol_bondtype(cur_bnd, spec1, old, md);
@@ -542,7 +542,7 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
                          }
 #endif
                      }
-                     // сохраняем, что мы изменяли этот тип атома, если это не было сохранено ранее
+                     // Г±Г®ГµГ°Г Г­ГїГҐГ¬, Г·ГІГ® Г¬Г» ГЁГ§Г¬ГҐГ­ГїГ«ГЁ ГЅГІГ®ГІ ГІГЁГЇ Г ГІГ®Г¬Г , ГҐГ±Г«ГЁ ГЅГІГ® Г­ГҐ ГЎГ»Г«Г® Г±Г®ГµГ°Г Г­ГҐГ­Г® Г°Г Г­ГҐГҐ
                      //if (md->use_angl == 2) // variable angles
                          atomicCAS(&(md->oldTypes[id2]), -1, spec2);
                      loop = 0;
@@ -561,7 +561,7 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
 
 
           // 0 - just cultivate bond 1 - delete bond 2 - transformate bond
-          // единственный случай, когда нужно обновить bnd
+          // ГҐГ¤ГЁГ­Г±ГІГўГҐГ­Г­Г»Г© Г±Г«ГіГ·Г Г©, ГЄГ®ГЈГ¤Г  Г­ГіГ¦Г­Г® Г®ГЎГ­Г®ГўГЁГІГј bnd
           if (action == 2)
           {
 #ifdef DEBUG_MODE
@@ -616,7 +616,7 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
               }
 ////////////  end H-bonds addition
 
-              //atomicAdd(&(cur_bnd->count), 1);    // теперь в if (save_lt)
+              //atomicAdd(&(cur_bnd->count), 1);    // ГІГҐГЇГҐГ°Гј Гў if (save_lt)
           }
 
           // perform calculations and save mean distance
@@ -628,7 +628,7 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
               
               f = cur_bnd->force_eng(r2, r, eng, cur_bnd);
 
-              //! ВРЕМЕННО! для уравновешивания связей
+              //! Г‚ГђГ…ГЊГ…ГЌГЌГЋ! Г¤Г«Гї ГіГ°Г ГўГ­Г®ГўГҐГёГЁГўГ Г­ГЁГї Г±ГўГїГ§ГҐГ©
               if ((f > -0.1f) && (f < 0.1f))
               {
                   md->vls[id1] = make_float3(0.f, 0.f, 0.f);
@@ -666,9 +666,9 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
 ////////////  end H-bonds addition
                   atomicSub(&(md->nbonds[id2]), 1);
               md->bonds[iBnd].z = 0;
-              //atomicSub(&(old_bnd->count), 1);    // теперь в if (save_lt)
+              //atomicSub(&(old_bnd->count), 1);    // ГІГҐГЇГҐГ°Гј Гў if (save_lt)
 
-              //! здесь и везде надо сделать пересчет количеств специев
+              //! Г§Г¤ГҐГ±Гј ГЁ ГўГҐГ§Г¤ГҐ Г­Г Г¤Г® Г±Г¤ГҐГ«Г ГІГј ГЇГҐГ°ГҐГ±Г·ГҐГІ ГЄГ®Г«ГЁГ·ГҐГ±ГІГў Г±ГЇГҐГ¶ГЁГҐГў
 
               // change parents
 ////////////  H-bonds addition
@@ -728,7 +728,7 @@ __global__ void apply_const_bonds(int iStep, int bndPerBlock, int bndPerThread, 
     int iBnd;
 
     for (iBnd = id0; iBnd < N; iBnd++)
-            if (md->bonds[iBnd].z)  //! вообще здесь эту проверку можно и опустить
+            if (md->bonds[iBnd].z)  //! ГўГ®Г®ГЎГ№ГҐ Г§Г¤ГҐГ±Гј ГЅГІГі ГЇГ°Г®ГўГҐГ°ГЄГі Г¬Г®Г¦Г­Г® ГЁ Г®ГЇГіГ±ГІГЁГІГј
             {
                 // atom indexes
                 id1 = md->bonds[iBnd].x;
@@ -751,7 +751,7 @@ __global__ void apply_const_bonds(int iStep, int bndPerBlock, int bndPerThread, 
                // if (isnan(f))
                  //   printf("apply_const_bonds, f is nan\n");
 
-                //! ВРЕМЕННО! для уравновешивания связей
+                //! Г‚ГђГ…ГЊГ…ГЌГЌГЋ! Г¤Г«Гї ГіГ°Г ГўГ­Г®ГўГҐГёГЁГўГ Г­ГЁГї Г±ГўГїГ§ГҐГ©
                 //if ((f > -0.1f) && (f < 0.1f))
                 //{
                   //  md->vls[id1] = make_float3(0.f, 0.f, 0.f);
@@ -844,9 +844,9 @@ __global__ void fix_bonds(int bndPerBlock, int bndPerThread, cudaMD* md)
             }
             else
             {
-                //! меняем связь и поехали дальше
+                //! Г¬ГҐГ­ГїГҐГ¬ Г±ГўГїГ§Гј ГЁ ГЇГ®ГҐГµГ Г«ГЁ Г¤Г Г«ГјГёГҐ
                 //printf("fix bond\n");
-                if (def < 0)  // если обратная, меняем опять же порядок атомов в связи
+                if (def < 0)  // ГҐГ±Г«ГЁ Г®ГЎГ°Г ГІГ­Г Гї, Г¬ГҐГ­ГїГҐГ¬ Г®ГЇГїГІГј Г¦ГҐ ГЇГ®Г°ГїГ¤Г®ГЄ Г ГІГ®Г¬Г®Гў Гў Г±ГўГїГ§ГЁ
                 {
                     md->bonds[iBnd].x = id2;
                     md->bonds[iBnd].y = id1;
@@ -864,7 +864,7 @@ __global__ void fix_bonds(int bndPerBlock, int bndPerThread, cudaMD* md)
 __global__ void clear_bonds(cudaMD* md)
 // clear bonds with .z == 0
 {
-    // не знаю, как сделать параллельный, вот серийный вариант:
+    // Г­ГҐ Г§Г­Г Гѕ, ГЄГ ГЄ Г±Г¤ГҐГ«Г ГІГј ГЇГ Г°Г Г«Г«ГҐГ«ГјГ­Г»Г©, ГўГ®ГІ Г±ГҐГ°ГЁГ©Г­Г»Г© ГўГ Г°ГЁГ Г­ГІ:
     int i = 0;
     int j = md->nBond - 1;
 
@@ -925,8 +925,8 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
             //if (iat == nei)
               //  printf("iat == nei!!!\n");
 
-            //! тут сразу проверим и на parents (исключаем двойное связывание):
-            //! вообще эта проверка уже выполняется в try to bind, так что тут может и сканает без нее
+            //! ГІГіГІ Г±Г°Г Г§Гі ГЇГ°Г®ГўГҐГ°ГЁГ¬ ГЁ Г­Г  parents (ГЁГ±ГЄГ«ГѕГ·Г ГҐГ¬ Г¤ГўГ®Г©Г­Г®ГҐ Г±ГўГїГ§Г»ГўГ Г­ГЁГҐ):
+            //! ГўГ®Г®ГЎГ№ГҐ ГЅГІГ  ГЇГ°Г®ГўГҐГ°ГЄГ  ГіГ¦ГҐ ГўГ»ГЇГ®Г«Г­ГїГҐГІГ±Гї Гў try to bind, ГІГ ГЄ Г·ГІГ® ГІГіГІ Г¬Г®Г¦ГҐГІ ГЁ Г±ГЄГ Г­Г ГҐГІ ГЎГҐГ§ Г­ГҐГҐ
             //if (md->parents[iat] == nei)
               //  continue;
             //if (md->parents[nei] == iat)
@@ -934,9 +934,9 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
 
             //printf("create bond at atom[%d](%d)-[%d](%d)\n", iat, md->canBind[iat], nei, md->canBind[nei]);
 
-            //! тут такая штука, если оставить как было, первым обратывается атом iat, а вторым nei
-            //!  то у нас разные потоки беруется за это дело с разных сторон и получается один лочит первый атом в паре, другой - второй
-            //!  и когда они добираются до 2ой проверки получают фолс и выходят, поэтому сразу упорядочим индексы
+            //! ГІГіГІ ГІГ ГЄГ Гї ГёГІГіГЄГ , ГҐГ±Г«ГЁ Г®Г±ГІГ ГўГЁГІГј ГЄГ ГЄ ГЎГ»Г«Г®, ГЇГҐГ°ГўГ»Г¬ Г®ГЎГ°Г ГІГ»ГўГ ГҐГІГ±Гї Г ГІГ®Г¬ iat, Г  ГўГІГ®Г°Г»Г¬ nei
+            //!  ГІГ® Гі Г­Г Г± Г°Г Г§Г­Г»ГҐ ГЇГ®ГІГ®ГЄГЁ ГЎГҐГ°ГіГҐГІГ±Гї Г§Г  ГЅГІГ® Г¤ГҐГ«Г® Г± Г°Г Г§Г­Г»Гµ Г±ГІГ®Г°Г®Г­ ГЁ ГЇГ®Г«ГіГ·Г ГҐГІГ±Гї Г®Г¤ГЁГ­ Г«Г®Г·ГЁГІ ГЇГҐГ°ГўГ»Г© Г ГІГ®Г¬ Гў ГЇГ Г°ГҐ, Г¤Г°ГіГЈГ®Г© - ГўГІГ®Г°Г®Г©
+            //!  ГЁ ГЄГ®ГЈГ¤Г  Г®Г­ГЁ Г¤Г®ГЎГЁГ°Г ГѕГІГ±Гї Г¤Г® 2Г®Г© ГЇГ°Г®ГўГҐГ°ГЄГЁ ГЇГ®Г«ГіГ·Г ГѕГІ ГґГ®Г«Г± ГЁ ГўГ»ГµГ®Г¤ГїГІ, ГЇГ®ГЅГІГ®Г¬Гі Г±Г°Г Г§Гі ГіГЇГ®Г°ГїГ¤Г®Г·ГЁГ¬ ГЁГ­Г¤ГҐГЄГ±Г»
             if (iat < nei)
             {
                 id1 = iat;
@@ -944,7 +944,7 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
             }
             else
             {
-                //continue;   // попробуем просто выйти
+                //continue;   // ГЇГ®ГЇГ°Г®ГЎГіГҐГ¬ ГЇГ°Г®Г±ГІГ® ГўГ»Г©ГІГЁ
                 id1 = nei;
                 id2 = iat;
             }
@@ -965,7 +965,7 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
             }
 #endif
 
-            // сразу проверим, могут ли эти атомы образовать связь, если нет - выходим
+            // Г±Г°Г Г§Гі ГЇГ°Г®ГўГҐГ°ГЁГ¬, Г¬Г®ГЈГіГІ Г«ГЁ ГЅГІГЁ Г ГІГ®Г¬Г» Г®ГЎГ°Г Г§Г®ГўГ ГІГј Г±ГўГїГ§Гј, ГҐГ±Г«ГЁ Г­ГҐГІ - ГўГ»ГµГ®Г¤ГЁГ¬
             if (btype == 0)
             {
                 printf("0 btype! tot %d bonds\n", md->nBond);
@@ -994,7 +994,7 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
                 printf("UBEH[003]: Exceed maximal number of bonds, %d\n", md->mxBond);
             }
 #endif
-            // сохраняем, что мы изменяли эти тип атома, если это не было сохранено ранее
+            // Г±Г®ГµГ°Г Г­ГїГҐГ¬, Г·ГІГ® Г¬Г» ГЁГ§Г¬ГҐГ­ГїГ«ГЁ ГЅГІГЁ ГІГЁГЇ Г ГІГ®Г¬Г , ГҐГ±Г«ГЁ ГЅГІГ® Г­ГҐ ГЎГ»Г«Г® Г±Г®ГµГ°Г Г­ГҐГ­Г® Г°Г Г­ГҐГҐ
             //if (md->use_angl == 2)      // variable angles
             //{
                 atomicCAS(&(md->oldTypes[id1]), -1, spec1);
@@ -1063,7 +1063,7 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
             //if ((r2 > 4.0) || (r2 < 1.0))
               //  printf("abnormal bonding length=%f r2Max=%f\n", sqrt(r2), md->r2Max);
 
-            // попробуем занулить скорости частиц, образующих связь
+            // ГЇГ®ГЇГ°Г®ГЎГіГҐГ¬ Г§Г Г­ГіГ«ГЁГІГј Г±ГЄГ®Г°Г®Г±ГІГЁ Г·Г Г±ГІГЁГ¶, Г®ГЎГ°Г Г§ГіГѕГ№ГЁГµ Г±ГўГїГ§Гј
             //md->vls[id1] = make_float3(0.f, 0.f, 0.f);
             //md->vls[id2] = make_float3(0.f, 0.f, 0.f);
 
@@ -1081,8 +1081,8 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
             // replace parents if none:
             //atomicCAS(&(md->parents[id1]), -1, id2);
             //atomicCAS(&(md->parents[id2]), -1, id1);
-            // побольшому счету неважно, оставляем ли мы уже замененные или нет
-            // так что можно заменить CAS на EXCH
+            // ГЇГ®ГЎГ®Г«ГјГёГ®Г¬Гі Г±Г·ГҐГІГі Г­ГҐГўГ Г¦Г­Г®, Г®Г±ГІГ ГўГ«ГїГҐГ¬ Г«ГЁ Г¬Г» ГіГ¦ГҐ Г§Г Г¬ГҐГ­ГҐГ­Г­Г»ГҐ ГЁГ«ГЁ Г­ГҐГІ
+            // ГІГ ГЄ Г·ГІГ® Г¬Г®Г¦Г­Г® Г§Г Г¬ГҐГ­ГЁГІГј CAS Г­Г  EXCH
             ////////////  H-bonds addition
             if (bnd->hatom != md->types[id2])  // another atom is not hydrogen (this is hydrogen)
             ////////////  end H-bonds addition
@@ -1091,8 +1091,8 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
             if (bnd->hatom != md->types[id1])  // another atom is not hydrogen (this is hydrogen)
             ////////////  end H-bonds addition
                 atomicExch(&(md->parents[id2]), id1);
-            //! (?) а может быть атомик и не нужен
-            //! объединить с предыдущим блоком, тогда можно избавится от двух if
+            //! (?) Г  Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј Г ГІГ®Г¬ГЁГЄ ГЁ Г­ГҐ Г­ГіГ¦ГҐГ­
+            //! Г®ГЎГєГҐГ¤ГЁГ­ГЁГІГј Г± ГЇГ°ГҐГ¤Г»Г¤ГіГ№ГЁГ¬ ГЎГ«Г®ГЄГ®Г¬, ГІГ®ГЈГ¤Г  Г¬Г®Г¦Г­Г® ГЁГ§ГЎГ ГўГЁГІГ±Гї Г®ГІ Г¤ГўГіГµ if
         }
 
     }    // end loop by atoms
@@ -1100,7 +1100,7 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
 // end 'create_bonds' function
 
 __global__ void refresh_atomTypes(int iStep, int atPerBlock, int atPerThread, cudaMD* md)
-// recalculate number of atom types (функция сделана на тот случай, если не нужно обновлять углы, а типы частиц все равно меняются)
+// recalculate number of atom types (ГґГіГ­ГЄГ¶ГЁГї Г±Г¤ГҐГ«Г Г­Г  Г­Г  ГІГ®ГІ Г±Г«ГіГ·Г Г©, ГҐГ±Г«ГЁ Г­ГҐ Г­ГіГ¦Г­Г® Г®ГЎГ­Г®ГўГ«ГїГІГј ГіГЈГ«Г», Г  ГІГЁГЇГ» Г·Г Г±ГІГЁГ¶ ГўГ±ГҐ Г°Г ГўГ­Г® Г¬ГҐГ­ГїГѕГІГ±Гї)
 {
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
