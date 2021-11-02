@@ -68,9 +68,9 @@ int code_shift(int x, int y, int z)
 }
 
 int cell_dist(int xi, int xj, int mx, float length, float csize, float rskip, float& rmin, float& rmax, float& shift, int &int_shift)
-// вычисляем минимальное и максимальное расстояние (в кол-ве ячеек) между частицами из 2х разных ячеек, а также сдвиг, используемый при учете периодических условий
-// xi, xj - координаты 2х ячеек по 1му измерению, mx - максимальное кол-во ячеек в этом измерении, length - длина бокса в этом измерении csize - размер ячейки
-// возвращаем 1 если ячейки слишком далеко (больше rskip) иначе 0
+// ГўГ»Г·ГЁГ±Г«ГїГҐГ¬ Г¬ГЁГ­ГЁГ¬Г Г«ГјГ­Г®ГҐ ГЁ Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГҐ Г°Г Г±Г±ГІГ®ГїГ­ГЁГҐ (Гў ГЄГ®Г«-ГўГҐ ГїГ·ГҐГҐГЄ) Г¬ГҐГ¦Г¤Гі Г·Г Г±ГІГЁГ¶Г Г¬ГЁ ГЁГ§ 2Гµ Г°Г Г§Г­Г»Гµ ГїГ·ГҐГҐГЄ, Г  ГІГ ГЄГ¦ГҐ Г±Г¤ГўГЁГЈ, ГЁГ±ГЇГ®Г«ГјГ§ГіГҐГ¬Г»Г© ГЇГ°ГЁ ГіГ·ГҐГІГҐ ГЇГҐГ°ГЁГ®Г¤ГЁГ·ГҐГ±ГЄГЁГµ ГіГ±Г«Г®ГўГЁГ©
+// xi, xj - ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ» 2Гµ ГїГ·ГҐГҐГЄ ГЇГ® 1Г¬Гі ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГѕ, mx - Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГҐ ГЄГ®Г«-ГўГ® ГїГ·ГҐГҐГЄ Гў ГЅГІГ®Г¬ ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГЁ, length - Г¤Г«ГЁГ­Г  ГЎГ®ГЄГ±Г  Гў ГЅГІГ®Г¬ ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГЁ csize - Г°Г Г§Г¬ГҐГ° ГїГ·ГҐГ©ГЄГЁ
+// ГўГ®Г§ГўГ°Г Г№Г ГҐГ¬ 1 ГҐГ±Г«ГЁ ГїГ·ГҐГ©ГЄГЁ Г±Г«ГЁГёГЄГ®Г¬ Г¤Г Г«ГҐГЄГ® (ГЎГ®Г«ГјГёГҐ rskip) ГЁГ­Г Г·ГҐ 0
 {
 
     shift = 0.0;
@@ -186,7 +186,7 @@ void bonds_to_device(Atoms *atm, Field *fld, Sim *sim, cudaMD *hmd, hostManagMD 
             }
         }
 
-        if ((bndTypes[i].mxEx) && (bndTypes[i].new_type[1] != 0))   // не удаляем
+        if ((bndTypes[i].mxEx) && (bndTypes[i].new_type[1] != 0))   // Г­ГҐ ГіГ¤Г Г«ГїГҐГ¬
         {
             j = bndTypes[i].new_type[1];
             if (j < 0)  // invert species
@@ -209,7 +209,7 @@ void bonds_to_device(Atoms *atm, Field *fld, Sim *sim, cudaMD *hmd, hostManagMD 
         bndTypes[i].hatom = fld->bdata[i].hatom;
         bndTypes[i].evol = fld->bdata[i].evol;
 
-        //! переопределить spec2 для мин и макс, если макс не удалить
+        //! ГЇГҐГ°ГҐГ®ГЇГ°ГҐГ¤ГҐГ«ГЁГІГј spec2 Г¤Г«Гї Г¬ГЁГ­ ГЁ Г¬Г ГЄГ±, ГҐГ±Г«ГЁ Г¬Г ГЄГ± Г­ГҐ ГіГ¤Г Г«ГЁГІГј
 
         bndTypes[i].p0 = (float)fld->bdata[i].p0;
         bndTypes[i].p1 = (float)fld->bdata[i].p1;
@@ -322,19 +322,19 @@ int save_cellpair(int3* cells, int ci, int cj, int4* pairs, float3* shifts, floa
     if (dr2min > sim->r2Max)
         return 1;
 
-    //все невзаимодействующие ячейки уже отброшены, идём далее
+    //ГўГ±ГҐ Г­ГҐГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГіГѕГ№ГЁГҐ ГїГ·ГҐГ©ГЄГЁ ГіГ¦ГҐ Г®ГІГЎГ°Г®ГёГҐГ­Г», ГЁГ¤ВёГ¬ Г¤Г Г«ГҐГҐ
 
     int coul, vdw;
     dr2max = dxmax * dxmax + dymax * dymax + dzmax * dzmax;
     if (dr2max < sim->r2Elec)
-        coul = 1;   // гарантировано дотягивается Кулоновское взаимодействие
+        coul = 1;   // ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г® Г¤Г®ГІГїГЈГЁГўГ ГҐГІГ±Гї ГЉГіГ«Г®Г­Г®ГўГ±ГЄГ®ГҐ ГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГЁГҐ
     else
-        coul = 0;   // может дотягивается, а может и нет
+        coul = 0;   // Г¬Г®Г¦ГҐГІ Г¤Г®ГІГїГЈГЁГўГ ГҐГІГ±Гї, Г  Г¬Г®Г¦ГҐГІ ГЁ Г­ГҐГІ
 
     if (dr2min > mxr2vdw)
-        vdw = 0;    // гарантировано не достает ВдВ
+        vdw = 0;    // ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г® Г­ГҐ Г¤Г®Г±ГІГ ГҐГІ Г‚Г¤Г‚
     else
-        vdw = 1;    // может и достает
+        vdw = 1;    // Г¬Г®Г¦ГҐГІ ГЁ Г¤Г®Г±ГІГ ГҐГІ
 
     pairs[index].x = ci;
     pairs[index].y = cj;
@@ -368,19 +368,19 @@ int is_cellneighbors(int x0, int y0, int z0, int x, int y, int z, float rmax, fl
     if (dr2min > sim->r2Max)
         return 0;
 
-    //все невзаимодействующие ячейки уже отброшены, идём далее
+    //ГўГ±ГҐ Г­ГҐГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГіГѕГ№ГЁГҐ ГїГ·ГҐГ©ГЄГЁ ГіГ¦ГҐ Г®ГІГЎГ°Г®ГёГҐГ­Г», ГЁГ¤ВёГ¬ Г¤Г Г«ГҐГҐ
 
     int coul, vdw;
     dr2max = dxmax * dxmax + dymax * dymax + dzmax * dzmax;
     if (dr2max < sim->r2Elec)
-        coul = 1;   // гарантировано дотягивается Кулоновское взаимодействие
+        coul = 1;   // ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г® Г¤Г®ГІГїГЈГЁГўГ ГҐГІГ±Гї ГЉГіГ«Г®Г­Г®ГўГ±ГЄГ®ГҐ ГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГЁГҐ
     else
-        coul = 0;   // может дотягивается, а может и нет
+        coul = 0;   // Г¬Г®Г¦ГҐГІ Г¤Г®ГІГїГЈГЁГўГ ГҐГІГ±Гї, Г  Г¬Г®Г¦ГҐГІ ГЁ Г­ГҐГІ
 
     if (dr2min > mxr2vdw)
-        vdw = 0;    // гарантировано не достает ВдВ
+        vdw = 0;    // ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г® Г­ГҐ Г¤Г®Г±ГІГ ГҐГІ Г‚Г¤Г‚
     else
-        vdw = 1;    // может и достает
+        vdw = 1;    // Г¬Г®Г¦ГҐГІ ГЁ Г¤Г®Г±ГІГ ГҐГІ
 
     inter_type = coul * 2 + vdw;
     shift_type = code_shift(shx, shy, shz);
@@ -416,14 +416,14 @@ int pair_exists(int3* cells, int ci, int cj, float3& shift, float rmax, float mx
     //dr2max = dxmax * dxmax + dymax * dymax + dzmax * dzmax;
     /*
     if (dr2max < sim->r2Elec)
-        coul = 1;   // гарантировано дотягивается Кулоновское взаимодействие
+        coul = 1;   // ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г® Г¤Г®ГІГїГЈГЁГўГ ГҐГІГ±Гї ГЉГіГ«Г®Г­Г®ГўГ±ГЄГ®ГҐ ГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГЁГҐ
     else
-        coul = 0;   // может дотягивается, а может и нет
+        coul = 0;   // Г¬Г®Г¦ГҐГІ Г¤Г®ГІГїГЈГЁГўГ ГҐГІГ±Гї, Г  Г¬Г®Г¦ГҐГІ ГЁ Г­ГҐГІ
 
     if (dr2min > mxr2vdw)
-        vdw = 0;    // гарантировано не достает ВдВ
+        vdw = 0;    // ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г® Г­ГҐ Г¤Г®Г±ГІГ ГҐГІ Г‚Г¤Г‚
     else
-        vdw = 1;    // может и достает
+        vdw = 1;    // Г¬Г®Г¦ГҐГІ ГЁ Г¤Г®Г±ГІГ ГҐГІ
 
     pairs[index].x = ci;
     pairs[index].y = cj;
@@ -438,7 +438,7 @@ int ncell(float minR, int add_to_even, cudaMD* hmd)
 // calculate cell size and count and return number of cells
 {
     hmd->cNumber = make_int3(ceil(hmd->leng.x / minR), ceil(hmd->leng.y / minR), ceil(hmd->leng.z / minR));
-    //! тут получается, что ячейки не обязательно кубической формы. Надо подумать, критично это или нет:
+    //! ГІГіГІ ГЇГ®Г«ГіГ·Г ГҐГІГ±Гї, Г·ГІГ® ГїГ·ГҐГ©ГЄГЁ Г­ГҐ Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г® ГЄГіГЎГЁГ·ГҐГ±ГЄГ®Г© ГґГ®Г°Г¬Г». ГЌГ Г¤Г® ГЇГ®Г¤ГіГ¬Г ГІГј, ГЄГ°ГЁГІГЁГ·Г­Г® ГЅГІГ® ГЁГ«ГЁ Г­ГҐГІ:
     hmd->cSize = make_float3(hmd->leng.x / hmd->cNumber.x, hmd->leng.y / hmd->cNumber.y, hmd->leng.z / hmd->cNumber.z);
     hmd->cRevSize = make_float3(hmd->cNumber.x / hmd->leng.x, hmd->cNumber.y / hmd->leng.y, hmd->cNumber.z / hmd->leng.z);
     hmd->cnYZ = hmd->cNumber.y * hmd->cNumber.z;
@@ -455,12 +455,12 @@ int ncell(float minR, int add_to_even, cudaMD* hmd)
 
 void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cudaMD *hmd, hostManagMD *man)
 //cell list
-//! щас я пробую разбиение, когда диагональ ячейки не превышает минимальный кутофф (т.е. частицы в одной ячейке гарантированно в радиусе действия друг друга)
+//! Г№Г Г± Гї ГЇГ°Г®ГЎГіГѕ Г°Г Г§ГЎГЁГҐГ­ГЁГҐ, ГЄГ®ГЈГ¤Г  Г¤ГЁГ ГЈГ®Г­Г Г«Гј ГїГ·ГҐГ©ГЄГЁ Г­ГҐ ГЇГ°ГҐГўГ»ГёГ ГҐГІ Г¬ГЁГ­ГЁГ¬Г Г«ГјГ­Г»Г© ГЄГіГІГ®ГґГґ (ГІ.ГҐ. Г·Г Г±ГІГЁГ¶Г» Гў Г®Г¤Г­Г®Г© ГїГ·ГҐГ©ГЄГҐ ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г­Г® Гў Г°Г Г¤ГЁГіГ±ГҐ Г¤ГҐГ©Г±ГІГўГЁГї Г¤Г°ГіГЈ Г¤Г°ГіГЈГ )
 {
     int i, j, k;
     float minR = minRad / (float)sqrt(3);
 
-    int nCell = ncell(minR, 1, hmd);    // для общности алгоритма доведем число ячеек до четного
+    int nCell = ncell(minR, 1, hmd);    // Г¤Г«Гї Г®ГЎГ№Г­Г®Г±ГІГЁ Г Г«ГЈГ®Г°ГЁГІГ¬Г  Г¤Г®ГўГҐГ¤ГҐГ¬ Г·ГЁГ±Г«Г® ГїГ·ГҐГҐГЄ Г¤Г® Г·ГҐГІГ­Г®ГЈГ®
 
     hmd->maxAtPerCell = nAt / nCell * 3 + 8;          // * 3 + 4 for excess
     hmd->maxAtPerBlock = 2 * 16 * (nAt / nCell) * 3 + 90;  // factor 3 for excess
@@ -474,10 +474,10 @@ void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cud
                 cxyz[l] = make_int3(i, j, k);
                 l++;
             }
-    //! добавить в обработку искуственную ячейку, если их число нечетное
+    //! Г¤Г®ГЎГ ГўГЁГІГј Гў Г®ГЎГ°Г ГЎГ®ГІГЄГі ГЁГ±ГЄГіГ±ГІГўГҐГ­Г­ГіГѕ ГїГ·ГҐГ©ГЄГі, ГҐГ±Г«ГЁ ГЁГµ Г·ГЁГ±Г«Г® Г­ГҐГ·ГҐГІГ­Г®ГҐ
 
 
-    //! первые пары (0-1, 2-3, 4-5 и т.д.). ОНИ НЕ ПЕРЕСЕКАЮТСЯ ПО ДАННЫМ
+    //! ГЇГҐГ°ГўГ»ГҐ ГЇГ Г°Г» (0-1, 2-3, 4-5 ГЁ ГІ.Г¤.). ГЋГЌГ€ ГЌГ… ГЏГ…ГђГ…Г‘Г…ГЉГЂГћГ’Г‘Гџ ГЏГЋ Г„ГЂГЌГЌГ›ГЊ
     hmd->nPair1 = nCell / 2;
     int nPair = nCell * (nCell - 1) / 2;
     int4* pairs1 = (int4*)malloc(nPair * sizeof(int4));
@@ -499,7 +499,7 @@ void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cud
     // rest pairs
     for (i = 0; i < nCell - 1; i++)
     {
-        l = 2 - (i % 2); // учитываем, что 0-1, 2-3, 4-5 пары мы уже отобрали
+        l = 2 - (i % 2); // ГіГ·ГЁГІГ»ГўГ ГҐГ¬, Г·ГІГ® 0-1, 2-3, 4-5 ГЇГ Г°Г» Г¬Г» ГіГ¦ГҐ Г®ГІГ®ГЎГ°Г Г«ГЁ
         for (j = i + l; j < nCell; j++)
         {
             //if (save_cellpair(cxyz, i, j, pairs1, shifts1, rmax, maxR2, hmd, sim, k))
@@ -549,9 +549,9 @@ void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cud
 
     man->nPair1Block = hmd->nPair1;
     man->nPair2Block = hmd->nPair - hmd->nPair1;
-    man->pairPerBlock = 16;      // задаем опытным путем (число мультипроцессоров в ядре должно быть кратно ему)
+    man->pairPerBlock = 16;      // Г§Г Г¤Г ГҐГ¬ Г®ГЇГ»ГІГ­Г»Г¬ ГЇГіГІГҐГ¬ (Г·ГЁГ±Г«Г® Г¬ГіГ«ГјГІГЁГЇГ°Г®Г¶ГҐГ±Г±Г®Г°Г®Гў Гў ГїГ¤Г°ГҐ Г¤Г®Г«Г¦Г­Г® ГЎГ»ГІГј ГЄГ°Г ГІГ­Г® ГҐГ¬Гі)
     man->memPerPairBlock = hmd->maxAtPerCell * 4 * (sizeof(int) + sizeof(float3));
-    man->memPerPairsBlock = hmd->maxAtPerBlock * 2 * (sizeof(int) + sizeof(float3)) + man->pairPerBlock * 4 * sizeof(int); // 4 = 2 * 2 поскольку 2 ячейке в паре и нужно запоминать начальный индекс и кол-во атомов
+    man->memPerPairsBlock = hmd->maxAtPerBlock * 2 * (sizeof(int) + sizeof(float3)) + man->pairPerBlock * 4 * sizeof(int); // 4 = 2 * 2 ГЇГ®Г±ГЄГ®Г«ГјГЄГі 2 ГїГ·ГҐГ©ГЄГҐ Гў ГЇГ Г°ГҐ ГЁ Г­ГіГ¦Г­Г® Г§Г ГЇГ®Г¬ГЁГ­Г ГІГј Г­Г Г·Г Г«ГјГ­Г»Г© ГЁГ­Г¤ГҐГЄГ± ГЁ ГЄГ®Г«-ГўГ® Г ГІГ®Г¬Г®Гў
 
 
     data_to_device((void**)&(hmd->cellPairs), pairs1, hmd->nPair * sizeof(int4));
@@ -618,7 +618,7 @@ void cell_xyz(int id, int nyz, int nz, int &x, int &y, int &z)
 }
 
 void init_singleAtomCellList(float minRad, float maxR2, int nAt, Elec* elec, Sim* sim, cudaMD* hmd, hostManagMD* man)
-// версия cell list, с блоками
+// ГўГҐГ°Г±ГЁГї cell list, Г± ГЎГ«Г®ГЄГ Г¬ГЁ
 {
 #ifdef USE_FASTLIST
     int i, j, k, l, n;
@@ -687,7 +687,7 @@ int read_cuda(Field *fld, cudaMD *hmd, hostManagMD *man)
     cudaDeviceProp devProp;
     cudaGetDeviceProperties(&devProp, 0);
     man->nMultProc = devProp.multiProcessorCount;
-    man->nSingProc = 64;   //! похоже их можно узнать только по документации самой видеокарты //! потом будем считывать из файла
+    man->nSingProc = 64;   //! ГЇГ®ГµГ®Г¦ГҐ ГЁГµ Г¬Г®Г¦Г­Г® ГіГ§Г­Г ГІГј ГІГ®Г«ГјГЄГ® ГЇГ® Г¤Г®ГЄГіГ¬ГҐГ­ГІГ Г¶ГЁГЁ Г±Г Г¬Г®Г© ГўГЁГ¤ГҐГ®ГЄГ Г°ГІГ» //! ГЇГ®ГІГ®Г¬ ГЎГіГ¤ГҐГ¬ Г±Г·ГЁГІГ»ГўГ ГІГј ГЁГ§ ГґГ Г©Г«Г 
     man->totCores = man->nMultProc * man->nSingProc;
     
     FILE *f = fopen("cuda.txt", "r");
@@ -697,18 +697,18 @@ int read_cuda(Field *fld, cudaMD *hmd, hostManagMD *man)
         return 0;
     }
 
-    //! перенести это в cuStat.cu
+    //! ГЇГҐГ°ГҐГ­ГҐГ±ГІГЁ ГЅГІГ® Гў cuStat.cu
     if (!find_int_def(f, " nstep stat %d", man->stat.nstep, 10))
     {
         printf("WARNING[a003]: 'nstep stat' directive is not specified in cuda.txt, default value of 10 is used\n");
     }
-    //! добавить проверку, что траектории нужны
+    //! Г¤Г®ГЎГ ГўГЁГІГј ГЇГ°Г®ГўГҐГ°ГЄГі, Г·ГІГ® ГІГ°Г ГҐГЄГІГ®Г°ГЁГЁ Г­ГіГ¦Г­Г»
     if (!find_int_def(f, " nstep traj %d", man->nstep_traj, 10))
     {
         printf("WARNING[b007]: 'nstep traj' directive is not specified in cuda.txt, default value of 10 is used\n");
     }
 
-    //! добавить проверку, что связанные траектории нужны
+    //! Г¤Г®ГЎГ ГўГЁГІГј ГЇГ°Г®ГўГҐГ°ГЄГі, Г·ГІГ® Г±ГўГїГ§Г Г­Г­Г»ГҐ ГІГ°Г ГҐГЄГІГ®Г°ГЁГЁ Г­ГіГ¦Г­Г»
     if (!find_int_def(f, " nstep bindtraj %d", man->nstep_bindtraj, 40))
     {
         printf("WARNING[b009]: 'nstep bindtraj' directive is not specified in cuda.txt, default value of 40 is used\n");
@@ -796,7 +796,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     cudaVdW*** h_vdw = (cudaVdW***)malloc(fld->nSpec * sizeof(void*));  // 2d array to pointer to cudaVdW
 
 
-    //! я инициализурую этот массив здесь, поскольку его адреса мне уже нужны, чтобы ссылаться на них из массива vdw
+    //! Гї ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§ГіГ°ГіГѕ ГЅГІГ®ГІ Г¬Г Г±Г±ГЁГў Г§Г¤ГҐГ±Гј, ГЇГ®Г±ГЄГ®Г«ГјГЄГі ГҐГЈГ® Г Г¤Г°ГҐГ±Г  Г¬Г­ГҐ ГіГ¦ГҐ Г­ГіГ¦Г­Г», Г·ГІГ®ГЎГ» Г±Г±Г»Г«Г ГІГјГ±Гї Г­Г  Г­ГЁГµ ГЁГ§ Г¬Г Г±Г±ГЁГўГ  vdw
     cudaVdW* d_ppots;
     cudaMalloc((void**)&d_ppots, fld->nVdW * sizeof(cudaVdW));
 
@@ -874,7 +874,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 
     data_to_device((void**)&(h_md->nnumbers), fld->nnumbers, fld->nNucl * int_size);
 
-    // ПОПРОБУЕМ ТАКЖЕ ПРОИЗВЕДЕНИЕ ЗАРЯДОВ СВЯЗАТЬ ТЕКСТУРНОЙ ПАМЯТЬЮ
+    // ГЏГЋГЏГђГЋГЃГ“Г…ГЊ Г’ГЂГЉГ†Г… ГЏГђГЋГ€Г‡Г‚Г…Г„Г…ГЌГ€Г… Г‡ГЂГђГџГ„ГЋГ‚ Г‘Г‚ГџГ‡ГЂГ’Гњ Г’Г…ГЉГ‘Г’Г“ГђГЌГЋГ‰ ГЏГЂГЊГџГ’ГњГћ
 #ifdef TX_CHARGE
     cudaChannelFormatDesc cform = cudaCreateChannelDesc<float>();// (32, 32, 0, 0, cudaChannelFormatKindFloat);
     cudaMallocArray(&(h_md->texChProd), &cform, fld->nSpec, fld->nSpec, cudaArrayDefault);
@@ -885,7 +885,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     cudaBindTextureToArray(&qProd, h_md->texChProd, &cform);
     delete[] chprods;
 #endif 
-    // КОНЕЦ ТЕКСТУРНОГО КУСКА
+    // ГЉГЋГЌГ…Г– Г’Г…ГЉГ‘Г’Г“ГђГЌГЋГѓГЋ ГЉГ“Г‘ГЉГЂ
 
     if (fld->nVdW)
     {
@@ -934,10 +934,10 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     // BOX
     //! only for rectangular geometry!
     h_md->leng = make_float3((float)bx->la, (float)bx->lb, (float)bx->lc);
-    h_md->halfLeng = make_float3(0.5f * h_md->leng.x, 0.5f * h_md->leng.y, 0.5f * h_md->leng.z);   //! видимо не вычисляются эти штуки при подготовке sim и box
-    h_md->revLeng = make_float3(1.f / h_md->leng.x, 1.f / h_md->leng.y, 1.f / h_md->leng.z);       //! видимо не вычисляются эти штуки при подготовке sim и box
+    h_md->halfLeng = make_float3(0.5f * h_md->leng.x, 0.5f * h_md->leng.y, 0.5f * h_md->leng.z);   //! ГўГЁГ¤ГЁГ¬Г® Г­ГҐ ГўГ»Г·ГЁГ±Г«ГїГѕГІГ±Гї ГЅГІГЁ ГёГІГіГЄГЁ ГЇГ°ГЁ ГЇГ®Г¤ГЈГ®ГІГ®ГўГЄГҐ sim ГЁ box
+    h_md->revLeng = make_float3(1.f / h_md->leng.x, 1.f / h_md->leng.y, 1.f / h_md->leng.z);       //! ГўГЁГ¤ГЁГ¬Г® Г­ГҐ ГўГ»Г·ГЁГ±Г«ГїГѕГІГ±Гї ГЅГІГЁ ГёГІГіГЄГЁ ГЇГ°ГЁ ГЇГ®Г¤ГЈГ®ГІГ®ГўГЄГҐ sim ГЁ box
     h_md->edgeArea = make_float3(h_md->leng.y * h_md->leng.z, h_md->leng.x * h_md->leng.z, h_md->leng.x * h_md->leng.y);
-    //! может быть как раз прямые площади и не нужны, а только обратные?
+    //! Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј ГЄГ ГЄ Г°Г Г§ ГЇГ°ГїГ¬Г»ГҐ ГЇГ«Г®Г№Г Г¤ГЁ ГЁ Г­ГҐ Г­ГіГ¦Г­Г», Г  ГІГ®Г«ГјГЄГ® Г®ГЎГ°Г ГІГ­Г»ГҐ?
     h_md->revEdgeArea = make_float3(1.f / h_md->edgeArea.x, 1.f / h_md->edgeArea.y, 1.f / h_md->edgeArea.z);
     h_md->volume = h_md->leng.x * h_md->leng.y * h_md->leng.z;
 
@@ -965,11 +965,11 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     man->nAtBlock = ceil((double)atm->nAt / mxAtPerBlock);
     man->nAtThread = man->nSingProc;
 
-    //!  загрузить все МП поровну, 1блок = 1МП, опустим ситуацию, когда число МП меньше кол-ва атомов, ведь для моделирования нам нужны тысячи атомов
-    man->atPerBlock = ceil((double)atm->nAt / man->nMultProc); // число атомов на МП
-    man->atPerThread = ceil((double)man->atPerBlock / man->nSingProc);    //! число атомов на поток
+    //!  Г§Г ГЈГ°ГіГ§ГЁГІГј ГўГ±ГҐ ГЊГЏ ГЇГ®Г°Г®ГўГ­Гі, 1ГЎГ«Г®ГЄ = 1ГЊГЏ, Г®ГЇГіГ±ГІГЁГ¬ Г±ГЁГІГіГ Г¶ГЁГѕ, ГЄГ®ГЈГ¤Г  Г·ГЁГ±Г«Г® ГЊГЏ Г¬ГҐГ­ГјГёГҐ ГЄГ®Г«-ГўГ  Г ГІГ®Г¬Г®Гў, ГўГҐГ¤Гј Г¤Г«Гї Г¬Г®Г¤ГҐГ«ГЁГ°Г®ГўГ Г­ГЁГї Г­Г Г¬ Г­ГіГ¦Г­Г» ГІГ»Г±ГїГ·ГЁ Г ГІГ®Г¬Г®Гў
+    man->atPerBlock = ceil((double)atm->nAt / man->nMultProc); // Г·ГЁГ±Г«Г® Г ГІГ®Г¬Г®Гў Г­Г  ГЊГЏ
+    man->atPerThread = ceil((double)man->atPerBlock / man->nSingProc);    //! Г·ГЁГ±Г«Г® Г ГІГ®Г¬Г®Гў Г­Г  ГЇГ®ГІГ®ГЄ
     if (man->atPerBlock < (man->atPerThread * man->nSingProc))
-        man->atPerBlock = man->atPerThread * man->nSingProc;    // но не меньше, чем число атомов во всех потоках блока
+        man->atPerBlock = man->atPerThread * man->nSingProc;    // Г­Г® Г­ГҐ Г¬ГҐГ­ГјГёГҐ, Г·ГҐГ¬ Г·ГЁГ±Г«Г® Г ГІГ®Г¬Г®Гў ГўГ® ГўГ±ГҐГµ ГЇГ®ГІГ®ГЄГ Гµ ГЎГ«Г®ГЄГ 
 
     //cell list
 #ifdef USE_FASTLIST
@@ -982,7 +982,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     init_cellList(minR, maxR2, atm->nAt, elec, sim, h_md, man);
 #endif
 
-    //! вообще их нужно заполнить нулями, но может это дефолтно так и делается?
+    //! ГўГ®Г®ГЎГ№ГҐ ГЁГµ Г­ГіГ¦Г­Г® Г§Г ГЇГ®Г«Г­ГЁГІГј Г­ГіГ«ГїГ¬ГЁ, Г­Г® Г¬Г®Г¦ГҐГІ ГЅГІГ® Г¤ГҐГґГ®Г«ГІГ­Г® ГІГ ГЄ ГЁ Г¤ГҐГ«Г ГҐГІГ±Гї?
     cudaMalloc((void**)&(h_md->specAcBoxPos), fld->nSpec * int3_size);
     cudaMalloc((void**)&(h_md->specAcBoxNeg), fld->nSpec * int3_size);
 
@@ -1067,7 +1067,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     // statistics
     init_cuda_stat(h_md, man, sim, fld, tstat);
     init_cuda_rdf(fld, sim, man, h_md);
-    //! нафиг, уже внутри init_cuda_rdf решаем делать n_ или обычный
+    //! Г­Г ГґГЁГЈ, ГіГ¦ГҐ ГўГ­ГіГІГ°ГЁ init_cuda_rdf Г°ГҐГёГ ГҐГ¬ Г¤ГҐГ«Г ГІГј n_ ГЁГ«ГЁ Г®ГЎГ»Г·Г­Г»Г©
     if (sim->nuclei_rdf)
         init_cuda_nrdf(fld, sim, man, h_md);
 
@@ -1095,10 +1095,10 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
         h_md->nAngle = fld->nAngles;
         h_md->mxAngle = fld->mxAngles;
 
-        man->angPerBlock = ceil((double)fld->mxAngles / (double)man->nMultProc); // число атомов на МП
-        man->angPerThread = ceil((double)man->angPerBlock / (double)man->nSingProc);    //! число атомов на поток
+        man->angPerBlock = ceil((double)fld->mxAngles / (double)man->nMultProc); // Г·ГЁГ±Г«Г® Г ГІГ®Г¬Г®Гў Г­Г  ГЊГЏ
+        man->angPerThread = ceil((double)man->angPerBlock / (double)man->nSingProc);    //! Г·ГЁГ±Г«Г® Г ГІГ®Г¬Г®Гў Г­Г  ГЇГ®ГІГ®ГЄ
         if (man->angPerBlock < (man->angPerThread * man->nSingProc))
-            man->angPerBlock = man->angPerThread * man->nSingProc;    // но не меньше, чем число атомов во всех потоках блока
+            man->angPerBlock = man->angPerThread * man->nSingProc;    // Г­Г® Г­ГҐ Г¬ГҐГ­ГјГёГҐ, Г·ГҐГ¬ Г·ГЁГ±Г«Г® Г ГІГ®Г¬Г®Гў ГўГ® ГўГ±ГҐГµ ГЇГ®ГІГ®ГЄГ Гµ ГЎГ«Г®ГЄГ 
 
 
         int4* int4_array = (int4*)malloc(fld->mxAngles * sizeof(int4));
@@ -1125,7 +1125,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
         if (sim->use_angl)
         {
             //int* int_array2 = (int*)malloc(nsize);  // nangles
-            // память выделена раньше при создании oldTypes
+            // ГЇГ Г¬ГїГІГј ГўГ»Г¤ГҐГ«ГҐГ­Г  Г°Г Г­ГјГёГҐ ГЇГ°ГЁ Г±Г®Г§Г¤Г Г­ГЁГЁ oldTypes
             for (i = 0; i < atm->nAt; i++)
             {
                 //int_array[i] = -1;  // oldTypes[i] = -1
@@ -1215,8 +1215,8 @@ void md_to_host(Atoms* atm, Field* fld, cudaMD *hmd, cudaMD *dmd, hostManagMD* m
     int i;
 
     //!!!!!!!!!
-    // у нас СОРТИРОВКА! следовательно массивы чередуются местами сортированный и нет! т.е. с хоста мы можем ссылаться не на тот массив девайса
-    // ! обновляем структуру
+    // Гі Г­Г Г± Г‘ГЋГђГ’Г€ГђГЋГ‚ГЉГЂ! Г±Г«ГҐГ¤Г®ГўГ ГІГҐГ«ГјГ­Г® Г¬Г Г±Г±ГЁГўГ» Г·ГҐГ°ГҐГ¤ГіГѕГІГ±Гї Г¬ГҐГ±ГІГ Г¬ГЁ Г±Г®Г°ГІГЁГ°Г®ГўГ Г­Г­Г»Г© ГЁ Г­ГҐГІ! ГІ.ГҐ. Г± ГµГ®Г±ГІГ  Г¬Г» Г¬Г®Г¦ГҐГ¬ Г±Г±Г»Г«Г ГІГјГ±Гї Г­ГҐ Г­Г  ГІГ®ГІ Г¬Г Г±Г±ГЁГў Г¤ГҐГўГ Г©Г±Г 
+    // ! Г®ГЎГ­Г®ГўГ«ГїГҐГ¬ Г±ГІГ°ГіГЄГІГіГ°Гі
     cudaMemcpy(hmd, dmd, sizeof(cudaMD), cudaMemcpyDeviceToHost);
 
     // read number of atoms
@@ -1266,7 +1266,7 @@ void free_device_md(cudaMD* dmd, hostManagMD* man, Sim* sim, Field* fld, TStat *
 {
     cudaMemcpy(hmd, dmd, sizeof(cudaMD), cudaMemcpyDeviceToHost);
 
-    //! внимение, везде, где используется nCell и nAt в будущем надо перезагрузить эти поля
+    //! ГўГ­ГЁГ¬ГҐГ­ГЁГҐ, ГўГҐГ§Г¤ГҐ, ГЈГ¤ГҐ ГЁГ±ГЇГ®Г«ГјГ§ГіГҐГІГ±Гї nCell ГЁ nAt Гў ГЎГіГ¤ГіГ№ГҐГ¬ Г­Г Г¤Г® ГЇГҐГ°ГҐГ§Г ГЈГ°ГіГ§ГЁГІГј ГЅГІГЁ ГЇГ®Г«Гї
 
     cudaFree(hmd->xyz);
     cudaFree(hmd->vls);
