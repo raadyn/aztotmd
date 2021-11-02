@@ -12,8 +12,8 @@ texture<float, 1, cudaReadModeElementType> texCoulEng;	// coulomb energy as a fu
 texture<float, 1, cudaReadModeElementType> texCoulFrc;  // coulomb force ...
 
 
-extern __constant__ const float d_Fcoul_scale;  //! не помню точно
-extern __constant__ const float d_sqrtpi;  //sqrt(PI); - не поддерживается динамическая инициализация
+extern __constant__ const float d_Fcoul_scale;  //! Г­ГҐ ГЇГ®Г¬Г­Гѕ ГІГ®Г·Г­Г®
+extern __constant__ const float d_sqrtpi;  //sqrt(PI); - Г­ГҐ ГЇГ®Г¤Г¤ГҐГ°Г¦ГЁГўГ ГҐГІГ±Гї Г¤ГЁГ­Г Г¬ГЁГ·ГҐГ±ГЄГ Гї ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶ГЁГї
 extern __constant__ const float d_2pi;  //2 * (PI);
 
 //__device__ float no_coul(float r2, float& r, float chprd, float alpha, float& eng)
@@ -27,9 +27,9 @@ __device__ float no_coul(float r2, float& r, float chprd, cudaMD *md, float& eng
 __device__ float direct_coul(float r2, float& r, float chprd, cudaMD* md, float& eng)
 //  r2 - square of distance, chprd - production of charges
 // parameter alpha - for compability with real part of Ewald summation
-//! тут надо ещё ввести эпсилон в закон кулона
+//! ГІГіГІ Г­Г Г¤Г® ГҐГ№Вё ГўГўГҐГ±ГІГЁ ГЅГЇГ±ГЁГ«Г®Г­ Гў Г§Г ГЄГ®Г­ ГЄГіГ«Г®Г­Г 
 {
-    float kqq = chprd * d_Fcoul_scale;  //! нужно ещё добавить 1/epsilon
+    float kqq = chprd * d_Fcoul_scale;  //! Г­ГіГ¦Г­Г® ГҐГ№Вё Г¤Г®ГЎГ ГўГЁГІГј 1/epsilon
     r = sqrt(r2);
 
     eng += kqq / r;
@@ -57,8 +57,8 @@ void init_realEwald_tex(cudaMD *md, float mxRange, float alpha)
     //data_to_device(engArr, eng, size);
     //data_to_device(frcArr, frc, size);
 
-    //! к сожалению так и не получилось приручить cudaBindTexture, правда написано, что оно и не поддерживает фильтрацию
-    //! прийдется использовать bindTextureArray
+    //! ГЄ Г±Г®Г¦Г Г«ГҐГ­ГЁГѕ ГІГ ГЄ ГЁ Г­ГҐ ГЇГ®Г«ГіГ·ГЁГ«Г®Г±Гј ГЇГ°ГЁГ°ГіГ·ГЁГІГј cudaBindTexture, ГЇГ°Г ГўГ¤Г  Г­Г ГЇГЁГ±Г Г­Г®, Г·ГІГ® Г®Г­Г® ГЁ Г­ГҐ ГЇГ®Г¤Г¤ГҐГ°Г¦ГЁГўГ ГҐГІ ГґГЁГ«ГјГІГ°Г Г¶ГЁГѕ
+    //! ГЇГ°ГЁГ©Г¤ГҐГІГ±Гї ГЁГ±ГЇГ®Г«ГјГ§Г®ГўГ ГІГј bindTextureArray
 
     cudaChannelFormatDesc cform = cudaCreateChannelDesc<float>();// (32, 32, 0, 0, cudaChannelFormatKindFloat);
     cudaMallocArray(&(md->coulEng), &cform, n, 1, cudaArrayDefault);
@@ -95,7 +95,7 @@ __device__ float real_ewald(float r2, float& r, float chprd, cudaMD* md, float& 
 // calculate energy and return force of real part Coulombic iteraction via Ewald procedure
 //  r2 - square of distance, chprd - production of charges
 //  eng - for saving energy
-//! тут надо ещё ввести эпсилон в закон кулона
+//! ГІГіГІ Г­Г Г¤Г® ГҐГ№Вё ГўГўГҐГ±ГІГЁ ГЅГЇГ±ГЁГ«Г®Г­ Гў Г§Г ГЄГ®Г­ ГЄГіГ«Г®Г­Г 
 {
     //double r;
 
@@ -108,7 +108,7 @@ __device__ float real_ewald(float r2, float& r, float chprd, cudaMD* md, float& 
     ar = md->alpha * r;
     erfcar = erfc(ar);
 
-    eng += kqq * erfcar / r;       //! save energy (не всегда она нужна)
+    eng += kqq * erfcar / r;       //! save energy (Г­ГҐ ГўГ±ГҐГЈГ¤Г  Г®Г­Г  Г­ГіГ¦Г­Г )
     return kqq / r / r2 * (erfcar + 2 * ar / d_sqrtpi * exp(-ar * ar));
 }
 
@@ -116,7 +116,7 @@ __device__ float fennel(float r2, float& r, float chprd, cudaMD* md, float& eng)
 // calculate energy and return force of real part Coulombic iteraction via Ewald procedure
 //  r2 - square of distance, chprd - production of charges
 //  eng - for saving energy
-//! тут надо ещё ввести эпсилон в закон кулона
+//! ГІГіГІ Г­Г Г¤Г® ГҐГ№Вё ГўГўГҐГ±ГІГЁ ГЅГЇГ±ГЁГ«Г®Г­ Гў Г§Г ГЄГ®Г­ ГЄГіГ«Г®Г­Г 
 {
     //double r;
 
@@ -129,7 +129,7 @@ __device__ float fennel(float r2, float& r, float chprd, cudaMD* md, float& eng)
     float ar = md->alpha * r;
     float erfcar = erfc(ar);    // erfc(alpha * r);
 
-    eng += kqq * (erfcar * ir - md->elC1 + md->elC2 * (r - md->rElec));    //! save energy (не всегда она нужна)
+    eng += kqq * (erfcar * ir - md->elC1 + md->elC2 * (r - md->rElec));    //! save energy (Г­ГҐ ГўГ±ГҐГЈГ¤Г  Г®Г­Г  Г­ГіГ¦Г­Г )
     return kqq * ir * ((erfcar / r2 + md->daipi2 * exp(-ar * ar) * ir) - md->elC2);
 }
 
@@ -163,7 +163,7 @@ __global__ void recip_ewald(int atPerBlock, int atPerThread, cudaMD* md)
     int nkx = md->nk.x;
     int nky = md->nk.y;
     int nkz = md->nk.z;
-    // double rkcut2 = sim->rkcut2;  //! В DL_POLY это вычисляемая величина
+    // double rkcut2 = sim->rkcut2;  //! Г‚ DL_POLY ГЅГІГ® ГўГ»Г·ГЁГ±Г«ГїГҐГ¬Г Гї ГўГҐГ«ГЁГ·ГЁГ­Г 
     //printf("ewald_rec Nat=%d kx=%d ky=%d kz=%d  rkut2=%f\n", Nat, kx, ky, kz, ew->rkcut2);
     
     // arrays for keeping iexp(k*r) Re and Im part
@@ -193,7 +193,7 @@ __global__ void recip_ewald(int atPerBlock, int atPerThread, cudaMD* md)
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
 
-    //! тут всё верно для прямоугольной геометрии. Если ячейка будет кривая, код нужно править
+    //! ГІГіГІ ГўГ±Вё ГўГҐГ°Г­Г® Г¤Г«Гї ГЇГ°ГїГ¬Г®ГіГЈГ®Г«ГјГ­Г®Г© ГЈГҐГ®Г¬ГҐГІГ°ГЁГЁ. Г…Г±Г«ГЁ ГїГ·ГҐГ©ГЄГ  ГЎГіГ¤ГҐГІ ГЄГ°ГЁГўГ Гї, ГЄГ®Г¤ Г­ГіГ¦Г­Г® ГЇГ°Г ГўГЁГІГј
     ik = 0;
     for (i = id0; i < N; i++)
     {
@@ -204,7 +204,7 @@ __global__ void recip_ewald(int atPerBlock, int atPerThread, cudaMD* md)
         //   el- arrays need to refresh (according cycle by l)
         el[0] = make_float2(1.0f, 0.0f);    // .x - real part (or cos) .y - imagine part (or sin)
         
-        // в оригинале эти две переменные определены на этапе инициализации
+        // Гў Г®Г°ГЁГЈГЁГ­Г Г«ГҐ ГЅГІГЁ Г¤ГўГҐ ГЇГҐГ°ГҐГ¬ГҐГ­Г­Г»ГҐ Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­Г» Г­Г  ГЅГІГ ГЇГҐ ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§Г Г¶ГЁГЁ
         em[0] = make_float2(1.0f, 0.0f);
         en[0] = make_float2(1.0f, 0.0f);
 
@@ -253,7 +253,7 @@ __global__ void recip_ewald(int atPerBlock, int atPerThread, cudaMD* md)
                 //set temporary variable lm = e^ikx * e^iky
                 if (m >= 0)
                 {
-                        lm.x = el[0].x * em[m].x - el[0].y * em[m].y;       // [0] - потому что мы перезаписываем элемент [l] в [0]
+                        lm.x = el[0].x * em[m].x - el[0].y * em[m].y;       // [0] - ГЇГ®ГІГ®Г¬Гі Г·ГІГ® Г¬Г» ГЇГҐГ°ГҐГ§Г ГЇГЁГ±Г»ГўГ ГҐГ¬ ГЅГ«ГҐГ¬ГҐГ­ГІ [l] Гў [0]
                         lm.y = el[0].y * em[m].x + em[m].y * el[0].x;
                 }
                 else // for negative ky give complex adjustment to positive ky:
@@ -270,7 +270,7 @@ __global__ void recip_ewald(int atPerBlock, int atPerThread, cudaMD* md)
                     rk2 = rkx * rkx + rky * rky + rkz * rkz;
                     //rk2 = md->rk[ik].x * md->rk[ik].x + md->rk[ik].y * md->rk[ik].y + md->rk[ik].z * md->rk[ik].z;
 
-                    //! у нас cuttof и rk2 возможно в разных единицах измерения, надо это провентилировать
+                    //! Гі Г­Г Г± cuttof ГЁ rk2 ГўГ®Г§Г¬Г®Г¦Г­Г® Гў Г°Г Г§Г­Г»Гµ ГҐГ¤ГЁГ­ГЁГ¶Г Гµ ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГї, Г­Г Г¤Г® ГЅГІГ® ГЇГ°Г®ГўГҐГ­ГІГЁГ«ГЁГ°Г®ГўГ ГІГј
                     //printf("rk2 * rkcut2 :  %f  *  %f\n", rk2, ew->rkcut2);
                     if (rk2 < md->rKcut2) // cutoff
                     {
