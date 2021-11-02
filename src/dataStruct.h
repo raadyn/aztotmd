@@ -40,11 +40,11 @@ struct Elec;
 struct Sim
 {
    double tSt;    // (d-p) value of timestep (in MD units)      (d-p) directive - parameter
-   //! не обязательно его хранить
+   //! Г­ГҐ Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г® ГҐГЈГ® ГµГ°Г Г­ГЁГІГј
    double tSim;   // (d-p) length of simulation (in MD time units)
    int nSt;       // (d-p) number of timestep
 
-   //! не обязательно его хранить
+   //! Г­ГҐ Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г® ГҐГЈГ® ГµГ°Г Г­ГЁГІГј
    double tEq;    // (d-p) length of equilibration period (in MD time units)
    int nEq;       // (d-p) number of timestep in equilibration period
    int freqEq;    // (d-p) freqence of equilibration (equilibration will be called every freqEq step)
@@ -188,7 +188,7 @@ struct Sim
    int* bindTrajAtoms;      // array of indexes for binded trajectories
 
    //functions for operating!
-     //enery of i-j pair calculations (используется для обхода пар в функциях cell_list или all_pair)
+     //enery of i-j pair calculations (ГЁГ±ГЇГ®Г«ГјГ§ГіГҐГІГ±Гї Г¤Г«Гї Г®ГЎГµГ®Г¤Г  ГЇГ Г° Гў ГґГіГ­ГЄГ¶ГЁГїГµ cell_list ГЁГ«ГЁ all_pair)
    void (*pair)(int i, int j, Atoms *atm, Field *field, Elec *elec, Box *bx, Sim *sim);
 
    void (*integrator1)(Atoms *atm, Spec *spec, Sim *sim, Box *box, TStat *tstat);
@@ -243,7 +243,7 @@ struct Box
 // structure for Atom type (Species)
 struct Spec
 {
-  int number; // количество частиц данного сорта
+  int number; // ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® Г·Г Г±ГІГЁГ¶ Г¤Г Г­Г­Г®ГЈГ® Г±Г®Г°ГІГ 
 
   char name[8];
   double mass;
@@ -305,12 +305,12 @@ struct VdW  // pair potential
 struct Atoms
 {
    int nAt;
-   int* types;  //! заменить на Spec*
+   int* types;  //! Г§Г Г¬ГҐГ­ГЁГІГј Г­Г  Spec*
    double *xs, *ys, *zs;
    double *vxs, *vys, *vzs;
    double *fxs, *fys, *fzs;
    int *nBonds;  // the number of bonds (provided by bond_list)
-   int *parents;    //! index of atom connected with this, однозначно определен только для атомов с одной связью
+   int *parents;    //! index of atom connected with this, Г®Г¤Г­Г®Г§Г­Г Г·Г­Г® Г®ГЇГ°ГҐГ¤ГҐГ«ГҐГ­ ГІГ®Г«ГјГЄГ® Г¤Г«Гї Г ГІГ®Г¬Г®Гў Г± Г®Г¤Г­Г®Г© Г±ГўГїГ§ГјГѕ
 
    //initial coordinates (for MSD calculation)
    double *x0s, *y0s, *z0s;
@@ -334,7 +334,7 @@ struct Bond
   double r2min, r2max;          // square of distance of bond breaking (if applicapble)
   //double energy;        // energy difference between and after bond breaking
   int number;           // quantity of such bonds
-  //int ind;              // current index (вспомогательная переменная для вывода связей в файл)
+  //int ind;              // current index (ГўГ±ГЇГ®Г¬Г®ГЈГ ГІГҐГ«ГјГ­Г Гї ГЇГҐГ°ГҐГ¬ГҐГ­Г­Г Гї Г¤Г«Гї ГўГ»ГўГ®Г¤Г  Г±ГўГїГ§ГҐГ© Гў ГґГ Г©Г«)
 
 };
 
@@ -379,7 +379,7 @@ struct Field
 
     VdW   *pairpots;    // array for keeping all possble pair potentials
     VdW ***vdws;    // matrix of pointer to pairpots: vdws[iSpec][iSpec] = &pairpot
-    double minRvdw;     // minimal distance of VdW interaction //! для чего?
+    double minRvdw;     // minimal distance of VdW interaction //! Г¤Г«Гї Г·ГҐГЈГ®?
     double maxRvdw;     // maximal distance of VdW interaction
     double maxR2vdw;    // maxRvdw^2
     double maxRbind;    // maximal distance of atoms binding
