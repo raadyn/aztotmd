@@ -1,5 +1,5 @@
 // elec.h
-//  заголовочный файл модуля, работающего с алгоритмом Эвальда
+//  Г§Г ГЈГ®Г«Г®ГўГ®Г·Г­Г»Г© ГґГ Г©Г« Г¬Г®Г¤ГіГ«Гї, Г°Г ГЎГ®ГІГ ГѕГ№ГҐГЈГ® Г± Г Г«ГЈГ®Г°ГЁГІГ¬Г®Г¬ ГќГўГ Г«ГјГ¤Г 
 #ifndef ELEC_H
 #define ELEC_H
 
@@ -32,7 +32,7 @@ void no_elec(Atoms *atm, Field *field, Elec *elec, Box *bx, Sim *sim);
 double coul_iter(double r2, double &r, double chprd, double alpha, double &eng);
 // real part of Ewald for each pair
 
-// функции для обхода кулоновсокго взаимодействия в реальном пространстве
+// ГґГіГ­ГЄГ¶ГЁГЁ Г¤Г«Гї Г®ГЎГµГ®Г¤Г  ГЄГіГ«Г®Г­Г®ГўГ±Г®ГЄГЈГ® ГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГЁГї Гў Г°ГҐГ Г«ГјГ­Г®Г¬ ГЇГ°Г®Г±ГІГ°Г Г­Г±ГІГўГҐ
 void none_elec(Spec* sp, int it, int jt, double r2, double r, Elec* elec, Sim* sim, double& force);		// no electrostatic
 void direct_coul(Spec* sp, int it, int jt, double r2, double r, Elec* elec, Sim* sim, double& force);	// brute, by Coulomb law
 void direct_ewald(Spec* sp, int it, int jt, double r2, double r, Elec* elec, Sim* sim, double& force);	// Ewald
