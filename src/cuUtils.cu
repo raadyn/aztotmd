@@ -76,7 +76,7 @@ __device__ float float3_sqr(float3 vect)
 // random number generators:
 __device__ unsigned int rand1()
 // https://stackoverflow.com/questions/837955/random-number-generator-in-cuda
-// ! не работает
+// ! Г­ГҐ Г°Г ГЎГ®ГІГ ГҐГІ
 {
     unsigned int m_w = 150;
     unsigned int m_z = 40;
@@ -110,6 +110,6 @@ void cuda_info()
     cudaGetDeviceProperties(&devProp, 0);
     printf("%s CC=%d.%d GlobMem=%IuGb shMem/Block=%IukB constMem=%IukB clockRate=%dMHz nMultProc=%d maxThrPerMP=%d\n", devProp.name, devProp.major, devProp.minor, devProp.totalGlobalMem / 1024 / 1024 / 1024, devProp.sharedMemPerBlock / 1024, devProp.totalConstMem / 1024, devProp.clockRate / 1000, devProp.multiProcessorCount, devProp.maxThreadsPerMultiProcessor);
     printf("maxBlock=%d\n", devProp.maxGridSize[0]);
-    // вроде 64 процессора в мультипроцессоре этой видеокарты(4352 ядра)
+    // ГўГ°Г®Г¤ГҐ 64 ГЇГ°Г®Г¶ГҐГ±Г±Г®Г°Г  Гў Г¬ГіГ«ГјГІГЁГЇГ°Г®Г¶ГҐГ±Г±Г®Г°ГҐ ГЅГІГ®Г© ГўГЁГ¤ГҐГ®ГЄГ Г°ГІГ»(4352 ГїГ¤Г°Г )
 }
 
