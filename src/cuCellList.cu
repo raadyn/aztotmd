@@ -7,7 +7,7 @@
 
 
 int split_cells(int div_type, float r, int add_to_even, int nAt, cudaMD* hmd)
-// div_type определяет тип разбиения: 0 - ребро ячейки  не превышает r, 1 - ребро не меньше r
+// div_type Г®ГЇГ°ГҐГ¤ГҐГ«ГїГҐГІ ГІГЁГЇ Г°Г Г§ГЎГЁГҐГ­ГЁГї: 0 - Г°ГҐГЎГ°Г® ГїГ·ГҐГ©ГЄГЁ  Г­ГҐ ГЇГ°ГҐГўГ»ГёГ ГҐГІ r, 1 - Г°ГҐГЎГ°Г® Г­ГҐ Г¬ГҐГ­ГјГёГҐ r
 // split box into cells
 // calculate cell size and count and return number of cells
 // nAt is the number of atoms
@@ -17,7 +17,7 @@ int split_cells(int div_type, float r, int add_to_even, int nAt, cudaMD* hmd)
     else
         hmd->cNumber = make_int3(floor(hmd->leng.x / r), floor(hmd->leng.y / r), floor(hmd->leng.z / r));
 
-    //! тут получается, что ячейки не обязательно кубической формы. Надо подумать, критично это или нет:
+    //! ГІГіГІ ГЇГ®Г«ГіГ·Г ГҐГІГ±Гї, Г·ГІГ® ГїГ·ГҐГ©ГЄГЁ Г­ГҐ Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г® ГЄГіГЎГЁГ·ГҐГ±ГЄГ®Г© ГґГ®Г°Г¬Г». ГЌГ Г¤Г® ГЇГ®Г¤ГіГ¬Г ГІГј, ГЄГ°ГЁГІГЁГ·Г­Г® ГЅГІГ® ГЁГ«ГЁ Г­ГҐГІ:
     hmd->cSize = make_float3(hmd->leng.x / hmd->cNumber.x, hmd->leng.y / hmd->cNumber.y, hmd->leng.z / hmd->cNumber.z);
     hmd->cRevSize = make_float3(hmd->cNumber.x / hmd->leng.x, hmd->cNumber.y / hmd->leng.y, hmd->cNumber.z / hmd->leng.z);
     hmd->cnYZ = hmd->cNumber.y * hmd->cNumber.z;
@@ -29,7 +29,7 @@ int split_cells(int div_type, float r, int add_to_even, int nAt, cudaMD* hmd)
         if ((hmd->nCell % 2) != 0)
             hmd->nCell++;
 
-    hmd->maxAtPerCell = (double)(nAt * 3) / hmd->nCell;          //! я не знаю точно, как лучше определить это кол-во
+    hmd->maxAtPerCell = (double)(nAt * 3) / hmd->nCell;          //! Гї Г­ГҐ Г§Г­Г Гѕ ГІГ®Г·Г­Г®, ГЄГ ГЄ Г«ГіГ·ГёГҐ Г®ГЇГ°ГҐГ¤ГҐГ«ГЁГІГј ГЅГІГ® ГЄГ®Г«-ГўГ®
     return hmd->nCell;
 }
 
@@ -53,9 +53,9 @@ int3 xyz_of_cell(int id, int nyz, int nz)
 
 /*
 int cell_dist(int xi, int xj, int mx, float length, float csize, float rskip, float& rmin, float& rmax, float& shift, int& int_shift)
-// вычисляем минимальное и максимальное расстояние (в кол-ве ячеек) между частицами из 2х разных ячеек, а также сдвиг, используемый при учете периодических условий
-// xi, xj - координаты 2х ячеек по 1му измерению, mx - максимальное кол-во ячеек в этом измерении, length - длина бокса в этом измерении csize - размер ячейки
-// возвращаем 1 если ячейки слишком далеко (больше rskip) иначе 0
+// ГўГ»Г·ГЁГ±Г«ГїГҐГ¬ Г¬ГЁГ­ГЁГ¬Г Г«ГјГ­Г®ГҐ ГЁ Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГҐ Г°Г Г±Г±ГІГ®ГїГ­ГЁГҐ (Гў ГЄГ®Г«-ГўГҐ ГїГ·ГҐГҐГЄ) Г¬ГҐГ¦Г¤Гі Г·Г Г±ГІГЁГ¶Г Г¬ГЁ ГЁГ§ 2Гµ Г°Г Г§Г­Г»Гµ ГїГ·ГҐГҐГЄ, Г  ГІГ ГЄГ¦ГҐ Г±Г¤ГўГЁГЈ, ГЁГ±ГЇГ®Г«ГјГ§ГіГҐГ¬Г»Г© ГЇГ°ГЁ ГіГ·ГҐГІГҐ ГЇГҐГ°ГЁГ®Г¤ГЁГ·ГҐГ±ГЄГЁГµ ГіГ±Г«Г®ГўГЁГ©
+// xi, xj - ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ» 2Гµ ГїГ·ГҐГҐГЄ ГЇГ® 1Г¬Гі ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГѕ, mx - Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГҐ ГЄГ®Г«-ГўГ® ГїГ·ГҐГҐГЄ Гў ГЅГІГ®Г¬ ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГЁ, length - Г¤Г«ГЁГ­Г  ГЎГ®ГЄГ±Г  Гў ГЅГІГ®Г¬ ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГЁ csize - Г°Г Г§Г¬ГҐГ° ГїГ·ГҐГ©ГЄГЁ
+// ГўГ®Г§ГўГ°Г Г№Г ГҐГ¬ 1 ГҐГ±Г«ГЁ ГїГ·ГҐГ©ГЄГЁ Г±Г«ГЁГёГЄГ®Г¬ Г¤Г Г«ГҐГЄГ® (ГЎГ®Г«ГјГёГҐ rskip) ГЁГ­Г Г·ГҐ 0
 {
 
     shift = 0.0;
@@ -96,9 +96,9 @@ int cell_dist(int xi, int xj, int mx, float length, float csize, float rskip, fl
 */
 
 int cell_dist_int(int xi, int xj, int mx, float csize, float rskip, float& rmin, float& rmax, int& shift)
-// вычисляем минимальное и максимальное расстояние (в кол-ве ячеек) между частицами из 2х разных ячеек, а также сдвиг, используемый при учете периодических условий
-// xi, xj - координаты 2х ячеек в одном из измерений, mx - максимальное кол-во ячеек в этом измерении,  csize - размер ячейки
-// возвращаем 1 если ячейки слишком далеко (больше rskip) иначе 0
+// ГўГ»Г·ГЁГ±Г«ГїГҐГ¬ Г¬ГЁГ­ГЁГ¬Г Г«ГјГ­Г®ГҐ ГЁ Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГҐ Г°Г Г±Г±ГІГ®ГїГ­ГЁГҐ (Гў ГЄГ®Г«-ГўГҐ ГїГ·ГҐГҐГЄ) Г¬ГҐГ¦Г¤Гі Г·Г Г±ГІГЁГ¶Г Г¬ГЁ ГЁГ§ 2Гµ Г°Г Г§Г­Г»Гµ ГїГ·ГҐГҐГЄ, Г  ГІГ ГЄГ¦ГҐ Г±Г¤ГўГЁГЈ, ГЁГ±ГЇГ®Г«ГјГ§ГіГҐГ¬Г»Г© ГЇГ°ГЁ ГіГ·ГҐГІГҐ ГЇГҐГ°ГЁГ®Г¤ГЁГ·ГҐГ±ГЄГЁГµ ГіГ±Г«Г®ГўГЁГ©
+// xi, xj - ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ» 2Гµ ГїГ·ГҐГҐГЄ Гў Г®Г¤Г­Г®Г¬ ГЁГ§ ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГ©, mx - Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГҐ ГЄГ®Г«-ГўГ® ГїГ·ГҐГҐГЄ Гў ГЅГІГ®Г¬ ГЁГ§Г¬ГҐГ°ГҐГ­ГЁГЁ,  csize - Г°Г Г§Г¬ГҐГ° ГїГ·ГҐГ©ГЄГЁ
+// ГўГ®Г§ГўГ°Г Г№Г ГҐГ¬ 1 ГҐГ±Г«ГЁ ГїГ·ГҐГ©ГЄГЁ Г±Г«ГЁГёГЄГ®Г¬ Г¤Г Г«ГҐГЄГ® (ГЎГ®Г«ГјГёГҐ rskip) ГЁГ­Г Г·ГҐ 0
 // version with integer shift (-1 / 0 / 1)
 // for full periodic rectangular conditions
 {
@@ -189,14 +189,14 @@ void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &inde
         float dr2max = sqr_sum(dxmax, dymax, dzmax);
         float dr2min = sqr_sum(dxmin, dymin, dzmin);
         if (dr2max < elec->r2Real)
-            coul = 1;   // гарантировано дотягивается Кулоновское взаимодействие
+            coul = 1;   // ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г® Г¤Г®ГІГїГЈГЁГўГ ГҐГІГ±Гї ГЉГіГ«Г®Г­Г®ГўГ±ГЄГ®ГҐ ГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГЁГҐ
         else
-            coul = 0;   // может дотягивается, а может и нет
+            coul = 0;   // Г¬Г®Г¦ГҐГІ Г¤Г®ГІГїГЈГЁГўГ ГҐГІГ±Гї, Г  Г¬Г®Г¦ГҐГІ ГЁ Г­ГҐГІ
 
         if (dr2min > (fld->maxRvdw * fld->maxRvdw))
-            vdw = 0;    // гарантировано не достает ВдВ
+            vdw = 0;    // ГЈГ Г°Г Г­ГІГЁГ°Г®ГўГ Г­Г® Г­ГҐ Г¤Г®Г±ГІГ ГҐГІ Г‚Г¤Г‚
         else
-            vdw = 1;    // может и достает
+            vdw = 1;    // Г¬Г®Г¦ГҐГІ ГЁ Г¤Г®Г±ГІГ ГҐГІ
 
         pairs[index].z = coul * 2 + vdw;
     }
@@ -240,11 +240,11 @@ int pair_exists_shift(int cell1, int cell2, float3 &shift, Elec* elec, Field* fl
 }
 
 void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cudaMD* hmd)
-// обход реализованный в алгоритмах (2a, 2b) и (3a, 3b): 2a и 2b получаются при pairPerBlock == 1
-//  1ая часть - пары вида (i)-(i+1) и их сдвиги, 2ая часть - остальные пары и их сдвиги - отдельно. 
-//  Обе части хранятся в одних массивах md->pairs и md->shifts
-//  Все пары в формате int4 (.x, .y - абсолютные индексы ячеек, остальное зарезервиравано под тип сдвига и взаимодействия)
-//  + настраивает все необходимые параметры в man для вызова функций (память и число блоков/нитей)
+// Г®ГЎГµГ®Г¤ Г°ГҐГ Г«ГЁГ§Г®ГўГ Г­Г­Г»Г© Гў Г Г«ГЈГ®Г°ГЁГІГ¬Г Гµ (2a, 2b) ГЁ (3a, 3b): 2a ГЁ 2b ГЇГ®Г«ГіГ·Г ГѕГІГ±Гї ГЇГ°ГЁ pairPerBlock == 1
+//  1Г Гї Г·Г Г±ГІГј - ГЇГ Г°Г» ГўГЁГ¤Г  (i)-(i+1) ГЁ ГЁГµ Г±Г¤ГўГЁГЈГЁ, 2Г Гї Г·Г Г±ГІГј - Г®Г±ГІГ Г«ГјГ­Г»ГҐ ГЇГ Г°Г» ГЁ ГЁГµ Г±Г¤ГўГЁГЈГЁ - Г®ГІГ¤ГҐГ«ГјГ­Г®. 
+//  ГЋГЎГҐ Г·Г Г±ГІГЁ ГµГ°Г Г­ГїГІГ±Гї Гў Г®Г¤Г­ГЁГµ Г¬Г Г±Г±ГЁГўГ Гµ md->pairs ГЁ md->shifts
+//  Г‚Г±ГҐ ГЇГ Г°Г» Гў ГґГ®Г°Г¬Г ГІГҐ int4 (.x, .y - Г ГЎГ±Г®Г«ГѕГІГ­Г»ГҐ ГЁГ­Г¤ГҐГЄГ±Г» ГїГ·ГҐГҐГЄ, Г®Г±ГІГ Г«ГјГ­Г®ГҐ Г§Г Г°ГҐГ§ГҐГ°ГўГЁГ°Г ГўГ Г­Г® ГЇГ®Г¤ ГІГЁГЇ Г±Г¤ГўГЁГЈГ  ГЁ ГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГЁГї)
+//  + Г­Г Г±ГІГ°Г ГЁГўГ ГҐГІ ГўГ±ГҐ Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г»ГҐ ГЇГ Г°Г Г¬ГҐГІГ°Г» Гў man Г¤Г«Гї ГўГ»Г§Г®ГўГ  ГґГіГ­ГЄГ¶ГЁГ© (ГЇГ Г¬ГїГІГј ГЁ Г·ГЁГ±Г«Г® ГЎГ«Г®ГЄГ®Гў/Г­ГЁГІГҐГ©)
 {
     int i, j, k, index = 0;
     int art_cell = 0;
@@ -253,14 +253,14 @@ void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cu
     int4 *pairs = (int4*)malloc(int4_size * npair);
     float3* shifts = (float3*)malloc(float3_size * npair);
 
-    //! нужно ещё учесть, что одна ячейка может быть искуственная и её нужно убрать из пар!
+    //! Г­ГіГ¦Г­Г® ГҐГ№Вё ГіГ·ГҐГ±ГІГј, Г·ГІГ® Г®Г¤Г­Г  ГїГ·ГҐГ©ГЄГ  Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј ГЁГ±ГЄГіГ±ГІГўГҐГ­Г­Г Гї ГЁ ГҐВё Г­ГіГ¦Г­Г® ГіГЎГ°Г ГІГј ГЁГ§ ГЇГ Г°!
     if (hmd->nCell != (hmd->cNumber.x * hmd->cNumber.y * hmd->cNumber.z))
         art_cell = 1;
 
-    //! первые пары (0-1, 2-3, 4-5 и т.д.). ОНИ НЕ ПЕРЕСЕКАЮТСЯ ПО ДАННЫМ
-    // штука в том, что в первой части пары может и не быть, но загружать все равно надо, поскольку там обрабатываюся пары внутри ячейки!
+    //! ГЇГҐГ°ГўГ»ГҐ ГЇГ Г°Г» (0-1, 2-3, 4-5 ГЁ ГІ.Г¤.). ГЋГЌГ€ ГЌГ… ГЏГ…ГђГ…Г‘Г…ГЉГЂГћГ’Г‘Гџ ГЏГЋ Г„ГЂГЌГЌГ›ГЊ
+    // ГёГІГіГЄГ  Гў ГІГ®Г¬, Г·ГІГ® Гў ГЇГҐГ°ГўГ®Г© Г·Г Г±ГІГЁ ГЇГ Г°Г» Г¬Г®Г¦ГҐГІ ГЁ Г­ГҐ ГЎГ»ГІГј, Г­Г® Г§Г ГЈГ°ГіГ¦Г ГІГј ГўГ±ГҐ Г°Г ГўГ­Г® Г­Г Г¤Г®, ГЇГ®Г±ГЄГ®Г«ГјГЄГі ГІГ Г¬ Г®ГЎГ°Г ГЎГ ГІГ»ГўГ ГѕГ±Гї ГЇГ Г°Г» ГўГ­ГіГІГ°ГЁ ГїГ·ГҐГ©ГЄГЁ!
     hmd->nPair1 = hmd->nCell / 2;
-    for (i = 0; i < hmd->nPair1 - art_cell; i++) // не забыть про искуственную ячейку
+    for (i = 0; i < hmd->nPair1 - art_cell; i++) // Г­ГҐ Г§Г ГЎГ»ГІГј ГЇГ°Г® ГЁГ±ГЄГіГ±ГІГўГҐГ­Г­ГіГѕ ГїГ·ГҐГ©ГЄГі
         add_cell_pairs(i * 2, i * 2 + 1, pairs, shifts, index, elec, fld, 1, hmd);    // verify, that cells in range and add in any case
 
     if (art_cell)
@@ -279,7 +279,7 @@ void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cu
     // rest pairs
     for (i = 0; i < hmd->nCell - 1 - art_cell; i++)
     {
-        k = 2 - (i % 2); // учитываем, что 0-1, 2-3, 4-5 пары мы уже отобрали
+        k = 2 - (i % 2); // ГіГ·ГЁГІГ»ГўГ ГҐГ¬, Г·ГІГ® 0-1, 2-3, 4-5 ГЇГ Г°Г» Г¬Г» ГіГ¦ГҐ Г®ГІГ®ГЎГ°Г Г«ГЁ
         for (j = i + k; j < hmd->nCell - art_cell; j++)
             add_cell_pairs(i, j, pairs, shifts, index, elec, fld, 0, hmd);    // verify, that cells in range and add if it's so
     }
@@ -304,12 +304,12 @@ void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cu
     int maxAtPerBlock = 2 * 16 * ((double)hmd->nAt / hmd->nCell) * 3 + 90;  // factor 3 for excess
     man->pairBlockA = ceil((double)hmd->nPair1 / pairPerBlock);
     man->pairBlockB = ceil((double)(hmd->nPair - hmd->nPair1) / pairPerBlock);
-    man->pairThreadA = 16;      // задаем опытным путем (число мультипроцессоров в ядре должно быть кратно ему)
-    man->pairThreadB = 16;      // задаем опытным путем (число мультипроцессоров в ядре должно быть кратно ему)
+    man->pairThreadA = 16;      // Г§Г Г¤Г ГҐГ¬ Г®ГЇГ»ГІГ­Г»Г¬ ГЇГіГІГҐГ¬ (Г·ГЁГ±Г«Г® Г¬ГіГ«ГјГІГЁГЇГ°Г®Г¶ГҐГ±Г±Г®Г°Г®Гў Гў ГїГ¤Г°ГҐ Г¤Г®Г«Г¦Г­Г® ГЎГ»ГІГј ГЄГ°Г ГІГ­Г® ГҐГ¬Гі)
+    man->pairThreadB = 16;      // Г§Г Г¤Г ГҐГ¬ Г®ГЇГ»ГІГ­Г»Г¬ ГЇГіГІГҐГ¬ (Г·ГЁГ±Г«Г® Г¬ГіГ«ГјГІГЁГЇГ°Г®Г¶ГҐГ±Г±Г®Г°Г®Гў Гў ГїГ¤Г°ГҐ Г¤Г®Г«Г¦Г­Г® ГЎГ»ГІГј ГЄГ°Г ГІГ­Г® ГҐГ¬Гі)
 
-    //! нужно поправить эти параметры на pairPerBlock
+    //! Г­ГіГ¦Г­Г® ГЇГ®ГЇГ°Г ГўГЁГІГј ГЅГІГЁ ГЇГ Г°Г Г¬ГҐГІГ°Г» Г­Г  pairPerBlock
     man->pairMemA = hmd->maxAtPerCell * 4 * (int_size + float3_size);
-    man->pairMemB = maxAtPerBlock * 2 * (int_size + float3_size) + man->pairPerBlock * 4 * int_size; // 4 = 2 * 2 поскольку 2 ячейке в паре и нужно запоминать начальный индекс и кол-во атомов
+    man->pairMemB = maxAtPerBlock * 2 * (int_size + float3_size) + man->pairPerBlock * 4 * int_size; // 4 = 2 * 2 ГЇГ®Г±ГЄГ®Г«ГјГЄГі 2 ГїГ·ГҐГ©ГЄГҐ Гў ГЇГ Г°ГҐ ГЁ Г­ГіГ¦Г­Г® Г§Г ГЇГ®Г¬ГЁГ­Г ГІГј Г­Г Г·Г Г«ГјГ­Г»Г© ГЁГ­Г¤ГҐГЄГ± ГЁ ГЄГ®Г«-ГўГ® Г ГІГ®Г¬Г®Гў
 }
 
 void free_bypass0(cudaMD* hmd)
@@ -391,11 +391,11 @@ void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd,
     float3* shifts = (float3*)malloc(j * float3_size);
     int* nPair = (int*)malloc(hmd->nCell * int_size);
 
-    // тут будут хранится указатели на соответствующие массивы, а потом зафигачим их на девайс
+    // ГІГіГІ ГЎГіГ¤ГіГІ ГµГ°Г Г­ГЁГІГ±Гї ГіГЄГ Г§Г ГІГҐГ«ГЁ Г­Г  Г±Г®Г®ГІГўГҐГІГ±ГІГўГіГѕГ№ГЁГҐ Г¬Г Г±Г±ГЁГўГ», Г  ГЇГ®ГІГ®Г¬ Г§Г ГґГЁГЈГ Г·ГЁГ¬ ГЁГµ Г­Г  Г¤ГҐГўГ Г©Г±
     int4** pairs_arr = (int4**)malloc(hmd->nCell * pointer_size);
     float3** shifts_arr = (float3**)malloc(hmd->nCell * pointer_size);
 
-    //! первые пары ячеек (0-1, 2-3, 4-5 и т.д.). ОНИ НЕ ПЕРЕСЕКАЮТСЯ ПО ДАННЫМ
+    //! ГЇГҐГ°ГўГ»ГҐ ГЇГ Г°Г» ГїГ·ГҐГҐГЄ (0-1, 2-3, 4-5 ГЁ ГІ.Г¤.). ГЋГЌГ€ ГЌГ… ГЏГ…ГђГ…Г‘Г…ГЉГЂГћГ’Г‘Гџ ГЏГЋ Г„ГЂГЌГЌГ›ГЊ
     int nBlock = ceil((double)hmd->nCell / cellInBlock);
     //printf("nCell=%d nBlock=%d cellInBlock=%d\n", hmd->nCell, nBlock, cellInBlock);
     for (i = 0; i < nBlock; i++)
@@ -424,14 +424,14 @@ void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd,
     int4* cellBlocks = (int4*)malloc(maxPairs * int4_size);
     float3** secShifts = (float3**)malloc(maxPairs * pointer_size);
     k = 0;      // index of cellBlock
-    // лучше поделить пары (см. рассуждения на хабре)
+    // Г«ГіГ·ГёГҐ ГЇГ®Г¤ГҐГ«ГЁГІГј ГЇГ Г°Г» (Г±Г¬. Г°Г Г±Г±ГіГ¦Г¤ГҐГ­ГЁГї Г­Г  ГµГ ГЎГ°ГҐ)
     int nFirstCell = (int)(sqrt(0.5) * hmd->nCell);
     for (i = 0; i < nFirstCell; i++)
     {
         block_loop(i, (i / cellInBlock + 1) * cellInBlock, nFirstCell, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd);
     }
 
-    // оставшиеяя блоки
+    // Г®Г±ГІГ ГўГёГЁГҐГїГї ГЎГ«Г®ГЄГЁ
     for (i = nFirstCell; i < hmd->nCell; i++)
     {
         block_loop(i, 0, (i / cellInBlock) * cellInBlock, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd);
@@ -447,13 +447,13 @@ void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd,
     man->pairBlockA = nBlock;
     man->pairBlockB = k;
     man->cellPerBlockA = cellInBlock;
-    //man->pairThreadA = cellInBlock * 4;   // должно быть кратно числу ячеек в блоке
-    man->pairThreadA = 64;   // должно быть кратно числу ячеек в блоке
+    //man->pairThreadA = cellInBlock * 4;   // Г¤Г®Г«Г¦Г­Г® ГЎГ»ГІГј ГЄГ°Г ГІГ­Г® Г·ГЁГ±Г«Гі ГїГ·ГҐГҐГЄ Гў ГЎГ«Г®ГЄГҐ
+    man->pairThreadA = 64;   // Г¤Г®Г«Г¦Г­Г® ГЎГ»ГІГј ГЄГ°Г ГІГ­Г® Г·ГЁГ±Г«Гі ГїГ·ГҐГҐГЄ Гў ГЎГ«Г®ГЄГҐ
     man->pairThreadB = 32;
 
     int mxAtPerBlock = hmd->maxAtPerCell * cellInBlock + 20;       // with excess
 
-    //! вообще это зависит от того, юзаем мы разделяемую память или нет
+    //! ГўГ®Г®ГЎГ№ГҐ ГЅГІГ® Г§Г ГўГЁГ±ГЁГІ Г®ГІ ГІГ®ГЈГ®, ГѕГ§Г ГҐГ¬ Г¬Г» Г°Г Г§Г¤ГҐГ«ГїГҐГ¬ГіГѕ ГЇГ Г¬ГїГІГј ГЁГ«ГЁ Г­ГҐГІ
     man->pairMemA = cellInBlock * int_size * 4 + mxAtPerBlock * (2 * float_size + int_size);    // cellInBlock * int * 4 - for 4a_1, for 4a int*2 is enough
     man->pairMemB = cellInBlock * int_size * 2 + mxAtPerBlock * (2 * float_size + 2 * int_size);
 
@@ -504,7 +504,7 @@ void free_bypass5(cudaMD* hmd)
 }
 
 void init_bypass6(int cellInBlock, int nAt, Elec* elec, Field* fld, cudaMD* hmd, hostManagMD* man)
-// будет обрабатывать ячейки отдельно, как bypass5 - не требует специальных структур, а пары - все как bypass4, но все пары вообще
+// ГЎГіГ¤ГҐГІ Г®ГЎГ°Г ГЎГ ГІГ»ГўГ ГІГј ГїГ·ГҐГ©ГЄГЁ Г®ГІГ¤ГҐГ«ГјГ­Г®, ГЄГ ГЄ bypass5 - Г­ГҐ ГІГ°ГҐГЎГіГҐГІ Г±ГЇГҐГ¶ГЁГ Г«ГјГ­Г»Гµ Г±ГІГ°ГіГЄГІГіГ°, Г  ГЇГ Г°Г» - ГўГ±ГҐ ГЄГ ГЄ bypass4, Г­Г® ГўГ±ГҐ ГЇГ Г°Г» ГўГ®Г®ГЎГ№ГҐ
 {
     int i, k, index;
     int totPairs = 0;       // total number of pairs (for verification)
@@ -517,14 +517,14 @@ void init_bypass6(int cellInBlock, int nAt, Elec* elec, Field* fld, cudaMD* hmd,
     int4* cellBlocks = (int4*)malloc(maxPairs * int4_size);
     float3** secShifts = (float3**)malloc(maxPairs * pointer_size);
     k = 0;      // index of cellBlock
-    // лучше поделить пары (см. рассуждения на хабре)
+    // Г«ГіГ·ГёГҐ ГЇГ®Г¤ГҐГ«ГЁГІГј ГЇГ Г°Г» (Г±Г¬. Г°Г Г±Г±ГіГ¦Г¤ГҐГ­ГЁГї Г­Г  ГµГ ГЎГ°ГҐ)
     int nFirstCell = (int)(sqrt(0.5) * hmd->nCell);
     for (i = 0; i < nFirstCell; i++)
     {
         block_loop(i, i + 1, nFirstCell, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd);
     }
 
-    // оставшиеяя блоки
+    // Г®Г±ГІГ ГўГёГЁГҐГїГї ГЎГ«Г®ГЄГЁ
     for (i = nFirstCell; i < hmd->nCell; i++)
     {
         block_loop(i, 0, i, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd);
@@ -541,13 +541,13 @@ void init_bypass6(int cellInBlock, int nAt, Elec* elec, Field* fld, cudaMD* hmd,
     man->pairBlockB = k;
     //man->cellPerBlockA = cellInBlock;
     
-    //! вообще эти штуки считались из файла cuda.txt, для некоторых случаев на них накладываются некоторые ограничения
+    //! ГўГ®Г®ГЎГ№ГҐ ГЅГІГЁ ГёГІГіГЄГЁ Г±Г·ГЁГІГ Г«ГЁГ±Гј ГЁГ§ ГґГ Г©Г«Г  cuda.txt, Г¤Г«Гї Г­ГҐГЄГ®ГІГ®Г°Г»Гµ Г±Г«ГіГ·Г ГҐГў Г­Г  Г­ГЁГµ Г­Г ГЄГ«Г Г¤Г»ГўГ ГѕГІГ±Гї Г­ГҐГЄГ®ГІГ®Г°Г»ГҐ Г®ГЈГ°Г Г­ГЁГ·ГҐГ­ГЁГї
     //man->pairThreadA = 16;
     //man->pairThreadB = 32;
 
     int mxAtPerBlock = hmd->maxAtPerCell * cellInBlock + 20;       // with excess
 
-    //! вообще это зависит от того, юзаем мы разделяемую память или нет
+    //! ГўГ®Г®ГЎГ№ГҐ ГЅГІГ® Г§Г ГўГЁГ±ГЁГІ Г®ГІ ГІГ®ГЈГ®, ГѕГ§Г ГҐГ¬ Г¬Г» Г°Г Г§Г¤ГҐГ«ГїГҐГ¬ГіГѕ ГЇГ Г¬ГїГІГј ГЁГ«ГЁ Г­ГҐГІ
     man->pairMemA = cellInBlock * int_size * 4 + mxAtPerBlock * (2 * float_size + int_size);    // cellInBlock * int * 4 - for 4a_1, for 4a int*2 is enough
     man->pairMemB = cellInBlock * int_size * 2 + mxAtPerBlock * (2 * float_size + 2 * int_size);
 
@@ -581,18 +581,18 @@ void free_2dlist(cudaMD *hmd)
 }
 
 void init_cellList(int div_type, int list_type, int bypass_type, float size, Atoms* atm, Field* fld, Elec *elec, cudaMD* hmd, hostManagMD *man)
-// функция подготавливает все переменные, инициализирует и заполняет массивы для целл листа
-//  при необходимости выделяет память для реализации сортировки
-// div_type определяет тип разбиения: 0 - ячейка такая, чтобы диагонраль не превышала min(Rvdw), 1 - ребро не меньше максимального радиуса взаимодействия
-// size - желаемый размер ячейки, но не обязательно, что программа разобьёт по нему
+// ГґГіГ­ГЄГ¶ГЁГї ГЇГ®Г¤ГЈГ®ГІГ ГўГ«ГЁГўГ ГҐГІ ГўГ±ГҐ ГЇГҐГ°ГҐГ¬ГҐГ­Г­Г»ГҐ, ГЁГ­ГЁГ¶ГЁГ Г«ГЁГ§ГЁГ°ГіГҐГІ ГЁ Г§Г ГЇГ®Г«Г­ГїГҐГІ Г¬Г Г±Г±ГЁГўГ» Г¤Г«Гї Г¶ГҐГ«Г« Г«ГЁГ±ГІГ 
+//  ГЇГ°ГЁ Г­ГҐГ®ГЎГµГ®Г¤ГЁГ¬Г®Г±ГІГЁ ГўГ»Г¤ГҐГ«ГїГҐГІ ГЇГ Г¬ГїГІГј Г¤Г«Гї Г°ГҐГ Г«ГЁГ§Г Г¶ГЁГЁ Г±Г®Г°ГІГЁГ°Г®ГўГЄГЁ
+// div_type Г®ГЇГ°ГҐГ¤ГҐГ«ГїГҐГІ ГІГЁГЇ Г°Г Г§ГЎГЁГҐГ­ГЁГї: 0 - ГїГ·ГҐГ©ГЄГ  ГІГ ГЄГ Гї, Г·ГІГ®ГЎГ» Г¤ГЁГ ГЈГ®Г­Г°Г Г«Гј Г­ГҐ ГЇГ°ГҐГўГ»ГёГ Г«Г  min(Rvdw), 1 - Г°ГҐГЎГ°Г® Г­ГҐ Г¬ГҐГ­ГјГёГҐ Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г®ГЈГ® Г°Г Г¤ГЁГіГ±Г  ГўГ§Г ГЁГ¬Г®Г¤ГҐГ©Г±ГІГўГЁГї
+// size - Г¦ГҐГ«Г ГҐГ¬Г»Г© Г°Г Г§Г¬ГҐГ° ГїГ·ГҐГ©ГЄГЁ, Г­Г® Г­ГҐ Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г®, Г·ГІГ® ГЇГ°Г®ГЈГ°Г Г¬Г¬Г  Г°Г Г§Г®ГЎГјВёГІ ГЇГ® Г­ГҐГ¬Гі
 // list_type = 0 - 2d-array, 1 - based on sort
-// bypass type - способы обхода cell list
+// bypass type - Г±ГЇГ®Г±Г®ГЎГ» Г®ГЎГµГ®Г¤Г  cell list
 {
     man->div_type = div_type;
     man->list_type = list_type;
     man->bypass_type = bypass_type;
     
-    int add_to_even = 0;    // нужно ли доводить число ячеек до четного?
+    int add_to_even = 0;    // Г­ГіГ¦Г­Г® Г«ГЁ Г¤Г®ГўГ®Г¤ГЁГІГј Г·ГЁГ±Г«Г® ГїГ·ГҐГҐГЄ Г¤Г® Г·ГҐГІГ­Г®ГЈГ®?
     if (bypass_type == 0)
         add_to_even = 1;
 
@@ -600,13 +600,13 @@ void init_cellList(int div_type, int list_type, int bypass_type, float size, Ato
     float r;
     //int i;
 
-    // щас видимо уже неважно, просто пиши r = size
+    // Г№Г Г± ГўГЁГ¤ГЁГ¬Г® ГіГ¦ГҐ Г­ГҐГўГ Г¦Г­Г®, ГЇГ°Г®Г±ГІГ® ГЇГЁГёГЁ r = size
     if (div_type == 0)
     {
         r = fld->minRvdw / sqrt(3);
     }
     else
-        r = size;   //! temp здесь должно быть сравнение с Кулоном и максимальным ВдВ
+        r = size;   //! temp Г§Г¤ГҐГ±Гј Г¤Г®Г«Г¦Г­Г® ГЎГ»ГІГј Г±Г°Г ГўГ­ГҐГ­ГЁГҐ Г± ГЉГіГ«Г®Г­Г®Г¬ ГЁ Г¬Г ГЄГ±ГЁГ¬Г Г«ГјГ­Г»Г¬ Г‚Г¤Г‚
 
     nCell = split_cells(div_type, r, add_to_even, atm->nAt, hmd);
 
@@ -615,7 +615,7 @@ void init_cellList(int div_type, int list_type, int bypass_type, float size, Ato
     else      // list as 2-d array
         alloc_2dlist(nCell, hmd);
 
-    //! функции типа init_bypass определяют массивы для обхода пар и параметры к ним,такие как число блоков, число потоков и размр разделяемоей памяти
+    //! ГґГіГ­ГЄГ¶ГЁГЁ ГІГЁГЇГ  init_bypass Г®ГЇГ°ГҐГ¤ГҐГ«ГїГѕГІ Г¬Г Г±Г±ГЁГўГ» Г¤Г«Гї Г®ГЎГµГ®Г¤Г  ГЇГ Г° ГЁ ГЇГ Г°Г Г¬ГҐГІГ°Г» ГЄ Г­ГЁГ¬,ГІГ ГЄГЁГҐ ГЄГ ГЄ Г·ГЁГ±Г«Г® ГЎГ«Г®ГЄГ®Гў, Г·ГЁГ±Г«Г® ГЇГ®ГІГ®ГЄГ®Гў ГЁ Г°Г Г§Г¬Г° Г°Г Г§Г¤ГҐГ«ГїГҐГ¬Г®ГҐГ© ГЇГ Г¬ГїГІГЁ
     switch (bypass_type)
     {
      case 0:     // for usage of cell_list2a and 2b or 3a and 3b functions (for 3a,3b first parameter must be >1)
