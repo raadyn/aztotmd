@@ -11,9 +11,9 @@
 #include "box.h"
 #include "temperature.h"
 
-// ÷òîáû íå ïèñàòü îäíîòèïíûå ôóíêöèè è ââîäèòü îäíîòèïíûå ïåðåìåííûå äëÿ êàæäîãî ðîäà ñòàòèñòèê,
-//  òåïåðü âñå ñòàòèñòèêè ñîõðàíÿþòñÿ â îäèí áóôåð, è óïðàâëÿþòñÿ îäíîé ïîñëäåîâàòåëüíîñòüþ 
-//  à ñ õîñòà èäåò êîììàíäà íà÷èíàÿ ñ êàêîãî èíäåêñà âûïîëíÿòü êîïèðîâàíèå è íà÷èíàÿ ñ êàêîãî áàéòà ïèñàòü â áóôåð
+// Ã·Ã²Ã®Ã¡Ã» Ã­Ã¥ Ã¯Ã¨Ã±Ã Ã²Ã¼ Ã®Ã¤Ã­Ã®Ã²Ã¨Ã¯Ã­Ã»Ã¥ Ã´Ã³Ã­ÃªÃ¶Ã¨Ã¨ Ã¨ Ã¢Ã¢Ã®Ã¤Ã¨Ã²Ã¼ Ã®Ã¤Ã­Ã®Ã²Ã¨Ã¯Ã­Ã»Ã¥ Ã¯Ã¥Ã°Ã¥Ã¬Ã¥Ã­Ã­Ã»Ã¥ Ã¤Ã«Ã¿ ÃªÃ Ã¦Ã¤Ã®Ã£Ã® Ã°Ã®Ã¤Ã  Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨Ãª,
+//  Ã²Ã¥Ã¯Ã¥Ã°Ã¼ Ã¢Ã±Ã¥ Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨ÃªÃ¨ Ã±Ã®ÃµÃ°Ã Ã­Ã¿Ã¾Ã²Ã±Ã¿ Ã¢ Ã®Ã¤Ã¨Ã­ Ã¡Ã³Ã´Ã¥Ã°, Ã¨ Ã³Ã¯Ã°Ã Ã¢Ã«Ã¿Ã¾Ã²Ã±Ã¿ Ã®Ã¤Ã­Ã®Ã© Ã¯Ã®Ã±Ã«Ã¤Ã¥Ã®Ã¢Ã Ã²Ã¥Ã«Ã¼Ã­Ã®Ã±Ã²Ã¼Ã¾ 
+//  Ã  Ã± ÃµÃ®Ã±Ã²Ã  Ã¨Ã¤Ã¥Ã² ÃªÃ®Ã¬Ã¬Ã Ã­Ã¤Ã  Ã­Ã Ã·Ã¨Ã­Ã Ã¿ Ã± ÃªÃ ÃªÃ®Ã£Ã® Ã¨Ã­Ã¤Ã¥ÃªÃ±Ã  Ã¢Ã»Ã¯Ã®Ã«Ã­Ã¿Ã²Ã¼ ÃªÃ®Ã¯Ã¨Ã°Ã®Ã¢Ã Ã­Ã¨Ã¥ Ã¨ Ã­Ã Ã·Ã¨Ã­Ã Ã¿ Ã± ÃªÃ ÃªÃ®Ã£Ã® Ã¡Ã Ã©Ã²Ã  Ã¯Ã¨Ã±Ã Ã²Ã¼ Ã¢ Ã¡Ã³Ã´Ã¥Ã°
 __global__ void write_stat(int iStep, int ind0, int shift, cudaMD* md)
 // save current statistics data to buffer on device
 {
@@ -34,9 +34,9 @@ __global__ void write_stat(int iStep, int ind0, int shift, cudaMD* md)
     }
 }
 
-//! òåïåðü ýòà ôóíêöèÿ îáùàÿ äëÿ âñåõ ñòàòèñòèê
-// êîïèðóåò ñòàòèñòèêó â áóôåð (size - ðàçìåð êîïèðóåìîãî êóñêà, nstep - ÷èñëî âðåìåííûõ øàãîâ äëÿ ðàñïàðèñâàíèÿ
-// ndata - ÷èñëî äàííûõ äëÿ ðàñïàðñèâàíèÿ, dstep, dtime - øàãè ïî ÷èñëó øàãîâ è ïî âðåìåíè, step0, time0 - íà÷àëüíûå øàãè
+//! Ã²Ã¥Ã¯Ã¥Ã°Ã¼ Ã½Ã²Ã  Ã´Ã³Ã­ÃªÃ¶Ã¨Ã¿ Ã®Ã¡Ã¹Ã Ã¿ Ã¤Ã«Ã¿ Ã¢Ã±Ã¥Ãµ Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨Ãª
+// ÃªÃ®Ã¯Ã¨Ã°Ã³Ã¥Ã² Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨ÃªÃ³ Ã¢ Ã¡Ã³Ã´Ã¥Ã° (size - Ã°Ã Ã§Ã¬Ã¥Ã° ÃªÃ®Ã¯Ã¨Ã°Ã³Ã¥Ã¬Ã®Ã£Ã® ÃªÃ³Ã±ÃªÃ , nstep - Ã·Ã¨Ã±Ã«Ã® Ã¢Ã°Ã¥Ã¬Ã¥Ã­Ã­Ã»Ãµ Ã¸Ã Ã£Ã®Ã¢ Ã¤Ã«Ã¿ Ã°Ã Ã±Ã¯Ã Ã°Ã¨Ã±Ã¢Ã Ã­Ã¨Ã¿
+// ndata - Ã·Ã¨Ã±Ã«Ã® Ã¤Ã Ã­Ã­Ã»Ãµ Ã¤Ã«Ã¿ Ã°Ã Ã±Ã¯Ã Ã°Ã±Ã¨Ã¢Ã Ã­Ã¨Ã¿, dstep, dtime - Ã¸Ã Ã£Ã¨ Ã¯Ã® Ã·Ã¨Ã±Ã«Ã³ Ã¸Ã Ã£Ã®Ã¢ Ã¨ Ã¯Ã® Ã¢Ã°Ã¥Ã¬Ã¥Ã­Ã¨, step0, time0 - Ã­Ã Ã·Ã Ã«Ã¼Ã­Ã»Ã¥ Ã¸Ã Ã£Ã¨
 void copy_stat(cudaMD* hmd, hostManagMD *man, statStruct *stat, double dt)
 // copy statistics from device to host and save it to file (hmd must be keeped on host)
 {
@@ -76,7 +76,7 @@ void add_stat(int ndata, int size, /*int nstep,*/ int dstep, double dt, int &tot
     int buf_size = size * stat->nstep;
 
     stat->ndata = ndata;
-    //stat->nstep = nstep;    //! ýòî êîëè÷åñòâî "øàãîâ", êîòîðûå õðàíÿòñÿ â áóôåðå íà äåâàéñå, òåïåðü ñ÷èòûâàåòñÿ èç cuda.txt
+    //stat->nstep = nstep;    //! Ã½Ã²Ã® ÃªÃ®Ã«Ã¨Ã·Ã¥Ã±Ã²Ã¢Ã® "Ã¸Ã Ã£Ã®Ã¢", ÃªÃ®Ã²Ã®Ã°Ã»Ã¥ ÃµÃ°Ã Ã­Ã¿Ã²Ã±Ã¿ Ã¢ Ã¡Ã³Ã´Ã¥Ã°Ã¥ Ã­Ã  Ã¤Ã¥Ã¢Ã Ã©Ã±Ã¥, Ã²Ã¥Ã¯Ã¥Ã°Ã¼ Ã±Ã·Ã¨Ã²Ã»Ã¢Ã Ã¥Ã²Ã±Ã¿ Ã¨Ã§ cuda.txt
     stat->size = size;
     stat->dstep = dstep;
     stat->dtime = dstep * dt;
@@ -92,8 +92,8 @@ void add_stat(int ndata, int size, /*int nstep,*/ int dstep, double dt, int &tot
         host_bufsize = buf_size;
 }
 
-// äëÿ êàæäîé ñòàòèñòèêè íàäî çàäàòü ndata è nstep, à òàêæå dstep è dtime = (dstep * timestep)
-// êðîìå òîãî, íàäî âûáðàòü íàèáîëüøèé ðàçìåð ñòàòèñòèêè, ÷òîáû çàäàòü áóôåð, à íà äåâàéñå ðàçìåñòèòü ñóììàðíûé áóôåð è îïðåäåëèòü ñâäèãè äëÿ êàæäîé ñòàòèñòèêè
+// Ã¤Ã«Ã¿ ÃªÃ Ã¦Ã¤Ã®Ã© Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨ÃªÃ¨ Ã­Ã Ã¤Ã® Ã§Ã Ã¤Ã Ã²Ã¼ ndata Ã¨ nstep, Ã  Ã²Ã ÃªÃ¦Ã¥ dstep Ã¨ dtime = (dstep * timestep)
+// ÃªÃ°Ã®Ã¬Ã¥ Ã²Ã®Ã£Ã®, Ã­Ã Ã¤Ã® Ã¢Ã»Ã¡Ã°Ã Ã²Ã¼ Ã­Ã Ã¨Ã¡Ã®Ã«Ã¼Ã¸Ã¨Ã© Ã°Ã Ã§Ã¬Ã¥Ã° Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨ÃªÃ¨, Ã·Ã²Ã®Ã¡Ã» Ã§Ã Ã¤Ã Ã²Ã¼ Ã¡Ã³Ã´Ã¥Ã°, Ã  Ã­Ã  Ã¤Ã¥Ã¢Ã Ã©Ã±Ã¥ Ã°Ã Ã§Ã¬Ã¥Ã±Ã²Ã¨Ã²Ã¼ Ã±Ã³Ã¬Ã¬Ã Ã°Ã­Ã»Ã© Ã¡Ã³Ã´Ã¥Ã° Ã¨ Ã®Ã¯Ã°Ã¥Ã¤Ã¥Ã«Ã¨Ã²Ã¼ Ã±Ã¢Ã¤Ã¨Ã£Ã¨ Ã¤Ã«Ã¿ ÃªÃ Ã¦Ã¤Ã®Ã© Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨ÃªÃ¨
 void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld, TStat* tstat)
 // prepare data for statistics output on host side
 {
@@ -105,7 +105,7 @@ void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld, TStat* 
 
 
     //FIRST PART. to add parameter you need call function add_stat with number of new parameters and their size
-    //! ôóíêöèÿ add_stat äîëæíà âûçûâàòüñÿ åäèíîæäû äëÿ êàæäîé èç ñòàòèñòèê
+    //! Ã´Ã³Ã­ÃªÃ¶Ã¨Ã¿ add_stat Ã¤Ã®Ã«Ã¦Ã­Ã  Ã¢Ã»Ã§Ã»Ã¢Ã Ã²Ã¼Ã±Ã¿ Ã¥Ã¤Ã¨Ã­Ã®Ã¦Ã¤Ã» Ã¤Ã«Ã¿ ÃªÃ Ã¦Ã¤Ã®Ã© Ã¨Ã§ Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨Ãª
     int nparam = 12;
     int params_size = nparam * float_size;
     if (tstat->type == tpTermRadi)
@@ -129,7 +129,7 @@ void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld, TStat* 
     add_stat(nparam, params_size, /*10,*/ sim->stat, sim->tSt, tot_ndata, host_buf_size, dev_buf_size, &(man->stat));
 //    nstat = nparam;
 
-    if (fld->nBdata)    // íà ñàìîì äåëå ýòî íóæíî, íå âñåãäà, êîãäà åñòü ñâÿçè, à êîãäà îíè ïåðåìåííûå
+    if (fld->nBdata)    // Ã­Ã  Ã±Ã Ã¬Ã®Ã¬ Ã¤Ã¥Ã«Ã¥ Ã½Ã²Ã® Ã­Ã³Ã¦Ã­Ã®, Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã , ÃªÃ®Ã£Ã¤Ã  Ã¥Ã±Ã²Ã¼ Ã±Ã¢Ã¿Ã§Ã¨, Ã  ÃªÃ®Ã£Ã¤Ã  Ã®Ã­Ã¨ Ã¯Ã¥Ã°Ã¥Ã¬Ã¥Ã­Ã­Ã»Ã¥
     {
         ndata = 1 + (fld->nBdata - 1) * 3;   // totalcount, count, length, lifetime
         size = int_size + (int_size + 2 * sizeof(float)) * (fld->nBdata - 1);   // -1 as [0] is deleted bond
@@ -152,7 +152,7 @@ void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld, TStat* 
         add_stat(ndata, size, sim->stat, sim->tSt, tot_ndata, host_buf_size, dev_buf_size, &(man->sjmp));
     }
 //*/
-    //! êîðî÷å, ýòî âñå íóæíî ïåðåäåëàòü, ÷òî òèïà ââîäèøü ñòðî÷êè âèäà "0011000" è ýòî ñðàçó ïðåîáðàçóåòñÿ è â òî, êàêèå òèïû åñòü è â òî, ñêîëüêî ìåñòà çàíèìàåò
+    //! ÃªÃ®Ã°Ã®Ã·Ã¥, Ã½Ã²Ã® Ã¢Ã±Ã¥ Ã­Ã³Ã¦Ã­Ã® Ã¯Ã¥Ã°Ã¥Ã¤Ã¥Ã«Ã Ã²Ã¼, Ã·Ã²Ã® Ã²Ã¨Ã¯Ã  Ã¢Ã¢Ã®Ã¤Ã¨Ã¸Ã¼ Ã±Ã²Ã°Ã®Ã·ÃªÃ¨ Ã¢Ã¨Ã¤Ã  "0011000" Ã¨ Ã½Ã²Ã® Ã±Ã°Ã Ã§Ã³ Ã¯Ã°Ã¥Ã®Ã¡Ã°Ã Ã§Ã³Ã¥Ã²Ã±Ã¿ Ã¨ Ã¢ Ã²Ã®, ÃªÃ ÃªÃ¨Ã¥ Ã²Ã¨Ã¯Ã» Ã¥Ã±Ã²Ã¼ Ã¨ Ã¢ Ã²Ã®, Ã±ÃªÃ®Ã«Ã¼ÃªÃ® Ã¬Ã¥Ã±Ã²Ã  Ã§Ã Ã­Ã¨Ã¬Ã Ã¥Ã²
 
     man->stat_types = (int*)malloc(tot_ndata * int_size);
 
@@ -169,7 +169,7 @@ void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld, TStat* 
         j++;
     }
 
-    if (fld->nBdata)    // íà ñàìîì äåëå ýòî íóæíî, íå âñåãäà, êîãäà åñòü ñâÿçè, à êîãäà îíè ïåðåìåííûå
+    if (fld->nBdata)    // Ã­Ã  Ã±Ã Ã¬Ã®Ã¬ Ã¤Ã¥Ã«Ã¥ Ã½Ã²Ã® Ã­Ã³Ã¦Ã­Ã®, Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã , ÃªÃ®Ã£Ã¤Ã  Ã¥Ã±Ã²Ã¼ Ã±Ã¢Ã¿Ã§Ã¨, Ã  ÃªÃ®Ã£Ã¤Ã  Ã®Ã­Ã¨ Ã¯Ã¥Ã°Ã¥Ã¬Ã¥Ã­Ã­Ã»Ã¥
     {
         man->stat_types[j] = 0;     // total bonds count
         j++;
@@ -262,7 +262,7 @@ __global__ void prepare_stat_addr(cudaMD* md)
 
 
     // bond statistics
-    // ñäâèã íàäî ñáðàñûâàòü äëÿ êàæäëîé ñòàòèñòèêè
+    // Ã±Ã¤Ã¢Ã¨Ã£ Ã­Ã Ã¤Ã® Ã±Ã¡Ã°Ã Ã±Ã»Ã¢Ã Ã²Ã¼ Ã¤Ã«Ã¿ ÃªÃ Ã¦Ã¤Ã«Ã®Ã© Ã±Ã²Ã Ã²Ã¨Ã±Ã²Ã¨ÃªÃ¨
     shift = 0;
     if (md->use_bnd)
     {
@@ -329,7 +329,7 @@ void start_stat(hostManagMD* man, Field *fld, Sim *sim, TStat *tstat)
         fprintf(man->stat.out_file, "\t%s", fld->snames[sim->varSpecs[i]]);
     fprintf(man->stat.out_file, "\n");
 
-    if (fld->nBdata)    // íà ñàìîì äåëå ýòî íóæíî, íå âñåãäà, êîãäà åñòü ñâÿçè, à êîãäà îíè ïåðåìåííûå
+    if (fld->nBdata)    // Ã­Ã  Ã±Ã Ã¬Ã®Ã¬ Ã¤Ã¥Ã«Ã¥ Ã½Ã²Ã® Ã­Ã³Ã¦Ã­Ã®, Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã , ÃªÃ®Ã£Ã¤Ã  Ã¥Ã±Ã²Ã¼ Ã±Ã¢Ã¿Ã§Ã¨, Ã  ÃªÃ®Ã£Ã¤Ã  Ã®Ã­Ã¨ Ã¯Ã¥Ã°Ã¥Ã¬Ã¥Ã­Ã­Ã»Ã¥
     {
         man->sbnd.out_file = fopen("stat_bnd.dat", "w");
         fprintf(man->sbnd.out_file, "time\tstep\ttot_bnd");
@@ -364,7 +364,7 @@ void end_stat(hostManagMD *man, Field *fld, Sim *sim, cudaMD *hmd, double dt)
         copy_stat(hmd, man, &(man->stat), dt);
     fclose(man->stat.out_file);
 
-    if (fld->nBdata)    // íà ñàìîì äåëå ýòî íóæíî, íå âñåãäà, êîãäà åñòü ñâÿçè, à êîãäà îíè ïåðåìåííûå
+    if (fld->nBdata)    // Ã­Ã  Ã±Ã Ã¬Ã®Ã¬ Ã¤Ã¥Ã«Ã¥ Ã½Ã²Ã® Ã­Ã³Ã¦Ã­Ã®, Ã­Ã¥ Ã¢Ã±Ã¥Ã£Ã¤Ã , ÃªÃ®Ã£Ã¤Ã  Ã¥Ã±Ã²Ã¼ Ã±Ã¢Ã¿Ã§Ã¨, Ã  ÃªÃ®Ã£Ã¤Ã  Ã®Ã­Ã¨ Ã¯Ã¥Ã°Ã¥Ã¬Ã¥Ã­Ã­Ã»Ã¥
     {
         if (man->sbnd.count)
             copy_stat(hmd, man, &(man->sbnd), dt);
@@ -602,7 +602,7 @@ void init_cuda_nrdf(Field* fld, Sim* sim, hostManagMD* man, cudaMD* hmd)
     for (i = 0; i < n; i++)
         man->nrdf_buffer[i] = 0.f;
     data_to_device((void**)&(hmd->nrdf), man->nrdf_buffer, man->nrdf_size);
-    //man->rdf_count = 0;   //! áóäó èñïîëüçîâàòü îáùèé ñ îáû÷íîé rdf count - íåò, âîîáùå áóäó âûçûâàòü âìåñòî brute_rdf - brute_nrdf
+    //man->rdf_count = 0;   //! Ã¡Ã³Ã¤Ã³ Ã¨Ã±Ã¯Ã®Ã«Ã¼Ã§Ã®Ã¢Ã Ã²Ã¼ Ã®Ã¡Ã¹Ã¨Ã© Ã± Ã®Ã¡Ã»Ã·Ã­Ã®Ã© rdf count - Ã­Ã¥Ã², Ã¢Ã®Ã®Ã¡Ã¹Ã¥ Ã¡Ã³Ã¤Ã³ Ã¢Ã»Ã§Ã»Ã¢Ã Ã²Ã¼ Ã¢Ã¬Ã¥Ã±Ã²Ã® brute_rdf - brute_nrdf
 }
 
 void free_cuda_nrdf(hostManagMD* man, cudaMD* hmd)
@@ -673,7 +673,7 @@ __global__ void brute_nrdf(int nSpec, int nNucl, int nPair, int n_nPair, float i
             if ((iR * nPair + iPair) >= nPair * 500)
                 printf("RDF out of range: iR=%d, iPair=%d (idRD=%f, r2=%f)\n", iR, iPair, idRDF, r2);
 #endif
-            //! ñäåëàåì òàê, ÷òî ñíà÷àëà èäóò äàííûå äëÿ îäíîé iR è ðàçíûõ ïàð, ýòî óäîáíåå ðàñïàðñèâàòü è âûâîäèòü
+            //! Ã±Ã¤Ã¥Ã«Ã Ã¥Ã¬ Ã²Ã Ãª, Ã·Ã²Ã® Ã±Ã­Ã Ã·Ã Ã«Ã  Ã¨Ã¤Ã³Ã² Ã¤Ã Ã­Ã­Ã»Ã¥ Ã¤Ã«Ã¿ Ã®Ã¤Ã­Ã®Ã© iR Ã¨ Ã°Ã Ã§Ã­Ã»Ãµ Ã¯Ã Ã°, Ã½Ã²Ã® Ã³Ã¤Ã®Ã¡Ã­Ã¥Ã¥ Ã°Ã Ã±Ã¯Ã Ã°Ã±Ã¨Ã¢Ã Ã²Ã¼ Ã¨ Ã¢Ã»Ã¢Ã®Ã¤Ã¨Ã²Ã¼
             atomicAdd(&(md->rdf[iR * nPair + iPair]), 2.f * md->volume / md->specs[mn].number / md->specs[mx].number);
             atomicAdd(&(md->nrdf[iR * n_nPair + n_iPair]), 2.f * md->volume / md->nnumbers[n_mn] / md->nnumbers[n_mx]);
             //printf("add rdf:%f\n", 2.f * md->volume / md->specs[mn].number / md->specs[mx].number);
@@ -826,7 +826,7 @@ __global__ void write_traj(int iStep, int shift, int atPerBlock, int atPerThread
         // for type and ptype output:
         addr[i * nparam + 3] = md->types[md->sort_trajs[i]];
         p = md->parents[md->sort_trajs[i]];
-        if (p > 0)  //! ïî÷åìó 0? äîëæíî áûòü -1, íî ñ 0 ïðàâèëüíî ðàáîòàåò à ñ -1 - íååò
+        if (p > 0)  //! Ã¯Ã®Ã·Ã¥Ã¬Ã³ 0? Ã¤Ã®Ã«Ã¦Ã­Ã® Ã¡Ã»Ã²Ã¼ -1, Ã­Ã® Ã± 0 Ã¯Ã°Ã Ã¢Ã¨Ã«Ã¼Ã­Ã® Ã°Ã Ã¡Ã®Ã²Ã Ã¥Ã² Ã  Ã± -1 - Ã­Ã¥Ã¥Ã²
             addr[i * nparam + 4] = md->types[p];
         else
             addr[i * nparam + 4] = -1.f;
@@ -874,10 +874,10 @@ void start_traj(Atoms *atm, hostManagMD* man, Field* fld, Sim *sim)
             fprintf(man->traj_file, "\ttype\tptype");
     }
 
-    //! ìîæåò ýòî â init ?
+    //! Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã¢ init ?
     man->traj_count = 0;
     man->traj_size = atm->nAt * nparam * float_size;
-    man->traj_dstep = sim->frTraj;      //! ýòè ñâîéñòâà äðóã äðóãà êîïèðóþò, ìîæíî óäàëèòü îäíó èç ñóùíîñòåé
+    man->traj_dstep = sim->frTraj;      //! Ã½Ã²Ã¨ Ã±Ã¢Ã®Ã©Ã±Ã²Ã¢Ã  Ã¤Ã°Ã³Ã£ Ã¤Ã°Ã³Ã£Ã  ÃªÃ®Ã¯Ã¨Ã°Ã³Ã¾Ã², Ã¬Ã®Ã¦Ã­Ã® Ã³Ã¤Ã Ã«Ã¨Ã²Ã¼ Ã®Ã¤Ã­Ã³ Ã¨Ã§ Ã±Ã³Ã¹Ã­Ã®Ã±Ã²Ã¥Ã©
     man->traj_dtime = man->traj_dstep * sim->tSt;
     man->traj_step0 = sim->stTraj;
 }
@@ -926,7 +926,7 @@ void init_cuda_bindtrajs(Sim* sim, cudaMD* hmd, hostManagMD* man)
 
     data_to_device((void**)&(hmd->bindtraj_atoms), sim->bindTrajAtoms, sim->nBindTrajAtoms * int_size);
     hmd->nBindTrajAtm = sim->nBindTrajAtoms;
-    //! êñòàòè, òóò ìîæíî è âûñâîáîäèòü sim->bindTrajAtoms, îí âðîäå íèãäå íå íóæåí óæå
+    //! ÃªÃ±Ã²Ã Ã²Ã¨, Ã²Ã³Ã² Ã¬Ã®Ã¦Ã­Ã® Ã¨ Ã¢Ã»Ã±Ã¢Ã®Ã¡Ã®Ã¤Ã¨Ã²Ã¼ sim->bindTrajAtoms, Ã®Ã­ Ã¢Ã°Ã®Ã¤Ã¥ Ã­Ã¨Ã£Ã¤Ã¥ Ã­Ã¥ Ã­Ã³Ã¦Ã¥Ã­ Ã³Ã¦Ã¥
 
     cudaMalloc((void**)&(hmd->bindtraj_buf), size);
     man->bindtraj_buffer = (char*)malloc(size);
@@ -961,7 +961,7 @@ __global__ void write_bindtraj(int iStep, int shift, int bindTrajPerBlock, int b
         addr += int_size;
         *(int*)addr = md->nbonds[j];
         addr += int_size;
-        if (md->parents[j] > 0)     //! ÿ íå ïîíèìàþ ïî÷åìó ó àòîìîâ áåç ñâÿçåé parent ñòîèò íå -1, à 0
+        if (md->parents[j] > 0)     //! Ã¿ Ã­Ã¥ Ã¯Ã®Ã­Ã¨Ã¬Ã Ã¾ Ã¯Ã®Ã·Ã¥Ã¬Ã³ Ã³ Ã Ã²Ã®Ã¬Ã®Ã¢ Ã¡Ã¥Ã§ Ã±Ã¢Ã¿Ã§Ã¥Ã© parent Ã±Ã²Ã®Ã¨Ã² Ã­Ã¥ -1, Ã  0
         {
             p = md->parents[j];
             *(int*)addr = md->types[p];
@@ -1052,10 +1052,10 @@ void start_bindtraj(hostManagMD* man, Field* fld, Sim* sim)
     for (i = 0; i < sim->nBindTrajAtoms; i++)
         fprintf(man->bindtraj_file, "\tx\ty\tz\ttype\tnbnd\tptype\tpx\tpy\tpz\tr");
 
-    //! ìîæåò ýòî â init ?
+    //! Ã¬Ã®Ã¦Ã¥Ã² Ã½Ã²Ã® Ã¢ init ?
     man->bindtraj_count = 0;
     man->bindtraj_size = sim->nBindTrajAtoms * (6 * sizeof(float) + 3 * int_size);
-    man->bindtraj_dstep = sim->bindTrajFreq;      //! ýòè ñâîéñòâà äðóã äðóãà êîïèðóþò, ìîæíî óäàëèòü îäíó èç ñóùíîñòåé
+    man->bindtraj_dstep = sim->bindTrajFreq;      //! Ã½Ã²Ã¨ Ã±Ã¢Ã®Ã©Ã±Ã²Ã¢Ã  Ã¤Ã°Ã³Ã£ Ã¤Ã°Ã³Ã£Ã  ÃªÃ®Ã¯Ã¨Ã°Ã³Ã¾Ã², Ã¬Ã®Ã¦Ã­Ã® Ã³Ã¤Ã Ã«Ã¨Ã²Ã¼ Ã®Ã¤Ã­Ã³ Ã¨Ã§ Ã±Ã³Ã¹Ã­Ã®Ã±Ã²Ã¥Ã©
     man->bindtraj_dtime = man->traj_dstep * sim->tSt;
     man->bindtraj_step0 = sim->bindTrajStart;
 }
