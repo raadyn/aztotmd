@@ -2,7 +2,7 @@
 #define CUSTAT_H
 
 //__global__ void write_stat(int iStep, int ind0, int shift, cudaMD* md);
-void start_stat(hostManagMD* man, Field* fld, Sim* sim, TStat* tstat);
+void start_stat(hostManagMD* man, Field* fld, Sim* sim, TStat* tstat, Elec* elec);
 void end_stat(hostManagMD* man, Field* fld, Sim* sim, cudaMD* hmd, double dt);
 void stat_iter(int step, hostManagMD* man, statStruct* stat, cudaMD* dmd, cudaMD* hmd, double dt);
 
@@ -25,7 +25,7 @@ void copy_nrdf(Field* fld, Sim* sim, hostManagMD* man, cudaMD* hmd, char* fname,
 void nrdf_iter(int step, Field* fld, Sim* sim, hostManagMD* man, cudaMD* hmd, cudaMD* dmd);
 
 // trajectories
-void init_cuda_trajs(Atoms* atm, cudaMD* hmd, hostManagMD* man);
+void init_cuda_trajs(Atoms* atm, Sim* sim, cudaMD* hmd, hostManagMD* man);
 void start_traj(Atoms* atm, hostManagMD* man, Field* fld, Sim* sim);
 void traj_iter(int step, hostManagMD* man, cudaMD* dmd, cudaMD* hmd, Sim* sim, Atoms* atm);
 void end_traj(hostManagMD* man, cudaMD* hmd, Sim* sim, Atoms* atm);

@@ -1,0 +1,3 @@
+time	step	engKin	kTemp	engVdW	engCoulTot	engK+P	engTerm	engTot	momPx	momNx	momPy	momNy	momPz	momNz	press
+time, ps	step, n	engKin, eV	kTemp, K	engVdW, eV	engCoulTot, eV	engK+P, eV	engTerm, eV	engTot, eV	momPx, eVps/A	momNx, eVps/A	momPy, eVps/A	momNy, eVps/A	momPz, eVps/A	momNz, eVps/A	press, atm
+0.000000	0	211.762222	399.967438	19309.050781	-1250.900513	18269.912109	61.360840	18331.273438	0.000000	0.000000	0.000000	0.000000	0.000000	0.000000	0.000000

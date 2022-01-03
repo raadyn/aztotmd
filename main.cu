@@ -40,6 +40,7 @@
 extern __constant__ const float d_Fcoul_scale = 14.3996f;  
 extern __constant__ const float d_sqrtpi = 1.772453f;  //sqrt(PI); - не поддерживается динамическая инициализация
 extern __constant__ const float d_2pi = 6.283185307f;  //2 * (PI);
+__constant__ const float d_rkB = 11604.524844f;     // invert Bolzman constant in program units
 
 __constant__ float tStep;
 
@@ -122,11 +123,17 @@ __global__ void calc_quantities(int iStep, cudaMD* md)
 // calculate derived parameters as total energy, pressure, mean bonds lifetime and etc
 {
     int i;
-    float k;
+    float k, f;
 
     md->engCoulTot = md->engCoul1 + md->engCoul2 + md->engCoul3;
-    md->engPot = md->engCoulTot + md->engVdW + md->engBond + md->engAngl;
-    md->engTot = md->engPot + md->engKin;
+    md->engPot = md->engCoulTot + md->engVdW + md->engBond + md->engAngl + md->engElecField;
+    md->engPotKin = md->engPot + md->engKin;
+    md->engTot = md->engPotKin + md->engTemp;
+
+    // calculate 'kinetic' temperature: T = 2/kB * K/3N, but 3N replace to f - number of freedom degree, and f will be calculated as 3N - Nbond:
+    f = 3.f * md->nAt - md->nBond;
+    md->kinTemp = 2.f * d_rkB * md->engKin / f;
+
 
     // pressure calculation
     if (iStep >= md->nMom - 1)
@@ -162,7 +169,7 @@ __global__ void calc_quantities(int iStep, cudaMD* md)
     }
 
     
-    if (md->nBndTypes)
+    if (md->use_bnd)
     {
         for (i = 1; i < md->nBndTypes; i++)
         {
@@ -272,7 +279,7 @@ int main()
     prepare_stat_addr << < 1, 1>> > (devMD);
 
     int iStep = 0;
-    start_stat(man, field, sim, tstat);
+    start_stat(man, field, sim, tstat, elec);
     if (sim->frTraj)
         start_traj(atoms, man, field, sim);
     if (sim->nBindTrajAtoms)
@@ -288,6 +295,7 @@ int main()
         //clear_ncult << < 1, 1 >> > (cumd);
 #endif
         cudaThreadSynchronize();
+        
         if (tstat->type == tpTermNose)
         {
             before_nose << <1, 1 >> > (devMD);
@@ -297,6 +305,7 @@ int main()
             after_nose << <1, 1 >> > (1, devMD);
             cudaThreadSynchronize();
         }
+        
         verlet_1stage <<<man->nAtBlock, man->nAtThread/*man->nMultProc, man->nSingProc*/ >>> (iStep, man->atPerBlock, man->atPerThread, devMD);
         cudaThreadSynchronize();
 

@@ -1,3 +1,10 @@
+// number of streaming multi processors used for calculations (if 0 - use all)
+multproc	0
+0	82
+// there is no way to obtain this info from GetDeviceProperties, so user must find info about his videocard and specify it
+singproc	64
+64	128
+
 nstep stat 50
 nstep msdstat 50
 nstep bondstat 50

@@ -8,7 +8,7 @@ void free_sort(cudaMD* hmd);
 __global__ void refresh_arrays(int use_bnd, int use_ang, cudaMD* md);
 __global__ void calc_firstAtomInCell(cudaMD* md);
 __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerThread, cudaMD* md);
-__global__ void sort_parents_and_trajs(int atPerBlock, int atPerThread, cudaMD* md);
+__global__ void sort_dependent(int atPerBlock, int atPerThread, cudaMD* md);
 __global__ void sort_bonds(int bndPerBlock, int bndPerThread, cudaMD* md);
 __global__ void sort_angles(int angPerBlock, int angPerThread, cudaMD* md);
 

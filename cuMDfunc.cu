@@ -311,22 +311,21 @@ __global__ void reset_quantities(cudaMD* md)
             }
 #endif
 
-    //printf("def_bnds[6][1]=%d\n", md->def_bonds[6][1]);
-
 }
 
 __global__ void print_stat(int iStep, cudaMD* md)
 {
-    printf("%d x1=%.2f ", iStep, md->xyz[0].x);
+    printf("%d x1=%.2f", iStep, md->xyz[0].x);
     if (md->use_coul)
-        printf("C1=%.3G, C2=%.3G ", md->engCoul1, md->engCoul2);
+        printf(" C1=%.3G, C2=%.3G ", md->engCoul1, md->engCoul2);
     if (md->use_bnd == 2)
-        printf("nBnd=%d ", md->nBond);
+        printf(" nBnd=%d", md->nBond);
     if (md->use_bnd)
-        printf("bndEng=%.3G ", md->engBond);
-    printf("Kin=%.3G Vdw=%.3G Tot=%.3G P=%.0f ", md->engKin, md->engVdW, md->engTot, md->pressure);
+        printf(" bndEng=%.3G", md->engBond);
+    printf(" Kin=%.3G Vdw=%.3G", md->engKin, md->engVdW);
     if (md->tstat == 2) // radiative thermostat
-        printf("U=%.3G", md->engTemp);
+        printf(" K+P=%.3G U=%.3G", md->engPotKin, md->engTemp);
+    printf(" Tot=%.3G P=%.0f", md->engTot, md->pressure);
     printf("\n");
 }
 
@@ -530,7 +529,10 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
     int N = min(id0 + atPerThread, md->nAt);
 
     // for debugging
-    float vx0, vx01;
+    //float vx0, vx01;
+    int auto_cap = 1;
+    float scale, mx, mx_force = 1e4;
+    int j;
 
     //the first thread reset system kinetic energy
     if (threadIdx.x == 0)
@@ -539,7 +541,7 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
     }
     __syncthreads();
 
-    vx0 = md->vls[id0].x;
+    //vx0 = md->vls[id0].x;
 
     //the second stage of the velocities update
     for (i = id0; i < N; i++)
@@ -547,7 +549,35 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
         //if (i == 0)
           //  printf("vlt2: vel[0].x=%f\n", md->vls[0].x);
 
-        vx01 = md->vls[i].x;
+        //vx01 = md->vls[i].x;
+
+        if (auto_cap)
+        {
+            mx = 0.f;
+            if (md->frs[i].x > mx_force)
+                mx = md->frs[i].x;
+            else if (md->frs[i].x < -mx_force)
+                mx = -md->frs[i].x;
+
+            if (md->frs[i].y > mx_force)
+                mx = max(mx, md->frs[i].y);
+            else if (md->frs[i].y < -mx_force)
+                mx = max(mx, -md->frs[i].y);
+
+            if (md->frs[i].z > mx_force)
+                mx = max(mx, md->frs[i].z);
+            else if (md->frs[i].z < -mx_force)
+                mx = max(mx, -md->frs[i].z);
+
+            if (mx > 1.f)   // that automatically means that |mx| > mx_force
+            {
+                scale = 0.1f * mx_force / mx;
+                md->frs[i].x *= scale;
+                md->frs[i].y *= scale;
+                md->frs[i].z *= scale;
+            }
+
+        }
 
         //if (md->frs[i].x > 30.f)
           //  printf("vel[%d].x=%f dv=%f f=%f\n", i, md->vls[i].x, md->rMasshdT[i] * md->frs[i].x, md->frs[i].x);
@@ -561,8 +591,8 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
         //md->vls[i].z += rm * md->frs[i].z;
 
 
-        if (isnan(md->vls[i].x))
-            printf("v2nan: %d: vx[%d]=%f -> %f rm=%f f=%f\n", iStep, id0, vx01, md->vls[id0].x, md->rMasshdT[id0], md->frs[id0].x);
+        //if (isnan(md->vls[i].x))
+          //  printf("v2nan: %d: vx[%d]=%f -> %f rm=%f f=%f\n", iStep, id0, vx01, md->vls[id0].x, md->rMasshdT[id0], md->frs[id0].x);
 
         if (md->frs[i].x > 1e4)
             printf("v2f: %d: f[%d]=%f\n", iStep, i, md->frs[i].x);

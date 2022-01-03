@@ -9,6 +9,7 @@
 #include "cuStat.h"
 #include "cuUtils.h"
 #include "box.h"
+#include "elec.h"
 #include "temperature.h"
 
 // чтобы не писать однотипные функции и вводить однотипные переменные дл€ каждого рода статистик,
@@ -106,12 +107,22 @@ void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld, TStat* 
 
     //FIRST PART. to add parameter you need call function add_stat with number of new parameters and their size
     //! функци€ add_stat должна вызыватьс€ единожды дл€ каждой из статистик
-    int nparam = 12;
+    int nparam = 11;
     int params_size = nparam * float_size;
-    if (tstat->type == tpTermRadi)
+    if (hmd->use_coul)  //! hope, that this field was defined before we call this function
     {
         nparam++;
         params_size += float_size;
+        if (hmd->use_coul == tpElecEwald)
+        {
+            nparam += 2;
+            params_size += 2 * float_size;
+        }
+    }
+    if (tstat->type == tpTermRadi)
+    {
+        nparam += 2;
+        params_size += 2 * float_size;
     }
     if (fld->nBdata) // add bond energy to stat:
     {
@@ -123,7 +134,7 @@ void init_cuda_stat(cudaMD* hmd, hostManagMD* man, Sim* sim, Field *fld, TStat* 
         nparam++;
         params_size += float_size;
     }
-    nfirst_float = nparam;
+    nfirst_float = nparam;      // all abovementioned parameters are float
     nparam += sim->nVarSpec;
     params_size += sim->nVarSpec * int_size;
     add_stat(nparam, params_size, /*10,*/ sim->stat, sim->tSt, tot_ndata, host_buf_size, dev_buf_size, &(man->stat));
@@ -238,13 +249,24 @@ __global__ void prepare_stat_addr(cudaMD* md)
 
     //general statistics
     //to add parameter for output just call function add_stat with address of parameter and type (for each type of statistics)
-    add_stat(index, &(md->engTot), 1, shift, md);
     add_stat(index, &(md->engKin), 1, shift, md);
+    add_stat(index, &(md->kinTemp), 1, shift, md);
     add_stat(index, &(md->engVdW), 1, shift, md);
-    add_stat(index, &(md->engCoul1), 1, shift, md);
-    add_stat(index, &(md->engCoul2), 1, shift, md);
+    if (md->use_coul)
+    {
+        if (md->use_coul == tpElecEwald)
+        {
+            add_stat(index, &(md->engCoul1), 1, shift, md);
+            add_stat(index, &(md->engCoul2), 1, shift, md);
+        }
+        add_stat(index, &(md->engCoulTot), 1, shift, md);
+    }
     if (md->tstat == tpTermRadi)
+    {
+        add_stat(index, &(md->engPotKin), 1, shift, md);
         add_stat(index, &(md->engTemp), 1, shift, md);
+    }
+    add_stat(index, &(md->engTot), 1, shift, md);
     if (md->use_bnd)
       add_stat(index, &(md->engBond), 1, shift, md);
     if (md->use_angl)
@@ -297,7 +319,7 @@ __global__ void prepare_stat_addr(cudaMD* md)
     }
 }
 
-void start_stat(hostManagMD* man, Field *fld, Sim *sim, TStat *tstat)
+void start_stat(hostManagMD* man, Field *fld, Sim *sim, TStat *tstat, Elec *elec)
 // open statistics file, reset counters
 {
     int i;
@@ -305,9 +327,16 @@ void start_stat(hostManagMD* man, Field *fld, Sim *sim, TStat *tstat)
 
     man->stat.out_file = fopen("stat.dat", "w");
     // header (first line):
-    fprintf(man->stat.out_file, "time\tstep\tengTot\tengKin\tengVdW\tengCoul1\tengCoul2");
+    fprintf(man->stat.out_file, "time\tstep\tengKin\tkTemp\tengVdW");
+    if (elec->type)
+    {
+        if (elec->type == tpElecEwald)
+            fprintf(man->stat.out_file, "\tengCoul1\tengCoul2");
+        fprintf(man->stat.out_file, "\tengCoulTot");
+    }
     if (tstat->type == tpTermRadi)
-        fprintf(man->stat.out_file, "\tengTerm");
+        fprintf(man->stat.out_file, "\tengK+P\tengTerm");
+    fprintf(man->stat.out_file, "\tengTot");
     if (fld->nBdata)
         fprintf(man->stat.out_file, "\tengBnd");
     if (fld->nAdata)
@@ -317,9 +346,16 @@ void start_stat(hostManagMD* man, Field *fld, Sim *sim, TStat *tstat)
         fprintf(man->stat.out_file, "\t%s", fld->snames[sim->varSpecs[i]]);
 
     // header (second line: +units)
-    fprintf(man->stat.out_file, "\ntime, ps\tstep, n\tengTot, eV\tengKin, eV\tengVdW, eV\tengCoul1, eV\tengCoul2, eV");
+    fprintf(man->stat.out_file, "\ntime, ps\tstep, n\tengKin, eV\tkTemp, K\tengVdW, eV");
+    if (elec->type)
+    {
+        if (elec->type == tpElecEwald)
+            fprintf(man->stat.out_file, "\tengCoul1, eV\tengCoul2, eV");
+        fprintf(man->stat.out_file, "\tengCoulTot, eV");
+    }
     if (tstat->type == tpTermRadi)
-        fprintf(man->stat.out_file, "\tengTerm, eV");
+        fprintf(man->stat.out_file, "\tengK+P, eV\tengTerm, eV");
+    fprintf(man->stat.out_file, "\tengTot, eV");
     if (fld->nBdata)
         fprintf(man->stat.out_file, "\tengBnd, eV");
     if (fld->nAdata)
@@ -796,50 +832,59 @@ void nrdf_iter(int step, Field* fld, Sim* sim, hostManagMD* man, cudaMD* hmd, cu
     }
 }
 
-void init_cuda_trajs(Atoms *atm, cudaMD* hmd, hostManagMD* man)
+void init_cuda_trajs(Atoms *atm, Sim *sim, cudaMD* hmd, hostManagMD* man)
 // alloc arrays for trajectories output on both device and host sides
 {
-    int nparam = 5;     // number of parameters to output: x, y, z, type, ptype
-    int size = atm->nAt * nparam * man->nstep_traj * float_size;     // every atom has 3 coordinates, nstep - number of steps, which can be stored on device
+    int nparam = trajNparam[sim->trajType];         // number of parameters to output
+    int nat = sim->at2Traj - sim->at1Traj + 1;
+    int size = nat * nparam * man->nstep_traj * float_size;     // nstep - number of steps, which can be stored on device
     man->traj_buffer = (float*)malloc(size);
     cudaMalloc((void**)&(hmd->traj_buf), size);
 }
 
-__global__ void write_traj(int iStep, int shift, int atPerBlock, int atPerThread, cudaMD* md)
+__global__ void write_traj(int iStep, int shift, int atPerBlock, int atPerThread, cudaMD* md, int nparam, int at1, int at2)
 // version for sorted atoms!
 // save current coordinates to trajectories buffer on device (shift - shift to current trajectory step in positions, not in bytes)
 {
     float* addr = (md->traj_buf + shift);
-    //float* addr = (md->traj_buf);
-    int nparam = 5;     // number of parameters to output: x, y, z, type, ptype
+
     int p;      // parent
 
-    int i;
+    int i, j;
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
+    id0 = max(id0, at1);    // starting from at1
     int N = min(id0 + atPerThread, md->nAt);
+    N = min(N, at2 + 1);     // ending by at2
     for (i = id0; i < N; i++)
     {
-        addr[i * nparam] = md->xyz[md->sort_trajs[i]].x;
-        addr[i * nparam + 1] = md->xyz[md->sort_trajs[i]].y;
-        addr[i * nparam + 2] = md->xyz[md->sort_trajs[i]].z;
-
-        // for type and ptype output:
-        addr[i * nparam + 3] = md->types[md->sort_trajs[i]];
-        p = md->parents[md->sort_trajs[i]];
-        if (p > 0)  //! почему 0? должно быть -1, но с 0 правильно работает а с -1 - неет
-            addr[i * nparam + 4] = md->types[p];
-        else
-            addr[i * nparam + 4] = -1.f;
+        //j = md->sort_ind[i];
+        j = md->sort_trajs[i];
+        addr[i * nparam] = md->xyz[j].x;
+        addr[i * nparam + 1] = md->xyz[j].y;// (float)md->types[j];//md->xyz[j].y;
+        if (nparam > 2)
+        {
+            addr[i * nparam + 2] = md->xyz[j].z;
+            if (nparam > 3)
+            {
+                // for type and ptype output:
+                addr[i * nparam + 3] = md->types[j];
+                p = md->parents[j];
+                if (p > 0)  //! почему 0? должно быть -1, но с 0 правильно работает а с -1 - неет
+                    addr[i * nparam + 4] = md->types[p];
+                else
+                    addr[i * nparam + 4] = -1.f;
+            }
+        }
     }
 }
 
-void copy_traj(cudaMD* hmd, hostManagMD* man, double dt, int nAt)
+void copy_traj(Sim *sim, cudaMD* hmd, hostManagMD* man, double dt, int nAt)
 // copy statistics from device to host and save it to file (hmd must be keeped on host)
 {
     int i, j;
     int step = man->traj_step0;
     double time = step * dt;
-    int nparam = 5;     // number of parameters to output x, y, z, type, ptype
+    int nparam = trajNparam[sim->trajType];     // number of parameters to output
 
     cudaMemcpy(man->traj_buffer, hmd->traj_buf, man->traj_count * man->traj_size, cudaMemcpyDeviceToHost);
     float* addr = man->traj_buffer;
@@ -862,21 +907,27 @@ void start_traj(Atoms *atm, hostManagMD* man, Field* fld, Sim *sim)
 // open file, reset counters
 {
     int i;
-    int nparam = 5;     // number of parameters to output x, y, z, type, ptype
+    int nparam = trajNparam[sim->trajType];     // number of parameters to output
+    int nat = sim->at2Traj - sim->at1Traj + 1;
 
     man->traj_file = fopen("traj.dat", "w");
     // header (first line):
     fprintf(man->traj_file, "time\tstep");
-    for (i = 0; i < atm->nAt; i++)
+    for (i = sim->at1Traj; i < sim->at2Traj + 1; i++)
     {
-        fprintf(man->traj_file, "\t%sx\ty\tz", fld->snames[atm->types[i]]);
-        if (nparam > 3)
-            fprintf(man->traj_file, "\ttype\tptype");
+        //! replace to patterns!
+        fprintf(man->traj_file, "\t%sx\ty", fld->snames[atm->types[i]]);
+        if (nparam > 2)
+        {
+            fprintf(man->traj_file, "\tz");
+            if (nparam > 3)
+                fprintf(man->traj_file, "\ttype\tptype");
+        }
     }
 
     //! может это в init ?
     man->traj_count = 0;
-    man->traj_size = atm->nAt * nparam * float_size;
+    man->traj_size = nat * nparam * float_size;
     man->traj_dstep = sim->frTraj;      //! эти свойства друг друга копируют, можно удалить одну из сущностей
     man->traj_dtime = man->traj_dstep * sim->tSt;
     man->traj_step0 = sim->stTraj;
@@ -886,17 +937,18 @@ void traj_iter(int step, hostManagMD* man, cudaMD* dmd, cudaMD* hmd, Sim *sim, A
 // dmd and hmd - device and host exemplar of MD data struct
 {
     int shift;
-    int nparam = 5;     // number of parameters to output x, y, z, type, ptype
+    int nparam = trajNparam[sim->trajType];     // number of parameters to output
+    int nat = sim->at2Traj - sim->at1Traj + 1;
 
     if (step >= sim->stTraj)
         if (step % sim->frTraj == 0)
         {
-            shift = man->traj_count * atm->nAt * nparam;
-            write_traj << < man->nAtBlock, man->nAtThread >> > (step, shift, man->atPerBlock, man->atPerThread, dmd);
+            shift = man->traj_count * nat * nparam;
+            write_traj << < man->nAtBlock, man->nAtThread >> > (step, shift, man->atPerBlock, man->atPerThread, dmd, nparam, sim->at1Traj, sim->at2Traj);
             man->traj_count++;
             if (man->traj_count >= man->nstep_traj)
             {
-                copy_traj(hmd, man, sim->tSt, atm->nAt);
+                copy_traj(sim, hmd, man, sim->tSt, nat);
                 man->traj_step0 = step + man->traj_dstep;
                 man->traj_count = 0;
             }
@@ -906,8 +958,9 @@ void traj_iter(int step, hostManagMD* man, cudaMD* dmd, cudaMD* hmd, Sim *sim, A
 void end_traj(hostManagMD* man, cudaMD* hmd, Sim* sim, Atoms* atm)
 // close traj file
 {
+    int nat = sim->at2Traj - sim->at1Traj + 1;
     if (man->traj_count)
-        copy_traj(hmd, man, sim->tSt, atm->nAt);
+        copy_traj(sim, hmd, man, sim->tSt, nat);
     fclose(man->traj_file);
 }
 

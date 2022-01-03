@@ -127,6 +127,10 @@ int read_spec(int line, FILE* f, Spec* spec, char** name, Field *fld)
     spec->idCentral = 0;
     spec->idCounter = 0;
 
+    // radiative thermostat
+    spec->radA = 0.0;
+    spec->radB = 0.0;
+
     //printf("spec[%d]:'%s': m=%f, q=%f, E=%f\n", line + 1, spec->name, spec->mass, spec->charge, spec->energy);
     fscanf(f, " \n ");
     return 1;
@@ -189,6 +193,7 @@ int read_field(Field *field, Sim *sim)
   //RESET COUNTERS and ETC..
   field->nBonds = 0;
   field->nAngles = 0;
+  field->is_tdep = 0;   // flag of temperature-dependent force field
   sim->use_bnd = 0;
   sim->use_angl = 0;
 
@@ -932,12 +937,22 @@ int read_sim(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat)
     sim->outCN = 0;
 
   //Trajectories output
-  if (find_int(f, " traj %d ", n))
+  if (find_str(f, " traj %s ", s))
   {
-     sim->stTraj = n;   // start collect trajectories from this step
-     fscanf(f, "%d %d %d", &sim->frTraj, &n, &k);   // start atom, end atom
-     sim->at1Traj = n;
-     sim->at2Traj = k + 1;  // for strong unequality
+      if (strcmp(s, "xy") == 0)
+          sim->trajType = tpTrajXY;
+      else if (strcmp(s, "xyz") == 0)
+          sim->trajType = tpTrajXYZ;
+      else if (strcmp(s, "tp") == 0)
+          sim->trajType = tpTrajXYZtp;
+      else
+      {
+          printf("ERROR[b018] Unknown type of trajectories output, %s!\n", s);
+          res = 0;
+      }
+     fscanf(f, "%d %d %d %d", &sim->stTraj, &sim->frTraj, &n, &k);   // start collecting, frequency, start atom, end atom
+     sim->at1Traj = n - 1;
+     sim->at2Traj = k - 1;
      //sim->nTraj = k - n + 1;    // number of atoms to output
   }
   else

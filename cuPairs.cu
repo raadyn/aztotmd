@@ -150,6 +150,7 @@ __device__ void pair_1(int idA, int idB, float3 xyzA, float3* fxyzA, int typeA, 
                 atomicAdd(&(md->nVdWcall), 1);
 #endif
             }
+
         if (md->use_bnd == 2)
             try_to_bind(r2, idA, idB, typeA, typeB, md);
         if (md->use_ejump)
@@ -157,7 +158,7 @@ __device__ void pair_1(int idA, int idB, float3 xyzA, float3* fxyzA, int typeA, 
 #ifdef AUTO_CAP
         force_autocap("betw_cell with Ind ", f, r2, typeA, typeB);
 #else
-        stupid_force_verif("betw_cell with Ind ", f, r2, typeA, typeB);
+        //stupid_force_verif("betw_cell with Ind ", f, r2, typeA, typeB);
 #endif
         halfAtomicAddForces(fxyzA, fxyzB, f, delta);  //* half/full
 #ifdef DEBUG_MODE
@@ -2518,33 +2519,38 @@ __global__ void cell_list5b(cudaMD* md)
 
 void iter_fastCellList(int iStep, Field* fld, cudaMD* dmd, hostManagMD* man)
 {
-    int need_to_sync = 0;
+    
+    //int need_to_sync = 0;
 
-    calc_firstAtomInCell << <1, 1 >> > (dmd);
-    cudaThreadSynchronize();
-    sort_atoms << <man->nAtBlock, man->nAtThread/*man->nMultProc, man->nSingProc*/ >> > (fld->nBdata, fld->nAdata, man->atPerBlock, man->atPerThread, dmd);
-    cudaThreadSynchronize();
-    if (fld->nBdata)
+
+    if (1) //!(need_sort) - you can't do in such manner, as cell_list4 and 5 (used furher) based on nAtInCell and firstAtInCell arrays, formed during sorting
     {
-        sort_parents_and_trajs << <man->nAtBlock, man->nAtThread >> > (man->atPerBlock, man->atPerThread, dmd);
-        sort_bonds << <man->nMultProc, man->nSingProc >> > (man->bndPerBlock, man->bndPerThread, dmd);
-        need_to_sync = 1;
-    }
-    //else
-      //  printf("(%d) no bond\n", iStep);
-    if (fld->nAdata)
-    {
-        //printf("ndata = %d\n", fld->nAdata);
-        sort_angles << <man->nMultProc, man->nSingProc >> > (man->angPerBlock, man->angPerThread, dmd);
-        need_to_sync = 1;
-    }
-    //else
-      //  printf("(%d) no angles\n", iStep);
-    if (need_to_sync)
+        calc_firstAtomInCell << <1, 1 >> > (dmd);
         cudaThreadSynchronize();
-    refresh_arrays << <1, 1 >> > (fld->nBdata, fld->nAdata, dmd);
-    cudaThreadSynchronize();
 
+        sort_atoms << <man->nAtBlock, man->nAtThread/*man->nMultProc, man->nSingProc*/ >> > (fld->nBdata, fld->nAdata, man->atPerBlock, man->atPerThread, dmd);
+        cudaThreadSynchronize();
+        sort_dependent << <man->nAtBlock, man->nAtThread >> > (man->atPerBlock, man->atPerThread, dmd);
+        if (fld->nBdata)   // insted 1 must be 'write_traj flag'
+        {
+            sort_bonds << <man->nMultProc, man->nSingProc >> > (man->bndPerBlock, man->bndPerThread, dmd);
+            //need_to_sync = 1;
+        }
+        //else
+          //  printf("(%d) no bond\n", iStep);
+        if (fld->nAdata)
+        {
+            //printf("ndata = %d\n", fld->nAdata);
+            sort_angles << <man->nMultProc, man->nSingProc >> > (man->angPerBlock, man->angPerThread, dmd);
+            //need_to_sync = 1;
+        }
+        //else
+          //  printf("(%d) no angles\n", iStep);
+        //if (need_to_sync)
+            cudaThreadSynchronize();
+        refresh_arrays << <1, 1 >> > (fld->nBdata, fld->nAdata, dmd);
+        cudaThreadSynchronize();
+    }
 
 
     switch (man->bypass_type)

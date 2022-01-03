@@ -56,6 +56,12 @@ double sqr_sum(double x, double y, double z)
     return x * x + y * y + z * z;
 }
 
+float sqr_sumf(float x, float y, float z)
+// float variant of sqr_sum function
+{
+    return x * x + y * y + z * z;
+}
+
 int npairs(int n)
 // number of pairs for n elements
 {

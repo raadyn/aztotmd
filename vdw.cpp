@@ -298,13 +298,18 @@ int read_vdw(int id, FILE *f, Field *field, Sim *sim)
    else
        pp.use_radii = 0;
 
+   if (pp.use_radii)
+       field->is_tdep = 1;
+
    // SAVE PAIR POTENTIAL
    field->pairpots[id] = pp;
    if (field->vdws[at1][at2] != NULL)
        printf("WARNING[002]: Pair potential between %s and %s redeclarated\n", aname, bname);
    field->vdws[at1][at2] = &field->pairpots[id];
-   if (type != surk_type) // this potential is assymetric relatively particles swiching
+   if (type != surk_type) //! this potential is assymetric relatively particles switching
      field->vdws[at2][at1] = &field->pairpots[id];
+
+   return 1;
 }
 
 /*

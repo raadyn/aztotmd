@@ -384,6 +384,7 @@ int out_ncn(Atoms* atm, Field* field, Box* bx, Sim* sim, char* fname)
     free(out);
 
     free(nLigands);
+    return 1;
 }
 
 int out_cn(Atoms *atm, Field *field, Box *bx, Sim *sim, char *fname)

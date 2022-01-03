@@ -52,7 +52,7 @@ void init_realEwald_tex(cudaMD *md, float mxRange, float alpha)
         ar = alpha * r;
         erfcar = erfc(ar);
         eng[i] = erfcar / r;
-        frc[i] =  (erfcar + 2 * ar / sqrtpi * exp(-ar * ar)) / (r * r * r);
+        frc[i] =  (erfcar + 2 * ar / (float)sqrtpi * exp(-ar * ar)) / (r * r * r);
     }
     //data_to_device(engArr, eng, size);
     //data_to_device(frcArr, frc, size);

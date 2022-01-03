@@ -6,7 +6,7 @@
 #define DEBUG1_MODE		// mainly, velocities
 #define MX_VEL	1e5		// maximal velocity component
 // forces auto_cap
-#define AUTO_CAP
+//#define AUTO_CAP
 #define MX_FRC	1e4
 
 

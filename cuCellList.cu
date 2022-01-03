@@ -140,7 +140,7 @@ void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &inde
     int shx, shy, shz;
     int3 xyz1 = xyz_of_cell(cell1, hmd->cnYZ, hmd->cNumber.z);
     int3 xyz2 = xyz_of_cell(cell2, hmd->cnYZ, hmd->cNumber.z);
-    float rmax = max(elec->rReal, fld->maxRvdw);
+    float rmax = (float)max(elec->rReal, fld->maxRvdw);
 
     // x dimension:
     if (cell_dist_int(xyz1.x, xyz2.x, hmd->cNumber.x, hmd->cSize.x, rmax, dxmin, dxmax, shx))
@@ -173,7 +173,7 @@ void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &inde
 
     if (!out_of_range)  // otherwise no need to calculate
     {
-        float dr2min = sqr_sum(dxmin, dymin, dzmin);
+        float dr2min = sqr_sumf(dxmin, dymin, dzmin);
         if (dr2min > (rmax * rmax))
         {
             if (in_any_case)
@@ -186,8 +186,8 @@ void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &inde
     if (!out_of_range)  // otherwise no need to calculate
     {
         int coul, vdw;
-        float dr2max = sqr_sum(dxmax, dymax, dzmax);
-        float dr2min = sqr_sum(dxmin, dymin, dzmin);
+        float dr2max = sqr_sumf(dxmax, dymax, dzmax);
+        float dr2min = sqr_sumf(dxmin, dymin, dzmin);
         if (dr2max < elec->r2Real)
             coul = 1;   // гарантировано дот€гиваетс€  улоновское взаимодействие
         else
@@ -217,7 +217,7 @@ int pair_exists_shift(int cell1, int cell2, float3 &shift, Elec* elec, Field* fl
     int shx, shy, shz;
     int3 xyz1 = xyz_of_cell(cell1, hmd->cnYZ, hmd->cNumber.z);
     int3 xyz2 = xyz_of_cell(cell2, hmd->cnYZ, hmd->cNumber.z);
-    float rmax = max(elec->rReal, fld->maxRvdw);
+    float rmax = (float)max(elec->rReal, fld->maxRvdw);
 
     // x dimension:
     if (cell_dist_int(xyz1.x, xyz2.x, hmd->cNumber.x, hmd->cSize.x, rmax, dxmin, dxmax, shx))
@@ -231,7 +231,7 @@ int pair_exists_shift(int cell1, int cell2, float3 &shift, Elec* elec, Field* fl
     if (cell_dist_int(xyz1.z, xyz2.z, hmd->cNumber.z, hmd->cSize.z, rmax, dzmin, dzmax, shz))
         return 0;
 
-    float dr2min = sqr_sum(dxmin, dymin, dzmin);
+    float dr2min = sqr_sumf(dxmin, dymin, dzmin);
     if (dr2min > (rmax * rmax))
         return 0;
 
@@ -506,9 +506,9 @@ void free_bypass5(cudaMD* hmd)
 void init_bypass6(int cellInBlock, int nAt, Elec* elec, Field* fld, cudaMD* hmd, hostManagMD* man)
 // будет обрабатывать €чейки отдельно, как bypass5 - не требует специальных структур, а пары - все как bypass4, но все пары вообще
 {
-    int i, k, index;
+    int i, k;// , index;
     int totPairs = 0;       // total number of pairs (for verification)
-    int i0;
+    //int i0;
 
     int4* pairs = (int4*)malloc(cellInBlock * int4_size);
     float3* shifts = (float3*)malloc(cellInBlock * float3_size);
@@ -603,7 +603,7 @@ void init_cellList(int div_type, int list_type, int bypass_type, float size, Ato
     // щас видимо уже неважно, просто пиши r = size
     if (div_type == 0)
     {
-        r = fld->minRvdw / sqrt(3);
+        r = (float)fld->minRvdw / sqrt(3);
     }
     else
         r = size;   //! temp здесь должно быть сравнение с  улоном и максимальным ¬д¬

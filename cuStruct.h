@@ -8,6 +8,7 @@
 struct cudaMD;
 
 struct cudaSpec
+//! change data types to float?
 {
     //VARIABLES
     int number; // количество частиц данного сорта
@@ -227,12 +228,13 @@ struct cudaMD
 //#endif
 
     //energies (fact):
-    float engKin, engPot, engTot, engElecField;
-    float engCoul1, engCoul2, engCoul3, engCoulTot; // Coulombic energies (for Ewald: 1 - real, 2 - recipropal, 3 - const and total)
+    float engKin, engPot, engTot, engPotKin, engElecField;      // eneries: kinetic, potential, total, potential+kinetic, external electric field
+    float engCoul1, engCoul2, engCoul3, engCoulTot; // Coulombic energies (for Ewald: 1 - real, 2 - recipropal, 3 - const) and total
     float engBond, engAngl;
     float engVdW;
-    float teKin;    // target kinetic energy
     float engTemp;          // thermal energy (for radiative thermostat only)
+    float teKin;            // target kinetic energy
+    float kinTemp;          // "kinetic" temperature
 
     //other characteristics
     float3 posMom;  // momentum per box edge in positive directions
@@ -330,6 +332,7 @@ struct cudaMD
     float r2Max;    // maximal distance of interaction (=r2Elec if where is electrostatic)
     // flags to use Coulombic interaction, for using bonds and angles =0(no bonds/angles) =1(constant bonds/angles, the quantity is const, the type can change) =2 (variable bonds/angles)
     int use_coul, use_bnd, use_angl;
+    int tdep_force;         // (f) temperature dependent force field
 
     //thermostat and temperature data
     int tstat;                  // termostat type

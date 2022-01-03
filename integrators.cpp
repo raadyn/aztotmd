@@ -141,7 +141,7 @@ void pair_inter(int i, int j, Atoms *atm, Field *field, Elec *elec, Box *bx, Sim
 {
    double r, r2, f;//, eng_vdw, eng_real;
    double dx, dy, dz;
-   int it, jt, bt;
+   int it, jt;// , bt;
    VdW *vdw;
    Spec* sp = field->species;
 
@@ -189,7 +189,7 @@ void pair_inter_lst(int i, int j, Atoms *atm, Field *field, Elec *elec, Box *bx,
 {
    double r, r2, f;//, eng_vdw, eng_real;
    double dx, dy, dz;
-   int it, jt, bt;
+   int it, jt;// , bt;
    VdW *vdw;
    Spec* sp = field->species;
 

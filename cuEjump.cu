@@ -14,8 +14,8 @@ void init_cuda_ejump(Sim *sim, Atoms *atm, cudaMD *hmd)
 	hmd->use_ejump = sim->ejtype;
 	if (sim->ejtype)
 	{
-        hmd->r2Jump = sim->r2Elec;
-        hmd->dEjump = sim->dEjump;
+        hmd->r2Jump = (float)sim->r2Elec;
+        hmd->dEjump = (float)sim->dEjump;
         hmd->mxFreeEls = sim->nFreeEl;
 		cudaMalloc((void**)&(hmd->electrons), sim->nFreeEl * int_size);
 		cudaMalloc((void**)&(hmd->accIds), atm->nAt * int_size);

@@ -126,7 +126,7 @@ int read_bond(int id, FILE *f, Field *field, Sim *sim)
 // read bond parameters from file and put them into bond structure
 //   (id) - index of the bond in bdata array
 {
-   int n, br;
+   int n;
    double r, p0, p1, p2, p3, p4;
    char s1[8], s2[8], key[8];
    int ind1, ind2;
@@ -702,7 +702,7 @@ void destroy_bond(int bnd, Atoms *atm, Field *field, Bond *bond)
 //   nBonds = number of bond types
 int read_linkage(FILE *f, int Nlnk, Field *field, int nBonds)
 {
-    int i, j, k, n, bond;
+    int i, k;
     int sp1, sp2; // indexeses of species
     char ion[8], ion2[8];
     int nSp = field->nSpec;

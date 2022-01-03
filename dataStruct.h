@@ -9,6 +9,12 @@ const int tpInitVelGauss    = 1;    // gaussian
 const int tpInitVelConst = 2;       // constant value of initial velocity
 const int tpInitVelEng = 3;         // in such way that user set 1/2mv2 with random direction
 
+// trajectory types:
+const int tpTrajXY = 0;     // only X,Y coordinates
+const int tpTrajXYZ = 1;
+const int tpTrajXYZtp = 2;  // X,Y,Z,type,parent type
+const int trajNparam[3] = { 2, 3, 5 };    // number of parameters for each trajectory type
+
 // const for binary flags for sim->flag
 const int bfSimUseCList = 0;    // use cList
 
@@ -181,6 +187,7 @@ struct Sim
    int stTraj;      //  the timestep number from which trajectories are collected
    int frTraj;      // frequency of Traj output (every frTraj timestep)
    int at1Traj, at2Traj;    // initial and last atoms for trajectory output
+   int trajType;        // type of trajectories (see tpTraj constants)
 
    //bind trajectories
    int nBindTrajAtoms;      // number of atoms to output
@@ -371,6 +378,7 @@ struct Field
     int nSpec, nNucl;   // number of species and nuclei
     int nPair;       // (n)  number of pairs between Spec, including self pair: 0.5*Nsp*(Nsp-1) + Nsp;
     int nVdW;       // (n) total number of pair potentials
+    int is_tdep;    // (f)  is field temperature dependent?
     Spec *species;
     char **snames;      // names of species (pointer to structure->name)
     name8* nnames;      // nuclei names

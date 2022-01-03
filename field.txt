@@ -1,29 +1,42 @@
-spec 1
-Ar	Ar	39.9	0.0	0.0
-red-ox 0
-vdw 1
-Ar	Ar	surk	6.0	75.0	8.0	1.0	1.0
-radii 1
-Ar	0.375	0.65	0.2
+spec 2
+Na	Na	23.0	0.3	0.0
+Cl	Cl	35.4	-0.3	0.0
+vdw 3
+Na	Cl	buck	6.0	1000.0	0.29	0.0
+Na	Na	buck	6.0	1000.0	0.29	0.0
+Cl	Cl	buck	6.0	1000.0	0.29	0.0
+radii 2
+Na	27.3	47.31	0.2
+Cl	37.8	47.31	0.2
+
+----- as Ar ----
+Na	Cl	surk	6.0	75.0	8.0	1.0	1.0
+Na	Na	surk	6.0	75.0	8.0	1.0	1.0
+Cl	Cl	surk	6.0	75.0	8.0	1.0	1.0
+------------------------------
 
 
-vdw 1
-Ar	Ar	lnjs	4.0    0.01006	3.3952
 
-Ar	He-	buck	6.0    300.0     0.7    0.0
-He-	He-	buck	6.0    300.0     0.7    0.0
-
-radii 1
-Ar	3.0	2.0	6.0
-
-Ar	Ar	surk	5.0	40.0	1.5	1.0	1.0
-Ar	Ar	surk	6.0	75.0	4.0	1.0	1.0
+--- MODIFIED STAND ----
+Na	Cl	surk	6.0	45.0	2.0	1.0	1.0
+Cl	Na	surk	6.0	45.0	2.0	1.0	1.0
+Na	Na	surk	6.0	100.0	9.0	1.0	1.0
+Cl	Cl	surk	6.0	50.0	21.0	1.0	1.0
 
 
-radii 1
-Ar	0.175	0.35	0.2
-Ar	0.15	0.3	0.2
-Ar	0.125	0.25	0.2
-Ar	0.175	0.4	0.2
-Ar	0.3	0.478	0.2
-Ar	0.3	0.52	0.2
+
+--- SOME FROM ORIGIN ----
+Na	Cl	surk	6.0	75.0	8.0	1.0	1.0
+Cl	Na	surk	6.0	75.0	8.0	1.0	1.0
+Na	Na	surk	6.0	4000.0	260.0	1.0	1.0
+Cl	Cl	surk	6.0	1500.0	450.0	1.0	1.0
+
+
+- -- OLD SUC---
+Na	Cl	surk	6.0	75.0	8.0	1.0	1.0
+Cl	Na	surk	6.0	75.0	8.0	1.0	1.0
+Na	Na	surk	6.0	75.0	8.0	1.0	1.0
+Cl	Cl	surk	6.0	75.0	8.0	1.0	1.0
+
+Na	2.73	4.731	0.2
+Cl	2.73	4.731	0.2

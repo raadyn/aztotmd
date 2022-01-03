@@ -24,12 +24,12 @@ void alloc_sort(int nAt, int nCell, cudaMD* hmd)
     cudaMalloc((void**)&hmd->sort_masses, flsize);
     cudaMalloc((void**)&hmd->sort_rMasshdT, flsize);
     cudaMalloc((void**)(&hmd->sort_engs), flsize);          // for radiative thermostat only
-    cudaMalloc((void**)(&hmd->sort_radii), flsize);         // for radiative thermostat only
+    cudaMalloc((void**)(&hmd->sort_radii), flsize);         // for radiative thermostat only    //! not ONLY! if we used T-dependent pair pot we also need this array, even without radiative thermostat
     cudaMalloc((void**)(&hmd->sort_radstep), intsize);    // for radiative thermostat only
 
     // for trajectories output
     int* arr = (int*)malloc(intsize);
-    cudaMalloc((void**)(&hmd->sort_trajs), intsize);        
+    //cudaMalloc((void**)(&hmd->sort_trajs), intsize);        
     int i;
     for (i = 0; i < nAt; i++)
         arr[i] = i;
@@ -93,7 +93,7 @@ __global__ void refresh_arrays(int use_bnd, int use_ang, cudaMD* md)
     switch_pointers((void**)&(md->masses), (void**)&(md->sort_masses));
     switch_pointers((void**)&(md->rMasshdT), (void**)&(md->sort_rMasshdT));
     switch_pointers((void**)&(md->engs), (void**)&(md->sort_engs));    // for radiative thermostat only
-    switch_pointers((void**)&(md->radii), (void**)&(md->radii));    // for radiative thermostat only
+    switch_pointers((void**)&(md->radii), (void**)&(md->sort_radii));    // for radiative thermostat only //! not ONLY! for T-dependent FF also
     switch_pointers((void**)&(md->radstep), (void**)&(md->sort_radstep));    // for radiative thermostat only
 
     //printf("end refresh arrays\n");
@@ -166,10 +166,11 @@ __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerTh
         if (md->tstat == 2) // radiative thermostat /! тут должна быть константа ctTermRadi
         {
             md->sort_engs[j] = md->engs[i];    // for radiative thermostat only
-            md->sort_radii[j] = md->radii[i];    // for radiative thermostat only
             md->sort_radstep[j] = md->radstep[i];    // for radiative thermostat only
         }
-        //printf("SORT ATOMS bef use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
+        if (md->tstat == 2 || md->tdep_force)
+            md->sort_radii[j] = md->radii[i];    //! for radiative thermostat and T-dependent force field
+    //printf("SORT ATOMS bef use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
         if (use_bnd)
         {
             // сортировку родитиелей нужно делать в два действия, сначала перемещаем значение родителя на новое место
@@ -184,10 +185,11 @@ __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerTh
         }
         //printf("SORT ATOMS bef use_ang || use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
         //! или если используется вывод траекторий!
+        md->sort_ind[i] = j;
         if (use_bnd || use_ang)
         {
             md->sort_oldTypes[j] = md->oldTypes[i];
-            md->sort_ind[i] = j;
+            //md->sort_trajs[j] = i;
         }
         //printf("SORT ATOMS aft use_ang || use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
 
@@ -196,14 +198,17 @@ __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerTh
     }
 }
 
-__global__ void sort_parents_and_trajs(int atPerBlock, int atPerThread, cudaMD* md)
+__global__ void sort_dependent(int atPerBlock, int atPerThread, cudaMD* md)
+// sort data which dependent on sorting index and can be arranged only after defined of sort_ind array
 {
     int i;// , j;
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
     for (i = id0; i < N; i++)
     {
-        md->sort_parents[i] = md->sort_ind[md->sort_parents[i]];
+        if (md->use_bnd)
+            //md->sort_parents[i] = md->sort_ind[md->sort_parents[i]]; //! I don't know how it was obtained and how does it work, the next line is correct:
+            md->sort_parents[md->sort_ind[i]] = md->sort_ind[md->parents[i]];
         md->sort_trajs[i] = md->sort_ind[md->sort_trajs[i]];
     }
 }
@@ -223,7 +228,6 @@ __global__ void sort_bonds(int bndPerBlock, int bndPerThread, cudaMD* md)
 
 __global__ void sort_angles(int angPerBlock, int angPerThread, cudaMD* md)
 {
-    //printf("start sort angles\n");
     int i;
     int id0 = blockIdx.x * angPerBlock + threadIdx.x * angPerThread;
     int N = min(id0 + angPerThread, md->nAngle);

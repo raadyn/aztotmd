@@ -8,8 +8,10 @@
 #include "cuUtils.h"
 #include "utils.h"
 
-void init_cuda_tstat(int nAt, TStat *tstat, cudaMD *hmd, hostManagMD *man)
+void init_cuda_tstat(int nAt, Atoms *atm, Field *fld, TStat *tstat, cudaMD *hmd, hostManagMD *man)
 {
+    int i, t;
+
     hmd->tstat = tstat->type;
     hmd->temp = (float)tstat->Temp;
     hmd->teKin = (float)tstat->tKin;
@@ -27,29 +29,25 @@ void init_cuda_tstat(int nAt, TStat *tstat, cudaMD *hmd, hostManagMD *man)
         hmd->curVect = 0;
         man->tstat_sign = 1;
 
-        int i;
         float *phs = (float*)malloc(nAt * float_size);
         float3 *vecs = (float3*)malloc(nAt * float3_size);
         float* engs = (float*)malloc(nAt * float_size);
-        float* radii = (float*)malloc(nAt * float_size);
         int* radstep = (int*)malloc(nAt * int_size);
         for (i = 0; i < nAt; i++)
         {
             phs[i] = (float)tstat->photons[i];
             vecs[i] = make_float3((float)tstat->randVx[i], (float)tstat->randVy[i], (float)tstat->randVz[i]);
             engs[i] = 0.f;
-            radii[i] = 0.577f + rand01() * 0.0001f;    // values must be initialized to avoid division by zero in some radii-dependet pair potential
-            //radii[i] = 0.577f;
-            //if (i % 200 == 0)
-              //  radii[i] = 0.578;
-            //radii[i] = 0.6f;
             radstep[i] = 0;
         }
         data_to_device((void**)(&hmd->engPhotons), phs, nAt * float_size);
         data_to_device((void**)(&hmd->randVects), vecs, nAt * float3_size);
         data_to_device((void**)(&hmd->engs), engs, nAt * float_size);
-        data_to_device((void**)(&hmd->radii), radii, nAt * float_size);
         data_to_device((void**)(&hmd->radstep), radstep, nAt * int_size);
+        free(phs);
+        free(vecs);
+        free(engs);
+        free(radstep);
 
         //preset unit vectors:
         float3* uvs = (float3*)malloc(nUvect * float3_size);
@@ -58,24 +56,46 @@ void init_cuda_tstat(int nAt, TStat *tstat, cudaMD *hmd, hostManagMD *man)
         data_to_device((void**)(&hmd->uvects), uvs, nUvect * float3_size);
         free(uvs);
 
-        // for sorting (if applied):
-        free(phs);
-        free(vecs);
         break;
+    }
+
+    if (tstat->type != tpTermRadi && fld->is_tdep)
+        printf("WARNING[b011] Temperature-dependent potentials are used without radiative thermostat! In this case potentials will not depend on temperature!\n");
+
+    if (tstat->type == tpTermRadi || fld->is_tdep)
+    {
+        float* radii = (float*)malloc(nAt * float_size);
+        for (i = 0; i < nAt; i++)
+        {
+            t = atm->types[i];
+            if (fld->species[t].radB != 0.0)
+                radii[i] = float(fld->species[t].radA / fld->species[t].radB);
+            else
+                radii[i] = 1.f;
+            //radii[i] = 0.577f + rand01() * 0.0001f;    // values must be initialized to avoid division by zero in some radii-dependet pair potential
+            //radii[i] = 0.577f;
+            //if (i % 200 == 0)
+              //  radii[i] = 0.578;
+            //radii[i] = 0.6f;
+        }
+        data_to_device((void**)(&hmd->radii), radii, nAt * float_size);
+        free(radii);
     }
 }
 
-void free_cuda_tstat(TStat* tstat, cudaMD* hmd)
+void free_cuda_tstat(TStat* tstat, Field* fld, cudaMD* hmd)
 {
     if (tstat->type == tpTermRadi)
     {
         cudaFree(hmd->engPhotons);
         cudaFree(hmd->randVects);
         cudaFree(hmd->engs);
-        cudaFree(hmd->radii);
         //cudaFree(hmd->sort_engs);
         cudaFree(hmd->uvects);
     }
+
+    if (tstat->type == tpTermRadi || fld->is_tdep)
+        cudaFree(hmd->radii);
 }
 
 __global__ void temp_scale(int atPerBlock, int atPerThread, cudaMD* md)
@@ -269,8 +289,8 @@ __global__ void get_random(cudaMD *md)
 }
 */
 
-__constant__ const float revLight = 3.33567e-5; // 1/c, where c is lightspeed, 2.9979e4 A/ps
-__constant__ const float Light = 2.9979e4;      // lightspeed, 2.9979e4 A/ps
+__constant__ const float revLight = 3.33567e-5f; // 1/c, where c is lightspeed, 2.9979e4 A/ps
+__constant__ const float Light = 2.9979e4f;      // lightspeed, 2.9979e4 A/ps
 __constant__ const float revPlank = 241.55f;    // 1 / plank constant (4.14 eV*ps)
 __constant__ const float numPi = 3.14159f;    // pi
 
@@ -869,8 +889,8 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
 
         // photon frequency
         pe = md->engPhotons[ei];
-        if (isnan(pe))
-            printf("step:%d, i=%d, photon energy is nan!\n", iStep, i);
+        //if (isnan(pe))
+        //    printf("step:%d, i=%d, photon energy is nan!\n", iStep, i);
 /*
         freq = pe * revPlank;
 
@@ -904,12 +924,12 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
                 radiate_photon3(&(md->vls[i]), &(md->engs[i]), md->masses[i], randVar, md, 0/*(i == 0)&&(iStep % 200 == 0)*/);
         }
 
-        if (isnan(md->vls[i].x))
-            printf("aft tstat 9 vls[%d].x is nan", i);
-        if (isnan(md->vls[i].y))
-            printf("aft tstat 9 vls[%d].y is nan", i);
-        if (isnan(md->vls[i].z))
-            printf("aft tstat 9 vls[%d].z is nan", i);
+        //if (isnan(md->vls[i].x))
+          //  printf("aft tstat 9 vls[%d].x is nan", i);
+        //if (isnan(md->vls[i].y))
+          //  printf("aft tstat 9 vls[%d].y is nan", i);
+        //if (isnan(md->vls[i].z))
+          //  printf("aft tstat 9 vls[%d].z is nan", i);
 
         // calculate atom radius (thermal exicated)
            // r = A/(B - eng)
@@ -921,8 +941,8 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
 
 
         teng += md->engs[i];
-        if (isnan(teng))
-            printf("aft tstat 9 teng is nan, step:%d", iStep);
+        //if (isnan(teng))
+          //  printf("aft tstat 9 teng is nan, step:%d", iStep);
 
         // refresh last radiation time
         //md->radstep[i] = iStep;
@@ -973,6 +993,8 @@ void apply_tstat(int iStep, TStat *tstat, Sim *sim, cudaMD *devMD, hostManagMD *
         //if ((iStep % 25 == 0)||(iStep < 2000))
         //if (iStep < 5)
         //if (iStep % 100 == 0)
+
+        /*
         if (iStep < 200)
         {
             tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
@@ -988,6 +1010,9 @@ void apply_tstat(int iStep, TStat *tstat, Sim *sim, cudaMD *devMD, hostManagMD *
             tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
             cudaThreadSynchronize();
         }
+        */
+        tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
+        cudaThreadSynchronize();
         break;
     }
 }

@@ -73,7 +73,7 @@ int cell_dist(int xi, int xj, int mx, float length, float csize, float rskip, fl
 // возвращаем 1 если ячейки слишком далеко (больше rskip) иначе 0
 {
 
-    shift = 0.0;
+    shift = 0.f;
     int_shift = 0;
     int delt = abs(xi - xj);
     if (delt != 0)
@@ -90,10 +90,10 @@ int cell_dist(int xi, int xj, int mx, float length, float csize, float rskip, fl
 
             shift = length * int_shift;
         }
-        rmin = (delt - 1) * csize - 0.0 * csize; //! -1.0 csize - temporary addtion!
+        rmin = (delt - 1) * csize - 0.f * csize; //! -1.0 csize - temporary addtion!    //! 0.f * csize? what's meaning?
         //! temp!
-        if (rmin < 0)
-            rmin = 0.0f;
+        if (rmin < 0.f)
+            rmin = 0.f;
         rmax = (delt + 1) * csize;
         if (rmin > rskip)
             return 1;
@@ -102,7 +102,7 @@ int cell_dist(int xi, int xj, int mx, float length, float csize, float rskip, fl
     }
     else
     {
-        rmin = 0.0;
+        rmin = 0.f;
         rmax = csize;
         return 0;
     }
@@ -113,7 +113,7 @@ int cell_dist_int(int xi, int xj, int mx, float length, float csize, float rskip
 // version with integer shift (-1 / 0 / 1)
 {
 
-    shift = 0;
+    shift = 0.f;
     int delt = abs(xi - xj);
     if (delt != 0)
     {
@@ -125,10 +125,10 @@ int cell_dist_int(int xi, int xj, int mx, float length, float csize, float rskip
             else
                 shift = -1;
         }
-        rmin = (delt - 1) * csize - 0.0 * csize; //! -1.0 csize - temporary addtion!
+        rmin = (delt - 1) * csize - 0.f * csize; //! -1.0 csize - temporary addtion!    //! * 0.f ???
         //! temp!
         if (rmin < 0)
-            rmin = 0.0f;
+            rmin = 0.f;
         rmax = (delt + 1) * csize;
         if (rmin > rskip)
             return 1;
@@ -137,7 +137,7 @@ int cell_dist_int(int xi, int xj, int mx, float length, float csize, float rskip
     }
     else
     {
-        rmin = 0.0;
+        rmin = 0.f;
         rmax = csize;
         return 0;
     }
@@ -489,7 +489,7 @@ void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cud
     {
         //if (save_cellpair(cxyz, i*2, i*2+1, pairs1, shifts1, rmax, maxR2, hmd, sim, k))
           //  continue;
-        save_cellpair(cxyz, i * 2, i * 2 + 1, pairs1, shifts1, sim->rMax, sim->r2Max, hmd, sim, k);
+        save_cellpair(cxyz, i * 2, i * 2 + 1, pairs1, shifts1, (float)sim->rMax, (float)sim->r2Max, hmd, sim, k);
     }
     if (k != hmd->nPair1)
     {
@@ -504,7 +504,7 @@ void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cud
         {
             //if (save_cellpair(cxyz, i, j, pairs1, shifts1, rmax, maxR2, hmd, sim, k))
               //  continue;
-            save_cellpair(cxyz, i, j, pairs1, shifts1, sim->rMax, sim->r2Max, hmd, sim, k);
+            save_cellpair(cxyz, i, j, pairs1, shifts1, (float)sim->rMax, (float)sim->r2Max, hmd, sim, k);
         }
     }
     hmd->nPair = k;
@@ -650,7 +650,7 @@ void init_singleAtomCellList(float minRad, float maxR2, int nAt, Elec* elec, Sim
                         x1 = periodic_coord(j, hmd->cNumber.x);
                         y1 = periodic_coord(k, hmd->cNumber.y);
                         z1 = periodic_coord(l, hmd->cNumber.z);
-                        if (is_cellneighbors(x, y, z, x1, y1, z1, sim->rMax, sim->r2Max/*rmax, maxR2*/, hmd, sim, shift_type, inter_type))
+                        if (is_cellneighbors(x, y, z, x1, y1, z1, (float)sim->rMax, (float)sim->r2Max/*rmax, maxR2*/, hmd, sim, shift_type, inter_type))
                         {
                             list[n].x = cell_id(x1, y1, z1, hmd->cnYZ, hmd->cNumber.z);
                             list[n].y = shift_type;
@@ -686,9 +686,6 @@ int read_cuda(Field *fld, cudaMD *hmd, hostManagMD *man)
 {
     cudaDeviceProp devProp;
     cudaGetDeviceProperties(&devProp, 0);
-    man->nMultProc = devProp.multiProcessorCount;
-    man->nSingProc = 64;   //! похоже их можно узнать только по документации самой видеокарты //! потом будем считывать из файла
-    man->totCores = man->nMultProc * man->nSingProc;
     
     FILE *f = fopen("cuda.txt", "r");
     if (f == NULL)
@@ -696,6 +693,20 @@ int read_cuda(Field *fld, cudaMD *hmd, hostManagMD *man)
         printf("ERROR[a001]! Fatal Error. Can't open cuda.txt file\n");
         return 0;
     }
+
+    if (!find_int_def(f, " multproc %d", man->nMultProc, 0))
+    {
+        printf("WARNING[b012]: 'multproc' directive is not specified in cuda.txt, default value of 0 (=maximal number of multiprocessors) is used\n");
+    }
+    if (man->nMultProc == 0)    // the value of 0 means use all multiprocessors
+        man->nMultProc = devProp.multiProcessorCount;
+
+    // number of the single processor can be found only in documentation
+    if (!find_int_def(f, " singproc %d", man->nSingProc, 64))
+    {
+        printf("WARNING[b013]: 'singproc' directive is not specified in cuda.txt, default value of 64 is used\n");
+    }
+    man->totCores = man->nMultProc * man->nSingProc;
 
     //! перенести это в cuStat.cu
     if (!find_int_def(f, " nstep stat %d", man->stat.nstep, 10))
@@ -790,7 +801,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     free(h_masses);
     free(h_rMasshdT);
 
-
+    h_md->tdep_force = fld->is_tdep;
     cudaSpec* h_specs = (cudaSpec*)malloc(fld->nSpec * sizeof(cudaSpec));
     cudaVdW* h_ppots = (cudaVdW*)malloc(fld->nVdW * sizeof(cudaVdW));
     cudaVdW*** h_vdw = (cudaVdW***)malloc(fld->nSpec * sizeof(void*));  // 2d array to pointer to cudaVdW
@@ -831,7 +842,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 #endif
             for (k = 0; k < fld->nVdW; k++)
                 if (fld->vdws[i][j] == &fld->pairpots[k])
-                    h_vdw[i][j] = &d_ppots[k];
+                    h_vdw[i][j] = &d_ppots[k];  //! {...; break;} ???
         }
         //array_to_device((void**)&(h_md->chProd[i]), qiqj, fld->nSpec * sizeof(float));
         cudaMemcpy(chProd_i, h_chProd[i], fld->nSpec * float_size, cudaMemcpyHostToDevice);
@@ -913,6 +924,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     h_md->engCoul2 = 0.f;
     h_md->engCoul3 = 0.f;
     h_md->engVdW = 0.f;
+    h_md->engPotKin = 0.f;
 
     h_md->posMom = make_float3(0.f, 0.f, 0.f);
     h_md->negMom = make_float3(0.f, 0.f, 0.f);
@@ -928,7 +940,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     cudaMalloc((void**)&(h_md->negMomBuf), h_md->nMom * float_size);
 
     //thermostat and temperature data
-    init_cuda_tstat(atm->nAt, tstat, h_md, man);
+    init_cuda_tstat(atm->nAt, atm, fld, tstat, h_md, man);
 
 
     // BOX
@@ -956,7 +968,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     h_md->elC2 = (float)elec->scale2;
     h_md->rElec = (float)(elec->rReal);
     h_md->r2Elec = (float)(elec->r2Real);
-    h_md->r2Max = sim->r2Max;
+    h_md->r2Max = (float)sim->r2Max;
 
 
     // DEFINTION OF hostManagMD variables
@@ -976,7 +988,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     //alloc_sort(atm->nAt, h_md->nCell, h_md);
     //init_singleAtomCellList(minR, maxR2, atm->nAt, elec, sim, h_md, man);
 
-    init_cellList(1, 1, 6, sim->desired_cell_size, atm, fld, elec, h_md, man);
+    init_cellList(1, 1, 6, (float)sim->desired_cell_size, atm, fld, elec, h_md, man);
     //init_cellList(0, 1, 4, 0.0, atm, fld, elec, h_md, man);
 #else
     init_cellList(minR, maxR2, atm->nAt, elec, sim, h_md, man);
@@ -1161,7 +1173,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 
     // trajectories
     if (sim->frTraj)
-        init_cuda_trajs(atm, h_md, man);
+        init_cuda_trajs(atm, sim, h_md, man);
 
     // bind trajectories
     if (sim->nBindTrajAtoms)
@@ -1255,8 +1267,10 @@ void md_to_host(Atoms* atm, Field* fld, cudaMD *hmd, cudaMD *dmd, hostManagMD* m
     if (fld->mxAngles > mx_int4)
         mx_int4 = fld->mxAngles;
     int4* int4_arr = (int4*)malloc(int4_size * mx_int4);
-    bonds_to_host(int4_arr, hmd, fld, man);
-    angles_to_host(int4_arr, hmd, fld, man);
+    if (hmd->use_bnd)
+       bonds_to_host(int4_arr, hmd, fld, man);
+    if (hmd->use_angl)
+        angles_to_host(int4_arr, hmd, fld, man);
     free(int4_arr);
 }
 
@@ -1302,7 +1316,7 @@ void free_device_md(cudaMD* dmd, hostManagMD* man, Sim* sim, Field* fld, TStat *
     cudaFree(hmd->posMomBuf);
     cudaFree(hmd->negMomBuf);
 
-    free_cuda_tstat(tstat, hmd);
+    free_cuda_tstat(tstat, fld, hmd);
 
 #ifdef TX_CHARGE
     cudaUnbindTexture(&qProd);
@@ -1351,7 +1365,7 @@ void free_device_md(cudaMD* dmd, hostManagMD* man, Sim* sim, Field* fld, TStat *
     free_cuda_stat(hmd, man);
     free_cuda_rdf(man, hmd);
     if (sim->nuclei_rdf)
-        free_cuda_nrdf;
+        free_cuda_nrdf(man, hmd);
 
     // electron jumps
     free_cuda_ejump(hmd);

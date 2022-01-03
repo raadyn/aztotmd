@@ -19,6 +19,7 @@ double max(double x1, double x2);
 int max(int x1, int x2);
 int del_and_rest(int a, int b, int& rest);
 double sqr_sum(double x, double y, double z);
+float sqr_sumf(float x, float y, float z);
 int npairs(int n);
 
 void sincos(double arg, double& s, double& c);

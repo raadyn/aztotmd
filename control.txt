@@ -1,8 +1,8 @@
 timestep 0.001 ps
-nstep 10000000
-nequil  0 
-eqfreq 100
-temperature 50.0	radi	0.2
+nstep 200000
+nequil  10000
+eqfreq 1000
+temperature 400.0	radi	5.0
 // nose 0.2
 init_vel	zero	0.0332
 //было zero/gaus/const/keng
@@ -10,7 +10,7 @@ init_vel	zero	0.0332
 permittivity  1.0 
 //this is e in 1/(4pi * e *e0)
 
-cell_list	2.5
+cell_list	2.7
 max_neigh	185
 
 
@@ -19,7 +19,7 @@ elec	fenn	8.0	0.4	6	6	6
 
 
 //RDF OUTPUT
-rdf	8.0   0.02	20	50000	-nucl
+rdf	8.0   0.02	10	200000	nucl
 
 
 eJump	0	1.7	metr
@@ -28,7 +28,6 @@ eJump	0	1.7	metr
 Ux		0.0
 
 //OUTPUT
-revcon		50000
-stat		1000
-
+stat		2000
+traj	xy	50000	50	1	4
 

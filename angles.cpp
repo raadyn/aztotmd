@@ -77,7 +77,7 @@ void save_anglelist(char *fname, Field *field)
 //   (id) - angle number
 int read_angle(int id, FILE *f, Field *field)
 {
-   int n, i;
+   int n;
    double p0, p1/*, p2*/;
    char s1[8], key[8];
    int ind1;
