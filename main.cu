@@ -437,7 +437,21 @@ int main()
 
     md_to_host(atoms, field, hostMD, devMD, man);
     if (tstat->type == tpTermRadi)
+    {
         out_thermalchar(atoms, field, "tchars.dat", hostMD);
+        // output radiated photon energies:
+        int nbin = hostMD->numbPhEngBin;
+        double bin = (double)hostMD->phEngBin;
+        int* phEngs = (int*)malloc(nbin * int_size);
+        cudaMemcpy(phEngs, hostMD->phEngs, nbin * int_size, cudaMemcpyDeviceToHost);
+        FILE* f = fopen("radiated_engs.dat", "w");
+        fprintf(f, "eng\tnumber\neng, eV\tnumber\n");
+        int i;
+        for (i = 0; i < nbin; i++)
+            fprintf(f, "%f\t%d\n", i * bin + 0.5 * bin, phEngs[i]);
+        fclose(f);
+        free(phEngs);
+    }
 
     free_device_md(devMD, man, sim, field, tstat, hostMD);
     free(man);

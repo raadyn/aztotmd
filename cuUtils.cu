@@ -73,6 +73,12 @@ __device__ float float3_sqr(float3 vect)
     return vect.x * vect.x + vect.y * vect.y + vect.z * vect.z;
 }
 
+__device__ float sc_prod(float3 a, float3 b)
+// scalar production of a and b
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
 // random number generators:
 __device__ unsigned int rand1()
 // https://stackoverflow.com/questions/837955/random-number-generator-in-cuda

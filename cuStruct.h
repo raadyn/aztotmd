@@ -235,6 +235,7 @@ struct cudaMD
     float engTemp;          // thermal energy (for radiative thermostat only)
     float teKin;            // target kinetic energy
     float kinTemp;          // "kinetic" temperature
+    float virial, G;        // virial and G (analog of virial for momentum)
 
     //other characteristics
     float3 posMom;  // momentum per box edge in positive directions
@@ -255,6 +256,10 @@ struct cudaMD
     int curEng, curVect;      // variables for radiation thermostat: current index of photon energies array and random vectors array
     int rnd;        // variable for spending threads
     uint4 ui4rnd;   // variable for random number generator
+    // for radiative thermostat statistics
+    float phEngBin;     // step for photon energy bining
+    int* phEngs;       // number of photons with corresponding energy
+    int numbPhEngBin;   // length of the abovementioned array
 
     //box characteristics
     float3 leng, halfLeng, revLeng; // length, half of length and reversible length

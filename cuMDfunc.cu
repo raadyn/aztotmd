@@ -4,6 +4,7 @@
 #include "cuMDfunc.h"
 #include "cuSort.h"
 #include "defines.h"
+#include "cuUtils.h"
 #ifdef USE_FASTLIST
 //#include "cuFastList.h"
 #endif
@@ -282,6 +283,8 @@ __global__ void reset_quantities(cudaMD* md)
     md->engVdW = 0.f;
     md->engBond = 0.f;
     md->engAngl = 0.f;
+    md->virial = 0.f;
+    md->G = 0.f;
 
     if (md->use_coul == 2) // Ewald
         for (i = 0; i < md->nKvec; i++)
@@ -325,7 +328,7 @@ __global__ void print_stat(int iStep, cudaMD* md)
     printf(" Kin=%.3G Vdw=%.3G", md->engKin, md->engVdW);
     if (md->tstat == 2) // radiative thermostat
         printf(" K+P=%.3G U=%.3G", md->engPotKin, md->engTemp);
-    printf(" Tot=%.3G P=%.0f", md->engTot, md->pressure);
+    printf(" Tot=%.3G P=%.0f V=%f G=%f", md->engTot, md->pressure, md->virial, md->G);
     printf("\n");
 }
 
@@ -520,10 +523,16 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
 __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD* md)
 // the second part of verlet integrator (v = v + 0.5 f/m dt), save kinetic energy in sim
 {
-    int i;
-    float kinE = 0.0;  // kinetic energy
     //double rm;  // rmasshdt[i]
+    int i;
+
+    float kinE = 0.f;  // kinetic energy
+    float vir = 0.f;    // virial
+    float G = 0.f;      // virial analog for momentum
+    // their shared versions:
     __shared__ float shKinE;  // shared version of kinetic energy
+    __shared__ float shvir;
+    __shared__ float shG;
 
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
@@ -537,7 +546,9 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
     //the first thread reset system kinetic energy
     if (threadIdx.x == 0)
     {
-        shKinE = 0.0;
+        shKinE = 0.f;
+        shvir = 0.f;
+        shG = 0.f;
     }
     __syncthreads();
 
@@ -590,17 +601,14 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
         //md->vls[i].y += rm * md->frs[i].y;
         //md->vls[i].z += rm * md->frs[i].z;
 
-
         //if (isnan(md->vls[i].x))
           //  printf("v2nan: %d: vx[%d]=%f -> %f rm=%f f=%f\n", iStep, id0, vx01, md->vls[id0].x, md->rMasshdT[id0], md->frs[id0].x);
 
-        if (md->frs[i].x > 1e4)
-            printf("v2f: %d: f[%d]=%f\n", iStep, i, md->frs[i].x);
-        if (md->frs[i].x < -1e4)
-            printf("v2f: %d: f[%d]=%f\n", iStep, i, md->frs[i].x);
 
-        // saving mv2
+        // saving mv2, virial and G
         kinE += (md->vls[i].x * md->vls[i].x + md->vls[i].y * md->vls[i].y + md->vls[i].z * md->vls[i].z) * md->masses[i];
+        vir += sc_prod(md->xyz[i], md->frs[i]);
+        G += sc_prod(md->xyz[i], md->vls[i]) * md->masses[i];
 
 #ifdef DEBUG_MODE
         md->nCult[i]++;
@@ -609,11 +617,15 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
 
     //accumulate kinetic energy, at first to shared memory...
     atomicAdd(&shKinE, 0.5f * kinE);   // kinE = mv2/2
+    atomicAdd(&shvir, vir);
+    atomicAdd(&shG, G);
     __syncthreads();
     //... then to global memory
     if (threadIdx.x == 0) // 0th thread
     {
         atomicAdd(&md->engKin, shKinE);
+        atomicAdd(&md->virial, shvir);
+        atomicAdd(&md->G, shG);
     }
 
 #ifdef DEBUG_MODE

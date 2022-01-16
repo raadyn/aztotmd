@@ -30,6 +30,7 @@ struct TStat
     double qMassTau2;   // qmass/tauT^2 = 2*tKin
 
     // for radiative thermostat
+    double mxEng;       // maximal energy of photon
     double* photons;    // array of photon energies
     // random vector of unit length, their projections
     double* randVx;   

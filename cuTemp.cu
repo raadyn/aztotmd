@@ -10,7 +10,7 @@
 
 void init_cuda_tstat(int nAt, Atoms *atm, Field *fld, TStat *tstat, cudaMD *hmd, hostManagMD *man)
 {
-    int i, t;
+    int i, t, size;
 
     hmd->tstat = tstat->type;
     hmd->temp = (float)tstat->Temp;
@@ -56,6 +56,15 @@ void init_cuda_tstat(int nAt, Atoms *atm, Field *fld, TStat *tstat, cudaMD *hmd,
         data_to_device((void**)(&hmd->uvects), uvs, nUvect * float3_size);
         free(uvs);
 
+        // for output statistics
+        hmd->numbPhEngBin = 20;
+        hmd->phEngBin = (float)tstat->mxEng / (float)hmd->numbPhEngBin;
+        size = hmd->numbPhEngBin * int_size;
+        int* numbs = (int*)malloc(size);
+        for (i = 0; i < hmd->numbPhEngBin; i++)
+            numbs[i] = 0;
+        data_to_device((void**)(&hmd->phEngs), numbs, size);
+
         break;
     }
 
@@ -92,6 +101,7 @@ void free_cuda_tstat(TStat* tstat, Field* fld, cudaMD* hmd)
         cudaFree(hmd->engs);
         //cudaFree(hmd->sort_engs);
         cudaFree(hmd->uvects);
+        cudaFree(hmd->phEngs);
     }
 
     if (tstat->type == tpTermRadi || fld->is_tdep)
@@ -787,6 +797,12 @@ __device__ void radiate_photon3(float3* vel, float* int_eng, float mass, uint4& 
     float ph_eng = 0.9f * u0;
     float ermc = ph_eng * revLight / mass;
 
+    // count radiated photon energy for output statistics
+    int nbin = ph_eng / md->phEngBin;
+    if (nbin >= md->numbPhEngBin)
+        nbin = md->numbPhEngBin - 1;
+    atomicAdd(&(md->phEngs[nbin]), 1);
+
 
 
     // random radiation
@@ -906,8 +922,7 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
         //if (i == 0)
           //  printf("iStep=%d dStep=%d eng=%f\n", iStep, iStep - md->radstep[i], md->engs[i]);
 
-        int rnd;
-        rnd = rnd_xor128(randVar) % 8;
+        //rnd = rnd_xor128(randVar) % 8;
         //if (rnd < 2)
         //if ((iStep) % 2 == 0)
           adsorb_rand_photon(&(md->vls[i]), &(md->engs[i]), md->masses[i], pe, randVar, md, 0/*i == 0*/);
@@ -916,7 +931,7 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
            //radiate_photon2(&(md->vls[i]), &(md->engs[i]), md->masses[i], randVar, md, i == 0);
         //rnd = rnd_xor128(randVar) % 2048;
         //if (rnd < 1024)
-        if (md->engs[i] > 1e-4)
+        if (md->engs[i] > 1e-4f)
         {
             //rnd = rnd_xor128(randVar) % 8;
             //if (rnd < 8)
@@ -994,12 +1009,17 @@ void apply_tstat(int iStep, TStat *tstat, Sim *sim, cudaMD *devMD, hostManagMD *
         //if (iStep < 5)
         //if (iStep % 100 == 0)
 
-        /*
-        if (iStep < 200)
+
+        tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
+        cudaThreadSynchronize();
+
+        if (iStep < 50)
         {
             tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
             cudaThreadSynchronize();
         }
+        
+        /*
         if (iStep < 5000)
         {
             tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
@@ -1011,8 +1031,8 @@ void apply_tstat(int iStep, TStat *tstat, Sim *sim, cudaMD *devMD, hostManagMD *
             cudaThreadSynchronize();
         }
         */
-        tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
-        cudaThreadSynchronize();
+        //tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
+        //cudaThreadSynchronize();
         break;
     }
 }

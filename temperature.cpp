@@ -15,8 +15,8 @@ double prob2(double x, double y, double theta)
     return (1 - x) * exp(y * theta) - (0.5 * ty * ty + ty + 1);
 }
 
-const double r24 = 1.0 / 24.0;
 const double r6 = 1.0 / 6.0;
+const double r24 = 0.25 * r6;       // 1/24 = 1/6 * 1/4
 
 double prob4(double x, double y, double theta)
 {
@@ -25,9 +25,10 @@ double prob4(double x, double y, double theta)
     return (1 - x) * exp(y * theta) - (r24 * ty2 * ty2 + r6 * ty2 * ty + 0.5 * ty * ty + ty + 1);
 }
 
-void photon_engs(int n, double* engs, double T)
+double photon_engs(int n, double* engs, double T)
 // fill an array of photon energies according to distrubution function:
 // P = 1/C e^4 exp(-e/kT)
+// return maximal value of energy
 {
     //double h = 1 / n;
     //double r = rand01();
@@ -38,9 +39,10 @@ void photon_engs(int n, double* engs, double T)
 
     int i, k;
     double x, y, r, ra, rb, a, b;
+    double mx = 0.0;     // max value of energy
     double(*func)(double x, double y, double theta) = prob4;
 
-    //FILE* f = fopen("engs.dat", "w");
+    FILE* f = fopen("photon_engs.dat", "w");
     for (i = 0; i < n; i++)
     {
         a = 0.0;
@@ -79,13 +81,17 @@ void photon_engs(int n, double* engs, double T)
                 break;
             }
         }
-        //fprintf(f, "%f\n", y);
+        fprintf(f, "%f\n", y);
         if (isnan(y))
             printf("y is nan!\n");
         else
+        {
             engs[i] = y;
+            mx = max(mx, y);
+        }
     }
-    //fclose(f);
+    fclose(f);
+    return mx;
 }
 
 int read_tstat(FILE *f, TStat *tstat, int nAt)
@@ -121,7 +127,7 @@ int read_tstat(FILE *f, TStat *tstat, int nAt)
 
            // photon energies, corresponding to desired temperature
            tstat->photons = (double*)malloc(nAt * double_size);
-           photon_engs(nAt, tstat->photons, tstat->Temp);
+           tstat->mxEng = photon_engs(nAt, tstat->photons, tstat->Temp);
 
            double phi, theta, cost;
            int nAt2 = nAt / 2;          // only for even number of atoms
