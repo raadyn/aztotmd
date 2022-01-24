@@ -2,10 +2,13 @@
 #include "cuda_runtime.h"
 #include <stdio.h>
 
+#include "dataStruct.h"
 #include "cuStruct.h"
+#include "elec.h"
 #include "cuElec.h"
 #include "defines.h"
 #include "const.h"
+#include "utils.h"
 #include "cuUtils.h"
 
 texture<float, 1, cudaReadModeElementType> texCoulEng;	// coulomb energy as a function of distance
@@ -16,34 +19,85 @@ extern __constant__ const float d_Fcoul_scale;  //! не помню точно
 extern __constant__ const float d_sqrtpi;  //sqrt(PI); - не поддерживается динамическая инициализация
 extern __constant__ const float d_2pi;  //2 * (PI);
 
-//__device__ float no_coul(float r2, float& r, float chprd, float alpha, float& eng)
-__device__ float no_coul(float r2, float& r, float chprd, cudaMD *md, float& eng)
-// if there are no Coulomb interaction  in the system
+void init_cuda_ewald(Atoms *atm, Elec *elec, hostManagMD *man, cudaMD* h_md)
 {
-    return 0.f;
+    int i;
+
+    h_md->nk = make_int3(elec->kx, elec->ky, elec->kz);
+
+    // define rKcut2 as maximal kvector
+    h_md->rKcut2 = elec->kx * h_md->revLeng.x;
+    if (h_md->rKcut2 < elec->ky * h_md->revLeng.y)
+        h_md->rKcut2 = elec->ky * h_md->revLeng.y;
+    if (h_md->rKcut2 < elec->kz * h_md->revLeng.z)
+        h_md->rKcut2 = elec->kz * h_md->revLeng.z;
+
+    h_md->rKcut2 *= twopi * 1.05; // according to DL_POLY source
+    h_md->rKcut2 *= h_md->rKcut2;
+
+    float rvol = h_md->revLeng.x * h_md->revLeng.y * h_md->revLeng.z;
+    h_md->ewEscale = (float)(twopi * rvol * Fcoul_scale / elec->eps);
+    h_md->ewFscale = (float)(2 * twopi * rvol * Fcoul_scale / elec->eps);
+
+    float* exprk2 = (float*)malloc(sizeof(float) * NTOTKVEC);
+    float3* rk = (float3*)malloc(sizeof(float3) * NTOTKVEC);
+
+    // define some ewald arrays
+    float rkx, rky, rkz, rk2;
+    int mmin = 0; int nmin = 1;
+    int m, n;
+    int ik = 0;
+    float c = -0.25 / h_md->alpha / h_md->alpha;
+    int l;
+    for (l = 0; l < h_md->nk.x; l++)
+    {
+        rkx = (float)(l * twopi * h_md->revLeng.x); // only for rect geometry!
+        for (m = mmin; m < h_md->nk.y; m++)
+        {
+            rky = (float)(m * twopi * h_md->revLeng.y);
+            for (n = nmin; n < h_md->nk.z; n++)
+            {
+                rkz = n * twopi * h_md->revLeng.z;
+                rk2 = rkx * rkx + rky * rky + rkz * rkz;
+                if (rk2 < h_md->rKcut2) // cutoff
+                {
+                    rk[ik].x = rkx;
+                    rk[ik].y = rky;
+                    rk[ik].z = rkz;
+                    exprk2[ik] = exp(c * rk2) / rk2;
+                    ik++;
+                }
+            } // end n-loop (over kz-vectors)
+            nmin = 1 - elec->kz;
+        } // end m-loop (over ky-vectors)
+        mmin = 1 - elec->ky;
+    }  // end l-loop (over kx-vectors)
+
+    h_md->nKvec = ik;
+    man->memRecEwald = ik * sizeof(float2);
+
+    data_to_device((void**)&(h_md->rk), rk, ik * float3_size);
+    data_to_device((void**)&(h_md->exprk2), exprk2, ik * float_size);
+    cudaMalloc((void**)&(h_md->qDens), ik * sizeof(float2));
+
+    delete[] rk;
+    delete[] exprk2;
+
+    float2** qiexp = (float2**)malloc(atm->nAt * pointer_size);
+    for (i = 0; i < atm->nAt; i++)
+        cudaMalloc((void**)&(qiexp[i]), ik * sizeof(float2));
+    data_to_device((void**)&(h_md->qiexp), qiexp, atm->nAt * pointer_size);
+    delete[] qiexp;
 }
 
-//__device__ float direct_coul(float r2, float& r, float chprd, float alpha, float& eng)
-__device__ float direct_coul(float r2, float& r, float chprd, cudaMD* md, float& eng)
-//  r2 - square of distance, chprd - production of charges
-// parameter alpha - for compability with real part of Ewald summation
-//! тут надо ещё ввести эпсилон в закон кулона
-{
-    float kqq = chprd * d_Fcoul_scale;  //! нужно ещё добавить 1/epsilon
-    r = sqrt(r2);
-
-    eng += kqq / r;
-    return kqq / r / r2;
-}
-
-void init_realEwald_tex(cudaMD *md, float mxRange, float alpha)
+void init_realEwald_tex(cudaMD* md, float mxRange, float alpha)
 // create textures for evaluation of real part of Ewald summ
 {
     int i;
     float r, ar;
     int n = mxRange * 100 + 1;        // each angstrom is 100 points and plus additional point to avoid out of range
     int size = n * sizeof(float);
-    float *eng = (float*)malloc(size);
+    float* eng = (float*)malloc(size);
     float* frc = (float*)malloc(size);
     float erfcar;
     for (i = 1; i < n; i++)
@@ -52,7 +106,7 @@ void init_realEwald_tex(cudaMD *md, float mxRange, float alpha)
         ar = alpha * r;
         erfcar = erfc(ar);
         eng[i] = erfcar / r;
-        frc[i] =  (erfcar + 2 * ar / (float)sqrtpi * exp(-ar * ar)) / (r * r * r);
+        frc[i] = (erfcar + 2 * ar / (float)sqrtpi * exp(-ar * ar)) / (r * r * r);
     }
     //data_to_device(engArr, eng, size);
     //data_to_device(frcArr, frc, size);
@@ -75,8 +129,6 @@ void init_realEwald_tex(cudaMD *md, float mxRange, float alpha)
     texCoulFrc.addressMode[0] = cudaAddressModeClamp;
     cudaBindTextureToArray(&texCoulFrc, md->coulFrc, &cform);
 
-
-
     free(eng);
     free(frc);
 }
@@ -87,6 +139,58 @@ void free_realEwald_tex(cudaMD* md)
     cudaUnbindTexture(&texCoulFrc);
     cudaFreeArray(md->coulEng);
     cudaFreeArray(md->coulFrc);
+}
+
+void init_cuda_elec(Atoms *atm, Elec* elec, Sim* sim, hostManagMD* man, cudaMD* h_md)
+// initialization CUDA for electrostatic
+{
+    h_md->use_coul = elec->type;
+    h_md->alpha = (float)elec->alpha;    // in Ewald summation
+    h_md->daipi2 = (float)elec->daipi2;
+    h_md->elC1 = (float)elec->scale;
+    h_md->elC2 = (float)elec->scale2;
+    h_md->rElec = (float)(elec->rReal);
+    h_md->r2Elec = (float)(elec->r2Real);
+    h_md->r2Max = (float)sim->r2Max;
+
+    if (elec->type == tpElecEwald)
+    {
+        init_cuda_ewald(atm, elec, man, h_md);
+        init_realEwald_tex(h_md, elec->rReal, elec->alpha);
+    }
+}
+
+void free_cuda_elec(cudaMD* hmd)
+{
+    if (hmd->use_coul == tpElecEwald)
+    {
+        cudaFree(hmd->rk);
+        cudaFree(hmd->exprk2);
+        cudaFree(hmd->qDens);
+        cuda2DFree((void**)hmd->qiexp, hmd->nAt);
+        free_realEwald_tex(hmd);
+    }
+}
+
+
+//__device__ float no_coul(float r2, float& r, float chprd, float alpha, float& eng)
+__device__ float no_coul(float r2, float& r, float chprd, cudaMD *md, float& eng)
+// if there are no Coulomb interaction  in the system
+{
+    return 0.f;
+}
+
+//__device__ float direct_coul(float r2, float& r, float chprd, float alpha, float& eng)
+__device__ float direct_coul(float r2, float& r, float chprd, cudaMD* md, float& eng)
+//  r2 - square of distance, chprd - production of charges
+// parameter alpha - for compability with real part of Ewald summation
+//! тут надо ещё ввести эпсилон в закон кулона
+{
+    float kqq = chprd * d_Fcoul_scale;  //! нужно ещё добавить 1/epsilon
+    r = sqrt(r2);
+
+    eng += kqq / r;
+    return kqq / r / r2;
 }
 
 

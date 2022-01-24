@@ -87,6 +87,7 @@ struct hostManagMD
     int angPerThread, angPerBlock;
     int cellPerThread, cellPerBlock, nCellThread, nCellBlock;
     int atStep;     // step for all functions applied to all atoms:     int step = ceil((double)md->nAt / (double)blockDim.x / (double)gridDim.x);
+    int bndPerThreadEjump;  // for e-jump routine
 
 
     int nPair1Block, nPair2Block;
@@ -193,11 +194,11 @@ struct cudaMD
     int *nnumbers;       // nuclei numbers
 
     //atoms:
-    float3* xyz; // coordinates
-    float3* vls; // velocities
-    float3* frs; // forces
-    float* engs;     // atom heat energies (for radiative thermostat only)
-    float* radii;    // atom's radii (for radiative thermostat only)
+    float3* xyz;    // coordinates
+    float3* vls;    // velocities
+    float3* frs;    // forces
+    float* engs;    // atom heat energies (for radiative thermostat only)
+    float* radii;   // atom's radii (for radiative thermostat only)
     int* radstep;       // number of timestep when atom radiates photon (for radiative thermostat only)
     int* types;  // types (index of species array)
 //#ifdef USE_FASTLIST
@@ -216,7 +217,7 @@ struct cudaMD
     int* sort_ind;        // atom indexes in sorted order
     int* sort_nbonds;
     int* sort_nangles;
-    int* sort_trajs;        // indexes of atoms for trajectory output
+    int* cur_inds;          // currend index of atom, for example, cur_inds[0] keeps current index of particle which was at 0 index in the begging
     int* cellIndexes;         // index of cell in which atom is stored
     int* insideCellIndex;       // index of atom inside the cell
     int* firstAtomInCell;   // index of the first atom in the cell

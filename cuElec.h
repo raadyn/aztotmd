@@ -1,6 +1,9 @@
 #ifndef CUELEC_H
 #define CUELEC_H
 
+void init_cuda_elec(Atoms* atm, Elec* elec, Sim* sim, hostManagMD* man, cudaMD* h_md);
+void free_cuda_elec(cudaMD* hmd);
+
 // functions for calculating part of electrostatic interaction which can be calculated during pairs bypass (return forces and modify energy)
 //__device__ float no_coul(float r2, float& r, float chprd, float alpha, float& eng);
 //__device__ float direct_coul(float r2, float& r, float chprd, float alpha, float& eng);

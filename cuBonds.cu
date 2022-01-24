@@ -1,9 +1,156 @@
 #include <stdio.h>
 
+#include "dataStruct.h"
 #include "defines.h"
 #include "cuStruct.h"
 #include "cuMDfunc.h"
 #include "cuBonds.h"
+#include "utils.h"
+#include "cuUtils.h"
+
+void init_cuda_bonds(Atoms* atm, Field* fld, Sim* sim, cudaMD* hmd, hostManagMD* man)
+// copy bonds data to device, hmd - host exemplar of cudaMD struct
+{
+    int i, j;
+    int nsize = atm->nAt * int_size;
+
+    hmd->mxBond = fld->mxBonds;
+    hmd->nBond = fld->nBonds;
+
+    man->bndPerBlock = ceil((double)fld->mxBonds / (double)man->nMultProc);
+    man->bndPerThread = ceil((double)man->bndPerBlock / (double)man->nSingProc);
+    if (man->bndPerBlock < (man->bndPerThread * man->nSingProc))
+        man->bndPerBlock = man->bndPerThread * man->nSingProc;    // but not less 
+
+
+    cudaBond* bndTypes = (cudaBond*)malloc(fld->nBdata * sizeof(cudaBond));
+    hmd->nBndTypes = fld->nBdata;
+    for (i = 1; i < fld->nBdata; i++)   // i = 0 reserved for empty(deleted) bond
+    {
+        bndTypes[i].type = fld->bdata[i].type;
+        bndTypes[i].spec1 = fld->bdata[i].spec1;
+        bndTypes[i].spec2 = fld->bdata[i].spec2;
+        bndTypes[i].mxEx = fld->bdata[i].mxEx;
+        bndTypes[i].mnEx = fld->bdata[i].mnEx;
+        bndTypes[i].new_type[0] = fld->bdata[i].new_type[0];
+        bndTypes[i].new_type[1] = fld->bdata[i].new_type[1];
+
+        if (bndTypes[i].mnEx)
+        {
+            j = bndTypes[i].new_type[0];
+            if (j < 0)  // invert species
+            {
+                bndTypes[i].new_spec1[0] = fld->bdata[-j].spec2;
+                bndTypes[i].new_spec2[0] = fld->bdata[-j].spec1;
+            }
+            else
+            {
+                bndTypes[i].new_spec1[0] = fld->bdata[j].spec1;
+                bndTypes[i].new_spec2[0] = fld->bdata[j].spec2;
+            }
+        }
+
+        if ((bndTypes[i].mxEx) && (bndTypes[i].new_type[1] != 0))   // не удаляем
+        {
+            j = bndTypes[i].new_type[1];
+            if (j < 0)  // invert species
+            {
+                bndTypes[i].new_spec1[1] = fld->bdata[-j].spec2;
+                bndTypes[i].new_spec2[1] = fld->bdata[-j].spec1;
+            }
+            else
+            {
+                bndTypes[i].new_spec1[1] = fld->bdata[j].spec1;
+                bndTypes[i].new_spec2[1] = fld->bdata[j].spec2;
+            }
+        }
+
+
+        bndTypes[i].new_spec1[0] = fld->bdata[i].new_spec1[0];
+        bndTypes[i].new_spec1[1] = fld->bdata[i].new_spec1[1];
+        bndTypes[i].new_spec2[0] = fld->bdata[i].new_spec2[0];
+        bndTypes[i].new_spec2[1] = fld->bdata[i].new_spec2[1];
+        bndTypes[i].hatom = fld->bdata[i].hatom;
+        bndTypes[i].evol = fld->bdata[i].evol;
+
+        //! переопределить spec2 для мин и макс, если макс не удалить
+
+        bndTypes[i].p0 = (float)fld->bdata[i].p0;
+        bndTypes[i].p1 = (float)fld->bdata[i].p1;
+        bndTypes[i].p2 = (float)fld->bdata[i].p2;
+        bndTypes[i].p3 = (float)fld->bdata[i].p3;
+        bndTypes[i].p4 = (float)fld->bdata[i].p4;
+        bndTypes[i].r2min = (float)fld->bdata[i].r2min;
+        bndTypes[i].r2max = (float)fld->bdata[i].r2max;
+        bndTypes[i].count = fld->bdata[i].number;
+        bndTypes[i].rSumm = 0.f;
+        bndTypes[i].rCount = 0;
+        bndTypes[i].ltSumm = 0;
+        bndTypes[i].ltCount = 0;
+    }
+    data_to_device((void**)&(hmd->bondTypes), bndTypes, fld->nBdata * sizeof(cudaBond));
+    free(bndTypes);
+
+    int4* bnds = (int4*)malloc(fld->nBonds * int4_size);
+    for (i = 0; i < fld->nBonds; i++)
+    {
+        bnds[i] = make_int4(fld->at1[i], fld->at2[i], fld->bTypes[i], 0);
+    }
+    cudaMalloc((void**)&(hmd->bonds), fld->mxBonds * int4_size);
+    cudaMemcpy(hmd->bonds, bnds, fld->nBonds * int4_size, cudaMemcpyHostToDevice);
+    free(bnds);
+
+    data_to_device((void**)&(hmd->nbonds), atm->nBonds, nsize);
+
+    //int* int_array;
+    int** int_int_array;
+    float** fl_fl_array;
+    int_int_array = (int**)malloc(fld->nSpec * pointer_size);
+    for (i = 0; i < fld->nSpec; i++)
+    {
+        data_to_device((void**)&(int_int_array[i]), fld->bond_matrix[i], fld->nSpec * int_size);
+    }
+    data_to_device((void**)&(hmd->def_bonds), int_int_array, fld->nSpec * pointer_size);
+    free(int_int_array);
+
+    // parents are -1?
+    /*
+    for (i = 0; i < atm->nAt; i++)
+        if (atm->parents[i] != -1)
+            printf("parents[%d]=%d\n", i, atm->parents[i]);
+
+    for (i = 0; i < atm->nAt; i++)
+        if (atm->parents[i] == -1)
+            printf("parents[%d]=-1\n", i);
+     */
+
+    data_to_device((void**)&(hmd->parents), atm->parents, nsize);
+
+    if (sim->use_bnd == 2)  // binding
+    {
+        cudaMalloc((void**)&(hmd->neighToBind), nsize);
+        cudaMalloc((void**)&(hmd->canBind), nsize);
+        cudaMalloc((void**)&(hmd->r2Min), nsize);
+
+
+        int_int_array = (int**)malloc(fld->nSpec * pointer_size);
+        fl_fl_array = (float**)malloc(fld->nSpec * pointer_size);
+        float* fl_array = (float*)malloc(fld->nSpec * sizeof(float));
+        for (i = 0; i < fld->nSpec; i++)
+        {
+            data_to_device((void**)&(int_int_array[i]), fld->bonding_matr[i], fld->nSpec * int_size);
+            for (j = 0; j < fld->nSpec; j++)
+                fl_array[j] = (float)fld->bindR2matrix[i][j];
+            data_to_device((void**)&(fl_fl_array[i]), fl_array, fld->nSpec * float_size);
+        }
+        data_to_device((void**)&(hmd->bindBonds), int_int_array, fld->nSpec * pointer_size);
+        data_to_device((void**)&(hmd->bindR2), fl_fl_array, fld->nSpec * pointer_size);
+
+        free(int_int_array);
+        free(fl_fl_array);
+        free(fl_array);
+    }
+}
 
 __device__ void try_to_bind(float r2, int id1, int id2, int spec1, int spec2, cudaMD *md)
 {

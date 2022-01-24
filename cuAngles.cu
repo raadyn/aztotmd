@@ -1,9 +1,67 @@
 #include <stdio.h>		// printf
 
 #include "defines.h"
+#include "dataStruct.h"
 #include "cuStruct.h"
 #include "cuMDfunc.h"	// delta_periodic
 #include "cuAngles.h"
+#include "utils.h"
+#include "cuUtils.h"
+
+void init_cuda_angles(int nAt, int nsize, Field *fld, cudaMD *h_md, hostManagMD *man)
+// nsize = n(atoms) * int_size
+{
+	int i;
+
+	h_md->nAngle = fld->nAngles;
+	h_md->mxAngle = fld->mxAngles;
+
+	man->angPerBlock = ceil((double)fld->mxAngles / (double)man->nMultProc);		// n(atoms) per multiprocessor
+	man->angPerThread = ceil((double)man->angPerBlock / (double)man->nSingProc);    // n(atoms) per thread
+	if (man->angPerBlock < (man->angPerThread * man->nSingProc))
+		man->angPerBlock = man->angPerThread * man->nSingProc;    // but no smaller than n(atoms) in all threads of the block
+
+
+	int4* int4_array = (int4*)malloc(fld->mxAngles * sizeof(int4));
+	for (i = 0; i < fld->nAngles; i++)
+	{
+		int4_array[i] = make_int4(fld->centrs[i], fld->lig1[i], fld->lig2[i], fld->angTypes[i]);
+	}
+	cudaMalloc((void**)&(h_md->angles), fld->mxAngles * sizeof(int4));
+	cudaMemcpy(h_md->angles, int4_array, fld->mxAngles * sizeof(int4), cudaMemcpyHostToDevice);
+	free(int4_array);
+
+	cudaAngle* tang = (cudaAngle*)malloc(sizeof(cudaAngle) * fld->nAdata);
+	for (i = 1; i < fld->nAdata; i++)   // i = 0 not interesting as just reffered to no angle
+	{
+		tang[i].type = fld->adata[i].type;
+		tang[i].p0 = (float)fld->adata[i].p0;
+		tang[i].p1 = (float)fld->adata[i].p1;
+		tang[i].p2 = (float)fld->adata[i].p2;
+	}
+	data_to_device((void**)&(h_md->angleTypes), tang, sizeof(cudaAngle) * fld->nAdata);
+	free(tang);
+
+	int* int_array = (int*)malloc(nsize);  // nangles
+	for (i = 0; i < nAt; i++)
+	{
+		int_array[i] = 0;
+	}
+
+	// calculate number of angles:
+	for (i = 0; i < fld->nAngles; i++)
+		int_array[fld->centrs[i]]++;
+
+	data_to_device((void**)&(h_md->nangles), int_array, nsize);
+	free(int_array);
+
+	int_array = (int*)malloc(fld->nSpec * int_size);	//! it's possible to remove this line and previous (free) if we are sure, that nSpec <= nAtom
+	for (i = 0; i < fld->nSpec; i++)
+		int_array[i] = fld->species[i].angleType;
+	cudaMalloc((void**)&(h_md->specAngles), fld->nSpec * int_size);
+	cudaMemcpy(h_md->specAngles, int_array, fld->nSpec * int_size, cudaMemcpyHostToDevice);
+	free(int_array);
+}
 
 __global__ void refresh_angles(int iStep, int atPerBlock, int atPerThread, cudaMD *md)
 // delete old angles and create new ones for atoms which change their type

@@ -1,6 +1,8 @@
 #ifndef CUBONDS_H
 #define CUBONDS_H
 
+void init_cuda_bonds(Atoms* atm, Field* fld, Sim* sim, cudaMD* hmd, hostManagMD* man);
+
 __device__ void try_to_bind(float r2, int id1, int id2, int spec1, int spec2, cudaMD* md);
 __device__ cudaBond* evol_bondtype_addr(cudaBond* old_bnd, int spec1, int spec2, cudaMD* md);
 __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD* md);

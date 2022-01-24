@@ -117,7 +117,6 @@ __device__ void force_autocap(char* prefix, float &force, float r2, int type1, i
 __device__ void pair_1(int idA, int idB, float3 xyzA, float3* fxyzA, int typeA, float3 xyzB, float3* fxyzB, int typeB, float3 shift, cudaMD* md, float& engVdw, float& engCoul)
 // universal variant of pair interaction
 {
-    //printf("pair_1 r2Max=%f use_bind=%d\n", md->r2Max, md->use_bnd);
     float3 delta;
     float r2 = delta_and_r2_shift(xyzA, xyzB, delta, shift);    //* или без шифта, если в одной ячейке
 
@@ -245,7 +244,6 @@ __global__ void all_pair(int iStep, cudaMD* md)
       
     i = 0;
     j = blockIdx.x * blockDim.x + threadIdx.x + 1;     // first pair is 0-1
-    //printf("th(%d,%d) j=%d nAt=%d\n", blockIdx.x, threadIdx.x, j, nAt);
     while (1)
     {
         while (j >= nAt)
@@ -408,9 +406,6 @@ __global__ void cell_list2a(cudaMD* md)
     for (i = id0; i < N; i++)
     {
         inc_float3((&md->frs[sIds[i]]), sFrs[i]);
-        //md->frs[sIds[i]].x += sFrs[i].x;
-        //md->frs[sIds[i]].y += sFrs[i].y;
-        //md->frs[sIds[i]].z += sFrs[i].z;
     }
 
     save_coul_vdw(eCoul, eVdW, &engCoul, &engVdW, md); // to shared then to global memory
@@ -428,8 +423,8 @@ __global__ void cell_list2b(cudaMD* md)
     //energy accumulators per block:
     __shared__ float engVdW, engCoul;
     //energy accumulators in thread:
-    float eVdW = 0.0;
-    float eCoul = 0.0;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     extern __shared__ int shMem[];      // declaration of shared memory
     int* sAids = shMem;
@@ -450,8 +445,8 @@ __global__ void cell_list2b(cudaMD* md)
     iPair = blockIdx.x + md->nPair1;
     if (threadIdx.x == 0)
     {
-        engVdW = 0.0;
-        engCoul = 0.0;
+        engVdW = 0.f;
+        engCoul = 0.f;
 #ifdef DEBUG_MODE
         atomicAdd(&(md->nPairCult[iPair]), 1);
         //md->nPairCult[iPair] += 1;
@@ -528,9 +523,6 @@ __global__ void cell_list2b(cudaMD* md)
     for (i = id0; i < N; i++)
     {
         inc_float3((&md->frs[sIds[i]]), sFrs[i]);
-        //atomicAdd(&(md->frs[sIds[i]].x), sFrs[i].x);
-        //atomicAdd(&(md->frs[sIds[i]].y), sFrs[i].y);
-        //atomicAdd(&(md->frs[sIds[i]].z), sFrs[i].z);
     }
     save_coul_vdw(eCoul, eVdW, &engCoul, &engVdW, md); // to shared then to global memory
 }
@@ -555,8 +547,8 @@ __global__ void cell_list3a(int iStep, int pairStep, cudaMD* md)
     //energy accumulators per block:
     __shared__ float engVdW, engCoul;
     //energy accumulators in thread:
-    float eVdW = 0.0f;
-    float eCoul = 0.0f;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     __shared__ int totAtm;      // total number of atoms
 
@@ -583,35 +575,15 @@ __global__ void cell_list3a(int iStep, int pairStep, cudaMD* md)
     if (threadIdx.x == 0)
         if (threadIdx.y == 0)
         {
-            engVdW = 0.0;
-            engCoul = 0.0;
+            engVdW = 0.f;
+            engCoul = 0.f;
 
-            /*
-            //проверим ка, все ли атомы в целл листе
-            totAtm = 0;
-            int mxAt = 0;
-            int at = 0;
-            if (blockIdx.x == 0)
-            {
-                for (i = 0; i < md->nCell; i++)
-                {
-                    at = md->cells[i][0];
-                    if (at > mxAt)
-                        mxAt = at;
-                    totAtm += at;
-                }
-                //printf("total number of atom in all cells = %d maximal number in one cell = %d\n", totAtm, mxAt);
-
-            }
-            */
 
             // define the first indexes in shared arrays corresponding to cell
             totAtm = 0;
             id0 = blockIdx.x * pairStep;
             N = min(id0 + pairStep, md->nPair1);
             j = 0;
-            //if (blockIdx.x == 0)
-              //  printf("iPair=%d..<%d\n", id0, N);
             for (i = id0; i < N; i++)
             {
                 id0s[j] = totAtm;
@@ -620,10 +592,6 @@ __global__ void cell_list3a(int iStep, int pairStep, cudaMD* md)
                 id0s[j + 1] = totAtm;
                 nAts[j + 1] = md->cells[md->cellPairs[i].y][0];
                 totAtm += nAts[j + 1];
-                //if (blockIdx.x == 0)
-                  //printf(" id0[%d]=%d id0[%d]=%d ", i, id0s[i], i+1, id0s[i+1]);
-                //if (blockIdx.x == 0)
-                  //printf(" nAtm in %d pair = (%d, %d)\n", iPair, md->cells[md->cellPairs[iPair].x][0], md->cells[md->cellPairs[iPair].y][0]);
                 j += 2;
             }
             //if (totAtm > md->maxAtPerBlock)
@@ -690,8 +658,6 @@ __global__ void cell_list3a(int iStep, int pairStep, cudaMD* md)
         j = j + step;
     }
     __syncthreads();
-
-
 
 /*
     // новый способ обхода пар
@@ -802,8 +768,8 @@ __global__ void cell_list3b(int iStep, int pairStep, cudaMD* md)
     //energy accumulators per block:
     __shared__ float engVdW, engCoul;
     //energy accumulators in thread:
-    float eVdW = 0.0;
-    float eCoul = 0.0;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     __shared__ int totAtm;      // total number of atoms
 
@@ -831,16 +797,14 @@ __global__ void cell_list3b(int iStep, int pairStep, cudaMD* md)
     if (threadIdx.x == 0)
         if (threadIdx.y == 0)
         {
-            engVdW = 0.0;
-            engCoul = 0.0;
+            engVdW = 0.f;
+            engCoul = 0.f;
 
             // define the first indexes in shared arrays corresponding to cell
             totAtm = 0;
             id0 = md->nPair1 + blockIdx.x * pairStep;
             N = min(id0 + pairStep, md->nPair);
             j = 0;
-            //if (blockIdx.x == 220)
-              //  printf("iPair=%d..<%d\n", id0, N);
             for (i = id0; i < N; i++)
             {
                 id0s[j] = totAtm;
@@ -849,10 +813,6 @@ __global__ void cell_list3b(int iStep, int pairStep, cudaMD* md)
                 id0s[j + 1] = totAtm;
                 nAts[j + 1] = md->cells[md->cellPairs[i].y][0];
                 totAtm += nAts[j + 1];
-                //if (blockIdx.x == 2850)
-                  //printf(" id0[%d]=%d(cell %d) id0[%d]=%d(cell %d) ", i, id0s[i], md->cellPairs[iPair].x, i+1, id0s[i+1], md->cellPairs[iPair].y);
-                //if (blockIdx.x == 0)
-                  //printf(" nAtm in %d pair = (%d, %d)\n", iPair, md->cells[md->cellPairs[iPair].x][0], md->cells[md->cellPairs[iPair].y][0]);
                 j += 2;
             }
             if (totAtm > md->maxAtPerBlock)
@@ -890,7 +850,7 @@ __global__ void cell_list3b(int iStep, int pairStep, cudaMD* md)
         id = md->cells[iCell][i + 1];
         ids[sh + i] = id;     // save atom index
         xyz[sh + i] = md->xyz[id];    // copy atom coordinates
-        frs[sh + i] = make_float3(0.0, 0.0, 0.0);    // set zero forces
+        frs[sh + i] = make_float3(0.f, 0.f, 0.f);    // set zero forces
         types[sh + i] = md->types[id];
     }
     __syncthreads();
@@ -954,8 +914,8 @@ __global__ void cell_list3b_noshared(int iStep, cudaMD* md)
     //energy accumulators per block:
     __shared__ float engVdW, engCoul;
     //energy accumulators in thread:
-    float eVdW = 0.0;
-    float eCoul = 0.0;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     __shared__ int cell1, cell2;    // cell ids
     __shared__ int na1, na2;        // number of atoms in cell
@@ -965,8 +925,8 @@ __global__ void cell_list3b_noshared(int iStep, cudaMD* md)
 
     if (threadIdx.x == 0)
     {
-        engVdW = 0.0;
-        engCoul = 0.0;
+        engVdW = 0.f;
+        engCoul = 0.f;
         cell1 = md->cellPairs[iPair].x;
         na1 = md->cells[cell1][0];
         cell2 = md->cellPairs[iPair].y;
@@ -1011,13 +971,13 @@ __global__ void cell_list_inSameCell(cudaMD* md)
     //energy accumulators per block:
     __shared__ float engVdW, engCoul;
     //energy accumulators in thread:
-    float eVdW = 0.0;
-    float eCoul = 0.0;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     if (threadIdx.x == 0)
     {
-        engVdW = 0.0;
-        engCoul = 0.0;
+        engVdW = 0.f;
+        engCoul = 0.f;
 #ifdef DEBUG_MODE
         //md->nPairCult[blockIdx.x] += 1;
         //md->nCelCult[iCA] += 1;
@@ -1071,15 +1031,15 @@ __global__ void cell_list_allCellPair(cudaMD* md)
     //energy accumulators per block:
     __shared__ float engVdW, engCoul;
     //energy accumulators in thread:
-    float eVdW = 0.0;
-    float eCoul = 0.0;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     void (*funcTreat)(int idA, int idB, float3 xyzA, float3 * fxyzA, int typeA, float3 xyzB, float3 * fxyzB, int typeB, float3 shift, cudaMD * md, float& engVdw, float& engCoul);
 
     if (threadIdx.x == 0)
     {
-        engVdW = 0.0;
-        engCoul = 0.0;
+        engVdW = 0.f;
+        engCoul = 0.f;
 #ifdef DEBUG_MODE
         //atomicAdd(&(md->nPairCult[iPair]), 1);
         //md->nPairCult[iPair] += 1;
@@ -1192,8 +1152,8 @@ __global__ void cell_list4a(int cellPerBlock, cudaMD* md)
     //energy accumulators per block:
     __shared__ float shVdWEng, shCoulEng;
     //energy accumulators in thread:
-    float eVdW = 0.0f;
-    float eCoul = 0.0f;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     if (threadIdx.x == 0)
     {
@@ -1217,9 +1177,6 @@ __global__ void cell_list4a(int cellPerBlock, cudaMD* md)
     int nat = md->firstAtomInCell[cellN - 1] - at0 + md->nAtInCell[cellN - 1]; // this variant crush for the last block (cellN out of range)
     int atPerThread = ceil((double)nat / blockDim.x);       // define number of copied atoms per thread
     __syncthreads();
-    //if (threadIdx.x == 0)
-      //  if (cell0 > 1300)
-        //printf("[%d]cells[%d..%d] n=%d fat=%d nat=%d atPerThread=%d nTrhead=%d\n", blockIdx.x, cell0, cellN, nCell, at0, nat, atPerThread, blockDim.x);
 
 
     int* nAts = shMem;                  // number of atoms in a given cell
@@ -1249,10 +1206,6 @@ __global__ void cell_list4a(int cellPerBlock, cudaMD* md)
         frs[i] = make_float3(0.f, 0.f, 0.f);    // set zero forces
     }
     __syncthreads();
-
-    //if (blockIdx.x == 0)
-        //if (threadIdx.x == 0)
-            //printf("[%d] 4a end copy atoms\n", threadIdx.x);
 
     //INTERACTION INSIDE SAME CELLS
     //! алгоритм такой: в отличие от пред. раз, где мы весь интервал разбивали на равные отрезки и их обрабатывали нитями
@@ -1330,15 +1283,14 @@ __global__ void cell_list4a(int cellPerBlock, cudaMD* md)
 //! блоки получают на вход: индекс первой ячейки, индекс второй ячейки, кол-во ячеек после неё 
 __global__ void cell_list4b(cudaMD* md)
 {
-    //printf("start cell list 4b\n");
     int i, j, k;
     //int sh1, sh2, step;
 
     //energy accumulators per block:
     __shared__ float shVdWEng, shCoulEng;
     //energy accumulators in thread:
-    float eVdW = 0.0f;
-    float eCoul = 0.0f;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     if (threadIdx.x == 0)
     {
@@ -1473,21 +1425,36 @@ __global__ void cell_list4b(cudaMD* md)
 // end 'cell_list4b' function
 
 __global__ void cell_list4b_noshared(cudaMD* md)
-// version without shared memory
-// но не совсем так, все равно разделяемая память понадобиалсь
+// cell list, part b (between different cells): version without shared memory
+// the algorithm requires sorted atom arrays
+// called 'no shared' but use shared memory for storing of 'shifts' (coordinated differences for periodic accounintg)
 {
     int i, j, k;
-    //int sh1, sh2, step;
+    int cell0, cell1, nCell, at0, at0n, n0, nat, nat1;
+
+    cell0 = md->cellBlocks[blockIdx.x].x;       // index of the first cell
+    n0 = md->nAtInCell[cell0];                  // number of atoms in the first cell
+    if (n0 == 0)                                // no atoms in the first cell, escape block
+        return;
+
+    at0 = md->firstAtomInCell[cell0];   // the first atom index for block
+    cell1 = md->cellBlocks[blockIdx.x].y;
+    at0n = md->firstAtomInCell[cell1];
+    nCell = md->cellBlocks[blockIdx.x].z;
+
+    nat1 = md->firstAtomInCell[cell1 + nCell - 1] - at0n + md->nAtInCell[cell1 + nCell - 1];
+    if (nat1 == 0)    // atoms only in the first cell, escape
+        return;
+    //nat1 = nat - n0;
+    nat = nat1 + n0;
 
     //energy accumulators per block:
     __shared__ float shVdWEng, shCoulEng;
     //energy accumulators in thread:
-    float eVdW = 0.0f;
-    float eCoul = 0.0f;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
-    //printf("start 4b noshared\n");
-
-/*
+    //__shared__ int cell0, cell1, nCell, at0, at0n, n0, nat, nat1;
     if (threadIdx.x == 0)
     {
         shVdWEng = 0.f;
@@ -1495,102 +1462,9 @@ __global__ void cell_list4b_noshared(cudaMD* md)
     }
     __syncthreads();
 
-    int cell0 = md->cellBlocks[blockIdx.x].x;
-    int cell1 = md->cellBlocks[blockIdx.x].y;
-    int nCell = md->cellBlocks[blockIdx.x].z;
-*/
-    __shared__ int cell0, cell1, nCell, at0, at0n, n0, nat, nat1;
-    //int cell0, cell1, nCell, at0, at0n, n0, nat, nat1;
-
-    if (threadIdx.x == 0)
-    {
-        shVdWEng = 0.f;
-        shCoulEng = 0.f;
-        cell0 = md->cellBlocks[blockIdx.x].x;
-        at0 = md->firstAtomInCell[cell0];   // the first atom index for block
-        n0 = md->nAtInCell[cell0];          // number of atoms in the first cell
-        cell1 = md->cellBlocks[blockIdx.x].y;
-        at0n = md->firstAtomInCell[cell1];
-        nCell = md->cellBlocks[blockIdx.x].z;
-    }
-    /*
-    switch (threadIdx.x)
-    {
-    case 0:
-        shVdWEng = 0.f;
-        break;
-    case 1:
-        shCoulEng = 0.f;
-        break;
-    case 2:
-        cell0 = md->cellBlocks[blockIdx.x].x;
-        at0 = md->firstAtomInCell[cell0];   // the first atom index for block
-        n0 = md->nAtInCell[cell0];          // number of atoms in the first cell
-        break;
-    case 3:
-        cell1 = md->cellBlocks[blockIdx.x].y;
-        at0n = md->firstAtomInCell[cell1];
-        break;
-    case 4:
-        nCell = md->cellBlocks[blockIdx.x].z;
-        break;
-    }
-    */
-    __syncthreads();
-
-
-
-    if (n0 == 0)  // no atoms in the first cell, escape block
-        return;
-
-    // number of atoms in block:
-    if (threadIdx.x == 0)
-    {
-        //nat = n0 + md->firstAtomInCell[cell1 + nCell - 1] - at0n + md->nAtInCell[cell1 + nCell - 1];
-        nat1 = md->firstAtomInCell[cell1 + nCell - 1] - at0n + md->nAtInCell[cell1 + nCell - 1];
-        //nat1 = nat - n0;
-        nat = nat1 + n0;
-    }
-    __syncthreads();
-
-    if (nat1 == 0)    // atoms only in the first cell, escape
-        return;
-
-    /*
-        extern __shared__ int shMem[];      // dynamically allocated shared memory
-        int* nAts = shMem;                  // number of atoms in a given cell
-        int* fAts = (int*)&nAts[nCell + 1];     // first index of atom for a given cell (во внутренних индексах)
-        int* shIds = (int*)&fAts[nCell + 1];     // ids in secShifts array
-
-        // copy number of atoms and first index
-        if (threadIdx.x == 0)
-        {
-            nAts[0] = n0;
-            fAts[0] = 0;
-        }
-        else
-            if (threadIdx.x <= nCell)
-            {
-                nAts[threadIdx.x] = md->nAtInCell[cell1 + threadIdx.x - 1];
-                fAts[threadIdx.x] = md->firstAtomInCell[cell1 + threadIdx.x - 1] - at0n + n0;
-            }
-
-        // define which atom belong to which cell(and corresponding cell shift)
-        if (threadIdx.x == 0)
-        {
-            j = nCell;
-            for (i = nat - 1; i >= nAts[0]; i--)
-            {
-                while (i < fAts[j])
-                    j--;
-                shIds[i] = j - 1;   // pair starts from 0-1, so the second cell coresponds to index = 0
-            }
-
-        }
-        __syncthreads();
-    */
     extern __shared__ int s[];      // dynamically allocated shared memory
     float3* shifts = (float3*)s;
+    //! nthread must be greater than nCell!
     if (threadIdx.x < nCell)
     {
         float3 sh = md->secShifts[blockIdx.x][threadIdx.x];
@@ -1598,9 +1472,6 @@ __global__ void cell_list4b_noshared(cudaMD* md)
         int j0 = md->firstAtomInCell[cell1];
         k = md->nAtInCell[cell1 + threadIdx.x];
         for (i = 0; i < k; i++)
-            if ((j - j0 + i > 350) || (j - j0 + i < 0))
-                printf("something wrong, 4b_noshared\n");   //! debugging
-            else
                 shifts[j - j0 + i] = sh;
     }
     __syncthreads();
@@ -1614,7 +1485,7 @@ __global__ void cell_list4b_noshared(cudaMD* md)
     for (i = id0; i < N; i++)
     {
         force = make_float3(0.f, 0.f, 0.f);
-        for (j = 0; j < n0; j++)
+        for (j = 0; j < n0; j++)    // loop by atoms in the first cell
         {
             pair_1(i + at0n, j + at0, md->xyz[i + at0n], &force, md->types[i + at0n], md->xyz[j + at0], &(md->frs[j + at0]), md->types[j + at0], shifts[i], md, eVdW, eCoul);
         }
@@ -1625,11 +1496,6 @@ __global__ void cell_list4b_noshared(cudaMD* md)
 }
 // end 'cell_list4b_noshared' function
 
-
-__device__ int dev_npair(int n)
-{
-    return n * (n - 1) / 2;
-}
 
 __device__ void distribute_trheads_pairs(int nCell, int* nats, int* nthrds, int* fthrds, int& nFillCell)
 // distrubute threads proportional to number of pairs in cell
@@ -1755,14 +1621,12 @@ __global__ void cell_list4a_1(int cellPerBlock, cudaMD* md)
     int i, j;
     int sh1, sh2, step;
     int ex = 0;     // exit flag
-    //if (threadIdx.x == 0)
-      //  printf("start 4a(%d,%d)\n", blockIdx.x, threadIdx.x);
 
     //energy accumulators per block:
     __shared__ float shVdWEng, shCoulEng;
     //energy accumulators in thread:
-    float eVdW = 0.0f;
-    float eCoul = 0.0f;
+    float eVdW = 0.f;
+    float eCoul = 0.f;
 
     if (threadIdx.x == 0)
     {
@@ -1786,9 +1650,6 @@ __global__ void cell_list4a_1(int cellPerBlock, cudaMD* md)
     int nat = md->firstAtomInCell[cellN - 1] - at0 + md->nAtInCell[cellN - 1]; // this variant crush for the last block (cellN out of range)
     int atPerThread = ceil((double)nat / blockDim.x);       // define number of copied atoms per thread
     __syncthreads();
-    //if (threadIdx.x == 0)
-      //  if (cell0 > 1300)
-        //printf("[%d]cells[%d..%d] n=%d fat=%d nat=%d atPerThread=%d nTrhead=%d\n", blockIdx.x, cell0, cellN, nCell, at0, nat, atPerThread, blockDim.x);
 
 
     int* nAts = shMem;                  // number of atoms in a given cell
@@ -1829,9 +1690,6 @@ __global__ void cell_list4a_1(int cellPerBlock, cudaMD* md)
     }
     __syncthreads();
 
-    //if (blockIdx.x == 0)
-        //if (threadIdx.x == 0)
-            //printf("[%d] 4a end copy atoms\n", threadIdx.x);
 
     //INTERACTION INSIDE SAME CELLS
     //! алгоритм такой: в отличие от пред. раз, где мы весь интервал разбивали на равные отрезки и их обрабатывали нитями
@@ -1839,15 +1697,10 @@ __global__ void cell_list4a_1(int cellPerBlock, cudaMD* md)
 
     int iCell, iThread;
     float3 zero_shift = make_float3(0.f, 0.f, 0.f);
-    //if (blockIdx.x == 0)
-        //if (threadIdx.x == 0)
-        //printf("[%d:%d] iCell=%d nCell=%d blockDim=%d \n", blockIdx.x, threadIdx.x, iCell, nCell, blockDim.x);
     //int iThread = get_internal_id(threadIdx.x, blockDim.x, nCell, iCell, step); // сразу получим и номер потока внутри ячейки и номер ячейки и число потоков на ячейку (step)
     if (nFillCell)
     {
         iThread = internal_thread_id(nCell, nThrds, fThrds, iCell, step);
-        if (step != nThrds[iCell])
-            printf("[%d:%d] iThr=%d nAts[%d]=%d step=%d(%d)\n", blockIdx.x, threadIdx.x, iThread, iCell, nAts[iCell], step, nThrds[iCell]);
         int cur_nat = nAts[iCell];
 
         //if (cur_nat > 1)  теперь эта проверка не нужна, потому что мы автоматически попадаем в непустую ячейку (хотя может быть все непустые?)
@@ -1857,16 +1710,11 @@ __global__ void cell_list4a_1(int cellPerBlock, cudaMD* md)
         j = iThread + 1;     // first pair is 0-1
         while (1/*i < cur_nat*/)
         {
-            //if (blockIdx.x == 112)
-                //printf("[%d:%d] main loop i=%d j=%d\n", blockIdx.x, threadIdx.x, i, j);
             while (j >= cur_nat)
             {
                 i++;
                 if (i >= cur_nat - 1)
                 {
-                    //if (blockIdx.x == 112)
-                        //if (threadIdx.x == 0)
-                            //printf("[%d:%d] end loop\n", blockIdx.x, threadIdx.x);
                     ex = 1;
                     break;
                 }
@@ -1892,27 +1740,11 @@ __global__ void cell_list4a_1(int cellPerBlock, cudaMD* md)
         // read cell numbers from pairs and convert into internal number
         cell1 = md->firstPairs[blockIdx.x][iPair].x - cell0;
         cell2 = md->firstPairs[blockIdx.x][iPair].y - cell0;
-        //printf("cell1,2=%d,%d\n", cell1, cell2);
         sh1 = fAts[cell1];
         sh2 = fAts[cell2];
         atPerThread = ceil((double)nAts[cell1] / step);
         int id0 = iThread * atPerThread;
         int N = min(id0 + atPerThread, nAts[cell1]);
-
-        /*
-        if (blockIdx.x == blockOut)
-        {
-            if (threadIdx.x == 0)
-            {
-                printf("[%d]pairs(%d):", blockIdx.x, md->nFirstPairs[blockIdx.x]);
-                for (i = 0; i < md->nFirstPairs[blockIdx.x]; i++)
-                    printf(" %d-%d", md->firstPairs[blockIdx.x][i].x, md->firstPairs[blockIdx.x][i].y);
-                printf("\n");
-            }
-            __syncthreads();
-            printf("th[%d]: intId=%d pair=%d(%d-%d) step=%d sh1,2=%d[%d],%d[%d] atrange=%d<%d\n", threadIdx.x, iThread, iPair, cell1, cell2, step, sh1, nAts[cell1], sh2, nAts[cell2], id0, N);
-        }
-        */
 
         float3 force;
         for (i = id0; i < N; i++)
@@ -1927,15 +1759,9 @@ __global__ void cell_list4a_1(int cellPerBlock, cudaMD* md)
     }
     __syncthreads();
 
-    //if (blockIdx.x == 0)
-        //if (threadIdx.x == 0)
-            //printf("[%d:%d] 4a end between interaction\n", blockIdx.x, threadIdx.x);
-
-
     //! copy forces to global memory, use all threads for whole shared array range
     for (i = ia0; i < Na; i++)
     {
-        //printf("frs[%d].x=%f\n", i, frs[i].x);
         md->frs[i + at0].x += frs[i].x;
         md->frs[i + at0].y += frs[i].y;
         md->frs[i + at0].z += frs[i].z;
@@ -2019,27 +1845,11 @@ __global__ void cell_list4a_noshared(int cellPerBlock, cudaMD* md)
         // а теперь у нас есть несколько потоков на пару. Каждый поток пусть возьмёт диапазон атомов первыой ячейки пары и все атомы второй ячейки:
         cell1 = md->firstPairs[blockIdx.x][iPair].x;
         cell2 = md->firstPairs[blockIdx.x][iPair].y;
-        //printf("cell1,2=%d,%d\n", cell1, cell2);
         sh1 = md->firstAtomInCell[cell1];
         sh2 = md->firstAtomInCell[cell2];
         int atPerThread = ceil((double)md->nAtInCell[cell1] / step);
         int id0 = iThread * atPerThread;
         int N = min(id0 + atPerThread, md->nAtInCell[cell1]);
-
-        /*
-        if (blockIdx.x == blockOut)
-        {
-            if (threadIdx.x == 0)
-            {
-                printf("[%d]pairs(%d):", blockIdx.x, md->nFirstPairs[blockIdx.x]);
-                for (i = 0; i < md->nFirstPairs[blockIdx.x]; i++)
-                    printf(" %d-%d", md->firstPairs[blockIdx.x][i].x, md->firstPairs[blockIdx.x][i].y);
-                printf("\n");
-            }
-            __syncthreads();
-            printf("th[%d]: intId=%d pair=%d(%d-%d) step=%d sh1,2=%d[%d],%d[%d] atrange=%d<%d\n", threadIdx.x, iThread, iPair, cell1, cell2, step, sh1, nAts[cell1], sh2, nAts[cell2], id0, N);
-        }
-        */
 
         float3 force;
         for (i = id0; i < N; i++)
@@ -2060,33 +1870,30 @@ __global__ void cell_list4a_noshared(int cellPerBlock, cudaMD* md)
 __device__ void interaction_by_ind(int i, int j, cudaMD* md, float& engVdw, float& engCoul)
 {
     float r, r2, f;
-    float dx, dy, dz;
+//    float dx, dy, dz;
+    float3 dxyz;
     cudaVdW* vdw = NULL;
 
-    //if (i == j)
-      //  printf("i == j!\n");
-
+/*
     dx = md->xyz[i].x - md->xyz[j].x; // + shift
     dy = md->xyz[i].y - md->xyz[j].y;
     dz = md->xyz[i].z - md->xyz[j].z;
-    r2 = dx * dx + dy * dy + dz * dz;
+*/
+    dxyz = float3_dif(md->xyz[i], md->xyz[j]);      // + shift
+    r2 = float3_sqr(dxyz);  // dx* dx + dy * dy + dz * dz;
 
     //if (r2 <= sim->r2Max)    //! cuttoff в ряде случаев можно опустить эту проверку
     //{
-    r = 0.0;
-    f = 0.0;
+    r = 0.f;
+    f = 0.f;
     int typeA = md->types[i];
     int typeB = md->types[j];
 
     // electrostatic contribution
-#ifdef USE_EWALD
-    f += real_ewald(r2, r, md->chProd[typeA][typeB], md, engCoul);    //! если частицы заряжены
-#else
 #ifdef TX_CHARGE
-    f += direct_coul(r2, r, tex2D(qProd, typeA, typeB), engCoul);    //! если частицы заряжены
+    f += md->funcCoul(r2, r, tex2D(qProd, typeA, typeB), engCoul);    //! если частицы заряжены
 #else
-    f += direct_coul(r2, r, md->chProd[typeA][typeB], md, engCoul);    //! если частицы заряжены
-#endif
+    f += md->funcCoul(r2, r, md->chProd[typeA][typeB], md, engCoul);    //! если частицы заряжены
 #endif
 
     // van der Waals contribution
@@ -2105,21 +1912,19 @@ __device__ void interaction_by_ind(int i, int j, cudaMD* md, float& engVdw, floa
         try_to_bind(r2, i, j, typeA, typeB, md);
 
     if (isnan(f))
-        printf("bl(%d) in_cell: nan: r2=%f (%f %f %f) xi=%f xj=%f\n", blockIdx.x, r2, dx, dy, dz, md->xyz[i], md->xyz[j]);
-    if (f > 1e6)
-        printf("bl(%d) in_cell: f:%f r2=%f (%f,%f,%f)\n", blockIdx.x, f, r2, dx, dy, dz);
-    if (f < -1e6)
-        printf("bl(%d) in_cell: f:%f r2=%f (%f,%f,%f)\n", blockIdx.x, f, r2, dx, dy, dz);
+        printf("bl(%d) in_cell: nan: r2=%f xi=%f xj=%f\n", blockIdx.x, r2, md->xyz[i].x, md->xyz[j].x);
 
+    /*
     md->frs[i].x += f * dx;
     md->frs[i].y += f * dy;
     md->frs[i].z += f * dz;
+    */
+    inc_float3_coef(&(md->frs[i]), dxyz, f);
 
 #ifdef DEBUG_MODE
     atomicAdd(&(md->nFCall), 1);
 #endif
     //    atomicAdd(&(md->sqrCoul), engCoul * engCoul);
-    //printf("end pair in cell with ind\n");
 }
 
 __device__ void interaction_by_ind_wShift(int i, int j, int shift, int type, cudaMD* md, float& engVdw, float& engCoul)
@@ -2129,9 +1934,6 @@ __device__ void interaction_by_ind_wShift(int i, int j, int shift, int type, cud
     cudaVdW* vdw = NULL;
     float3 delta = get_shift(shift, md);
 
-    if (i == j)
-        printf("i==j!\n");
-
     dx = md->xyz[i].x - md->xyz[j].x - delta.x;
     dy = md->xyz[i].y - md->xyz[j].y - delta.y;
     dz = md->xyz[i].z - md->xyz[j].z - delta.z;
@@ -2139,20 +1941,16 @@ __device__ void interaction_by_ind_wShift(int i, int j, int shift, int type, cud
 
     if (r2 <= md->r2Max)    //! cuttoff в ряде случаев можно опустить эту проверку
     {
-        r = 0.0;
-        f = 0.0;
+        r = 0.f;
+        f = 0.f;
         int typeA = md->types[i];
         int typeB = md->types[j];
 
         // electrostatic contribution
-#ifdef USE_EWALD
-        f += real_ewald(r2, r, md->chProd[typeA][typeB], md, engCoul);    //! если частицы заряжены
-#else
 #ifdef TX_CHARGE
-        f += direct_coul(r2, r, tex2D(qProd, typeA, typeB), engCoul);    //! если частицы заряжены
+        f += md->funcCoul(r2, r, tex2D(qProd, typeA, typeB), engCoul);    //! если частицы заряжены
 #else
-        f += direct_coul(r2, r, md->chProd[typeA][typeB], md, engCoul);    //! если частицы заряжены
-#endif
+        f += md->funcCoul(r2, r, md->chProd[typeA][typeB], md, engCoul);    //! если частицы заряжены
 #endif
 
     // van der Waals contribution
@@ -2223,9 +2021,7 @@ __global__ void oneAtom_celllist(int atPerBlock, int atPerThread, int iStep, cud
         for (i = fat; i < nat + fat; i++)
             if (i != iat)
             {
-                //printf("%d-%d\n", iat, i);
                 interaction_by_ind(iat, i, md, eVdW, eCoul);
-
             }
 
         // loop by other cells
@@ -2233,8 +2029,6 @@ __global__ void oneAtom_celllist(int atPerBlock, int atPerThread, int iStep, cud
         for (j = 0; j < nCell; j++)
         {
             jCell = md->neighCells[iCell][j].x; // cell index is kept in .x
-            //if (jCell == iCell)
-              //  printf("iCell = jCell\n");
             shType = md->neighCells[iCell][j].y;
             iterType = md->neighCells[iCell][j].z;
             nat = md->nAtInCell[jCell];
@@ -2265,15 +2059,11 @@ __global__ void oneAtom_celllist(int atPerBlock, int atPerThread, int iStep, cud
 // end 'oneAtom_celllist()' function
 
 __global__ void cell_list5a(cudaMD* md)
-// just interaction inside a cell
-// не меньше 4х потоков!
+// interactions inside a cell, requires sorting
+// не меньше 4х потоков! - теперь нет такого ограничения
 {
     int i, j;
     //int ex = 0;     // exit flag
-
-    //printf("5a!\n");
-    //if (blockIdx.x == 0)
-      //  printf("bef_5a frs[%d]=%f\n", threadIdx.x, md->frs[threadIdx.x].x);
 
     //energy accumulators per block:
     __shared__ float shVdWEng, shCoulEng;
@@ -2282,22 +2072,18 @@ __global__ void cell_list5a(cudaMD* md)
     float eVdW = 0.f;
     float eCoul = 0.f;
 
-
     if (threadIdx.x == 0)
     {
         shVdWEng = 0.f;
         shCoulEng = 0.f;
-        //        nat = md->nAtInCell[blockIdx.x];
-        //        fat = md->firstAtomInCell[blockIdx.x];
     }
     int nat = md->nAtInCell[blockIdx.x];
     int fat = md->firstAtomInCell[blockIdx.x];
 
     __syncthreads();
 
-    //if (nat < 2)        // no pairs
-      //  return;
-
+    if (nat < 2)        // no pairs
+        return;
 
     // тупой способ обхода, каждый поток получает свой i и перебирает j
     // есть недостаток - потоки загружены не равномерно
@@ -2315,10 +2101,6 @@ __global__ void cell_list5a(cudaMD* md)
         for (j = i + 1; j < nat; j++)
             //pair_in_cell_wInd(i + fat, j + fat, xyz, &force, type, md->xyz[j + fat], &(md->frs[j + fat]), md->types[j + fat], md, eVdW, eCoul);
             pair_1(i + fat, j + fat, md->xyz[i + fat], &force, md->types[i + fat], md->xyz[j + fat], &(md->frs[j + fat]), md->types[j + fat], zero_shift, md, eVdW, eCoul);
-//#ifdef DEBUG_MODE
-        //if (isnan(force.x))
-          //  printf("cell list 5a: force is nan\n");
-//#endif
         atomic_incFloat3(&(md->frs[i + fat]), force);
     }
 
@@ -2387,15 +2169,12 @@ __global__ void cell_list5a(cudaMD* md)
             }
         }
     */
-
-
     save_coul_vdw(eCoul, eVdW, &shCoulEng, &shVdWEng, md); // to shared then to global memory
-    //if (blockIdx.x == 0)
-      //  printf("aft_5a frs[%d]=%f\n", threadIdx.x, md->frs[threadIdx.x].x);
 }
 // end 'cell_list5a' function
 
 __global__ void cell_list5a_shared(cudaMD* md)
+// interactions inside the cell
 {
     int i, j;
     //int ex = 0;     // exit flag
@@ -2519,9 +2298,7 @@ __global__ void cell_list5b(cudaMD* md)
 
 void iter_fastCellList(int iStep, Field* fld, cudaMD* dmd, hostManagMD* man)
 {
-    
     //int need_to_sync = 0;
-
 
     if (1) //!(need_sort) - you can't do in such manner, as cell_list4 and 5 (used furher) based on nAtInCell and firstAtInCell arrays, formed during sorting
     {

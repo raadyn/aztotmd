@@ -1,3 +1,5 @@
+// some useful functions for CUDA
+
 #include <curand.h>
 
 #include "cuUtils.h"
@@ -32,6 +34,15 @@ __device__ void inc_float3(float3 *var, float3 inc)
     var->z += inc.z;
 }
 
+__device__ void inc_float3_coef(float3* var, float3 inc, float k)
+// increase value of float3 variable by inc with coefficien
+{
+    var->x += inc.x * k;
+    var->y += inc.y * k;
+    var->z += inc.z * k;
+}
+
+
 __device__ void atomic_incFloat3(float3* var, float3 inc)
 // atomic increase value of float3 variable
 {
@@ -40,8 +51,8 @@ __device__ void atomic_incFloat3(float3* var, float3 inc)
     atomicAdd(&(var->z), inc.z);
 }
 
-__device__ int devNpairs(int n)
-// number of pairs for n elements
+__device__ int dev_npair(int n)
+// number of pairs for n elements (device version)
 {
     return n * (n - 1) / 2;
 }
@@ -55,7 +66,7 @@ __device__ float sqr_summ(float3 val)
 */
 
 __device__ float3 float3_dif(float3 a, float3 b)
-// difference between to float3 values (return a - b)
+// difference between two float3 values (return a - b)
 {
     float3 res = make_float3(a.x - b.x, a.y - b.y, a.z - b.z);
     return res;
@@ -116,6 +127,5 @@ void cuda_info()
     cudaGetDeviceProperties(&devProp, 0);
     printf("%s CC=%d.%d GlobMem=%IuGb shMem/Block=%IukB constMem=%IukB clockRate=%dMHz nMultProc=%d maxThrPerMP=%d\n", devProp.name, devProp.major, devProp.minor, devProp.totalGlobalMem / 1024 / 1024 / 1024, devProp.sharedMemPerBlock / 1024, devProp.totalConstMem / 1024, devProp.clockRate / 1000, devProp.multiProcessorCount, devProp.maxThreadsPerMultiProcessor);
     printf("maxBlock=%d\n", devProp.maxGridSize[0]);
-    // вроде 64 процессора в мультипроцессоре этой видеокарты(4352 ядра)
 }
 

@@ -300,8 +300,8 @@ __global__ void get_random(cudaMD *md)
 */
 
 __constant__ const float revLight = 3.33567e-5f; // 1/c, where c is lightspeed, 2.9979e4 A/ps
-__constant__ const float Light = 2.9979e4f;      // lightspeed, 2.9979e4 A/ps
-__constant__ const float revPlank = 241.55f;    // 1 / plank constant (4.14 eV*ps)
+//__constant__ const float Light = 2.9979e4f;      // lightspeed, 2.9979e4 A/ps
+//__constant__ const float revPlank = 241.55f;    // 1 / plank constant (4.14 eV*ps)
 __constant__ const float numPi = 3.14159f;    // pi
 
 __device__ float3 rand_uvect(uint4 &var, cudaMD* md)
@@ -976,13 +976,29 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
     }
 }
 
+void apply_pre_tstat(int iStep, TStat* tstat, Sim* sim, cudaMD* devMD, hostManagMD* man)
+// apply first stage of thermostat (used before the first stage of the Velocity Verlet integrator)
+{
+    if (tstat->type == tpTermNose)
+        {
+            before_nose << <1, 1 >> > (devMD);
+            cudaThreadSynchronize();
+            tstat_nose << <  man->nAtBlock, man->nAtThread >> > (man->atPerBlock, man->atPerThread, devMD);
+            cudaThreadSynchronize();
+            after_nose << <1, 1 >> > (1, devMD);
+            cudaThreadSynchronize();
+        }
+}
+
+
 void apply_tstat(int iStep, TStat *tstat, Sim *sim, cudaMD *devMD, hostManagMD *man)
+// apply thermostat (used after the second stage of the Velocity Verlet integrator)
 {
     if (sim->nEq)   //! only if nEq != 0
         if (iStep <= sim->nEq)
             if ((iStep % sim->freqEq) == 0)
             {
-                temp_scale << <man->nAtBlock, man->nAtThread/*man->nMultProc, man->nSingProc*/ >> > (man->atPerBlock, man->atPerThread, devMD);
+                temp_scale << <man->nAtBlock, man->nAtThread >> > (man->atPerBlock, man->atPerThread, devMD);
                 cudaThreadSynchronize();
                 after_tscale << <1, 1 >> > (devMD);
                 cudaThreadSynchronize();
@@ -1001,14 +1017,6 @@ void apply_tstat(int iStep, TStat *tstat, Sim *sim, cudaMD *devMD, hostManagMD *
         //get_random << <man->nAtBlock, man->nAtThread >> > (devMD);
         break;
     case tpTermRadi:
-        //if ((iStep % tstat->step) == 0)
-          //  man->tstat_sign = 1;
-        //else
-          //  man->tstat_sign = 0;
-        //if ((iStep % 25 == 0)||(iStep < 2000))
-        //if (iStep < 5)
-        //if (iStep % 100 == 0)
-
 
         tstat_radi9 << <man->nAtBlock, man->nAtThread >> > (iStep, man->atPerBlock, man->atPerThread, devMD);
         cudaThreadSynchronize();

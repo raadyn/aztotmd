@@ -857,8 +857,7 @@ __global__ void write_traj(int iStep, int shift, int atPerBlock, int atPerThread
     N = min(N, at2 + 1);     // ending by at2
     for (i = id0; i < N; i++)
     {
-        //j = md->sort_ind[i];
-        j = md->sort_trajs[i];
+        j = md->cur_inds[i];
         addr[i * nparam] = md->xyz[j].x;
         addr[i * nparam + 1] = md->xyz[j].y;// (float)md->types[j];//md->xyz[j].y;
         if (nparam > 2)
@@ -868,11 +867,15 @@ __global__ void write_traj(int iStep, int shift, int atPerBlock, int atPerThread
             {
                 // for type and ptype output:
                 addr[i * nparam + 3] = md->types[j];
-                p = md->parents[j];
-                if (p > 0)  //! почему 0? должно быть -1, но с 0 правильно работает а с -1 - неет
-                    addr[i * nparam + 4] = md->types[p];
-                else
-                    addr[i * nparam + 4] = -1.f;
+                if (md->use_bnd)
+                {
+                    p = md->parents[j];
+                    if (p > -1)  //! почему 0? должно быть -1, но с 0 правильно работает а с -1 - неет
+                        addr[i * nparam + 4] = md->types[p];
+                    else
+                        addr[i * nparam + 4] = -1.f;
+
+                }
             }
         }
     }
@@ -1002,8 +1005,7 @@ __global__ void write_bindtraj(int iStep, int shift, int bindTrajPerBlock, int b
     addr += id0 * bytesPerAtom;
     for (i = id0; i < N; i++)
     {
-        j = md->sort_trajs[md->bindtraj_atoms[i]];
-        //j = 1;
+        j = md->cur_inds[md->bindtraj_atoms[i]];
         *(float*)addr = md->xyz[j].x;
         addr += float_size;
         *(float*)addr = md->xyz[j].y;
@@ -1014,7 +1016,7 @@ __global__ void write_bindtraj(int iStep, int shift, int bindTrajPerBlock, int b
         addr += int_size;
         *(int*)addr = md->nbonds[j];
         addr += int_size;
-        if (md->parents[j] > 0)     //! я не понимаю почему у атомов без связей parent стоит не -1, а 0
+        if (md->parents[j] > -1)
         {
             p = md->parents[j];
             *(int*)addr = md->types[p];
@@ -1030,12 +1032,8 @@ __global__ void write_bindtraj(int iStep, int shift, int bindTrajPerBlock, int b
         {
             *(int*)addr = -1;
             addr += int_size;
-            *(float*)addr = 0.f;
-            addr += float_size;
-            *(float*)addr = 0.f;
-            addr += float_size;
-            *(float*)addr = 0.f;
-            addr += float_size;
+            // skip next 3 elements
+            addr += 3 * float_size;
         }
     }
 }

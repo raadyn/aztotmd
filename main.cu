@@ -33,21 +33,16 @@
 #include "elec.h"
 #include "cuEjump.h"
 
-
-
-//! СОВСЕМ КОНСТАНТЫ, А НЕ ПРОСТО КОНСТАНТЫ ДЛЯ ДАННОЙ СИМУЛЯЦИИ
+//! PHYSICAL CONSTANTS
 //__constant__ const float PI = 3.1415926;
 extern __constant__ const float d_Fcoul_scale = 14.3996f;  
-extern __constant__ const float d_sqrtpi = 1.772453f;  //sqrt(PI); - не поддерживается динамическая инициализация
-extern __constant__ const float d_2pi = 6.283185307f;  //2 * (PI);
-__constant__ const float d_rkB = 11604.524844f;     // invert Bolzman constant in program units
-
-__constant__ float tStep;
+extern __constant__ const float d_sqrtpi = 1.772453f;  //   sqrt(PI)
+extern __constant__ const float d_2pi = 6.283185307f;  //   2 * (PI)
+__constant__ const float d_rkB = 11604.524844f;     //      invert Bolzman constant in program units
 
 // Textues:
 //texture<float> rMassHdt;
 texture<float, 2, cudaReadModeElementType> qProd;
-
 
 int out_thermalchar(Atoms* atm, Field* field, char* fname, cudaMD* md)
 // write thermal characteristics (thermal energy and radii) in file [only for radiative thermostat]
@@ -118,7 +113,6 @@ int out_thermalchar(Atoms* atm, Field* field, char* fname, cudaMD* md)
     return 1;
 }
 
-
 __global__ void calc_quantities(int iStep, cudaMD* md)
 // calculate derived parameters as total energy, pressure, mean bonds lifetime and etc
 {
@@ -130,16 +124,15 @@ __global__ void calc_quantities(int iStep, cudaMD* md)
     md->engPotKin = md->engPot + md->engKin;
     md->engTot = md->engPotKin + md->engTemp;
 
-    // calculate 'kinetic' temperature: T = 2/kB * K/3N, but 3N replace to f - number of freedom degree, and f will be calculated as 3N - Nbond:
+    // calculate 'kinetic' temperature: T = 2/kB * K/3N, but 3N is replaced to f - number of freedom degree, and f will be calculated as 3N - Nbond:
     f = 3.f * md->nAt - md->nBond;
     md->kinTemp = 2.f * d_rkB * md->engKin / f;
-
 
     // pressure calculation
     if (iStep >= md->nMom - 1)
     {
         i = md->iMom;
-        k = 2.f * 1.58e6 / (md->tSt * (md->nMom - 1));
+        k = 2.f * 1.58e6f / (md->tSt * (md->nMom - 1));
         md->posPres.x = k * (md->posMom.x - md->posMomBuf[i].x) * md->revEdgeArea.x;
         md->posPres.y = k * (md->posMom.y - md->posMomBuf[i].y) * md->revEdgeArea.y;
         md->posPres.z = k * (md->posMom.z - md->posMomBuf[i].z) * md->revEdgeArea.z;
@@ -186,18 +179,6 @@ __global__ void calc_quantities(int iStep, cudaMD* md)
             //printf("ltMena[%d]=%f rMean = %f\n", i, md->bondTypes[i].ltMean, md->bondTypes[i].rMean);
         }
     }
-
-#ifdef DEBUG_MODE
-    if (threadIdx.x == 0)
-        for (i = 1; i < md->nBndTypes; i++)
-            if ((md->bondTypes[i].spec1 < 0) || (md->bondTypes[i].spec2 < 0) || (md->bondTypes[i].spec1 >= MX_SPEC) || (md->bondTypes[i].spec2 >= MX_SPEC))
-            {
-                printf("aft calc_quant: bl[%d] step %d bnd[%d] spec1=%d spec2=%d\n", blockIdx.x, iStep, i, md->bondTypes[i].spec1, md->bondTypes[i].spec2);
-                md->xyz[9999999999].x = 15.f;  // crash cuda
-            }
-#endif
-
-    
 }
 
 __global__ void define_global_func(cudaMD *md)
@@ -221,56 +202,34 @@ __global__ void define_global_func(cudaMD *md)
           printf("ERROR[b008] Something wrong: wrong value of use_coul variable (%d)\n", md->use_coul);
     }
     //printf("arr[%d]=%f fetch=%f\n", 250, md->coulEng[250], fetch1D);
-
-#ifdef DEBUG_MODE
-    int i;
-    for (i = 0; i < md->nBndTypes; i++)
-        printf("bnd[%d] spec1=%d spec2=%d\n", i, md->bondTypes[i].spec1, md->bondTypes[i].spec2);
-#endif
-    //int i;
-    //for (i = 0; i < md->nSpec; i++)
-      //  printf("spec[%d] mass=%f\n", i, md->specs[i].mass);
 }
-
-/*
-__global__ void atom_types(cudaMD *dmd)
-{
-    int i;
-    printf("device atom types: ");
-    for (i = 0; i < 40; i++)
-        printf("%d ", dmd->types[i]);
-    printf("\n");
-}
-*/
 
 int main()
 {
+    char c;         // for anykey pressing
     int start_time = time(NULL);
     srand(time(NULL));
 
+    // the same part as for serial version: allocate memory and load data
     Elec* elec = (Elec*)malloc(sizeof(Elec));
     TStat* tstat = (TStat*)malloc(sizeof(TStat));
     Box* box = (Box*)malloc(sizeof(Box));
     Field* field = (Field*)malloc(sizeof(Field));
     Atoms* atoms = (Atoms*)malloc(sizeof(Atoms));
     Sim* sim = (Sim*)malloc(sizeof(Sim));
-
     int res = init_md(atoms, field, sim, elec, tstat, box);
+    if (!res)
+    {
+        scanf("%c", &c);
+        exit(1);
+    }
 
-
+    // allocate memory for CUDA version
     hostManagMD* man = (hostManagMD*)malloc(sizeof(hostManagMD));
     cudaMD* hostMD = (cudaMD*)malloc(sizeof(cudaMD));                               // a host exemplar of cudaMD
     cudaMD* devMD = init_cudaMD(atoms, field, sim, tstat, box, elec, man, hostMD);     // a device exemplar
-    dim3 dim;
-    dim.x = 32;
-    dim.y = 2;
-    dim.z = 1;
-    int bndPerThreadEjump = ceil((double)hostMD->mxBond / 32);
 
     cuda_info();    // print some information about videocard
-
-    int nB1 = ceil((double)man->nPair1Block / (double)man->pairPerBlock);
-    int nB2 = ceil((double)man->nPair2Block / (double)man->pairPerBlock);
 
     define_global_func << <1, 1 >> > (devMD);
     define_vdw_func << <1, field->nVdW >> > (devMD);
@@ -296,26 +255,14 @@ int main()
 #endif
         cudaThreadSynchronize();
         
-        if (tstat->type == tpTermNose)
-        {
-            before_nose << <1, 1 >> > (devMD);
-            cudaThreadSynchronize();
-            tstat_nose << <  man->nAtBlock, man->nAtThread/*man->nMultProc, man->nSingProc*/ >> > (man->atPerBlock, man->atPerThread, devMD);
-            cudaThreadSynchronize();
-            after_nose << <1, 1 >> > (1, devMD);
-            cudaThreadSynchronize();
-        }
-        
+        apply_pre_tstat(iStep, tstat, sim, devMD, man);
         verlet_1stage <<<man->nAtBlock, man->nAtThread/*man->nMultProc, man->nSingProc*/ >>> (iStep, man->atPerBlock, man->atPerThread, devMD);
         cudaThreadSynchronize();
 
         //verify_clist << < man->nMultProc, man->nSingProc >> > (devMD);
         //cudaThreadSynchronize();
-        //some_info << <1, 1 >> > (iStep, devMD);
-        //cudaThreadSynchronize();
         if (sim->use_bnd == 1)  // constant bonds
         {
-            
             apply_const_bonds << <man->nMultProc, man->nSingProc >> > (iStep, man->bndPerBlock, man->bndPerThread, devMD);
             cudaThreadSynchronize();
         }
@@ -326,16 +273,9 @@ int main()
             clear_bonds << <1, 1 >> > (devMD);
             cudaThreadSynchronize();
         }
-        //verify_forces << <man->nAtBlock, man->nAtThread >> > (man->atPerBlock, man->atPerThread, iStep, devMD, 1);
 
-#ifdef USE_FASTLIST
         iter_fastCellList(iStep, field, devMD, man);
         //verify_forces << <man->nAtBlock, man->nAtThread >> > (man->atPerBlock, man->atPerThread, iStep, devMD, 2);
-#else
-        iter_cellList(iStep, nB1, nB2, dim, man, devMD);
-#endif  // USE_FASTLIST
-
-
         if (elec->type == tpElecEwald)
         {
             recip_ewald << <man->nMultProc, man->nSingProc, man->memRecEwald >> > (man->atPerBlock, man->atPerThread, devMD);
@@ -355,7 +295,7 @@ int main()
             //! temporary: each timestep
             //! now for ejump is necessary bonds
             //! сложности будут для переменного числа свободных электронов
-            cuda_ejump<<<sim->nFreeEl, 32>>>(bndPerThreadEjump, devMD);
+            cuda_ejump<<<sim->nFreeEl, 32>>>(man->bndPerThreadEjump, devMD);
             cudaThreadSynchronize();
         }
 
@@ -390,6 +330,8 @@ int main()
         apply_tstat(iStep, tstat, sim, devMD, man);
         calc_quantities<<<1, 1>>>(iStep, devMD);
         cudaThreadSynchronize();
+
+        // statistics block:
         if (iStep % sim->stat == 0)
             print_stat << <1, 1 >> > (iStep, devMD);
         stat_iter(iStep, man, &(man->stat), devMD, hostMD, sim->tSt);
@@ -429,7 +371,7 @@ int main()
     if (sim->nBindTrajAtoms)
         end_bindtraj(man, hostMD, sim, box);
 
-    if (sim->use_bnd == 2) // for non constant bonds
+    if (sim->use_bnd == 2) // for non-constant bonds
     {
         fix_bonds << < man->nMultProc, man->nSingProc >> > (man->bndPerBlock, man->bndPerThread, devMD);
         cudaThreadSynchronize();
@@ -481,6 +423,6 @@ int main()
 
     int final_time = time(NULL);
     int res_time = final_time - start_time;
-    printf("Finish. elapsed time: %d s\n", res_time);
-    char c;  scanf("%c", &c);
+    printf("Finish. Elapsed time: %d s\n", res_time);
+    scanf("%c", &c);
 }

@@ -15,7 +15,6 @@
 #define MX_SPEC 15
 
 
-//#define USE_EWALD
 
 //#define USE_ALLPAIR
 //#define USE_CELL3

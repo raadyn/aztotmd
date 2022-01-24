@@ -320,15 +320,15 @@ __global__ void print_stat(int iStep, cudaMD* md)
 {
     printf("%d x1=%.2f", iStep, md->xyz[0].x);
     if (md->use_coul)
-        printf(" C1=%.3G, C2=%.3G ", md->engCoul1, md->engCoul2);
+        printf(" C1=%.3G C2=%.3G ", md->engCoul1, md->engCoul2);
     if (md->use_bnd == 2)
         printf(" nBnd=%d", md->nBond);
     if (md->use_bnd)
         printf(" bndEng=%.3G", md->engBond);
-    printf(" Kin=%.3G Vdw=%.3G", md->engKin, md->engVdW);
+    printf(" Tk=%.3G Kin=%.3G Vdw=%.3G", md->kinTemp, md->engKin, md->engVdW);
     if (md->tstat == 2) // radiative thermostat
         printf(" K+P=%.3G U=%.3G", md->engPotKin, md->engTemp);
-    printf(" Tot=%.3G P=%.0f V=%f G=%f", md->engTot, md->pressure, md->virial, md->G);
+    printf(" Tot=%.3G P=%.0f V=%.3G G=%.3G", md->engTot, md->pressure, md->virial, md->G);
     printf("\n");
 }
 
@@ -338,84 +338,39 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
     int i, t;
     float charge;
     float engElecField = 0.f;
-    __shared__ float shEngElField;   // shared copy of energy field variable
+    __shared__ float shEngElField;   // shared copy of external electric field energy
 
     //float rm;
-    float x0, y0, z0;   // to debug
+    //float x0, y0, z0;   // to debug
 
-
-    // reset accumulators of energy field
     if (threadIdx.x == 0)   // 0th thread of 0th block, reset some energies
     {
         shEngElField = 0;
-        if (blockIdx.x == 0)
-        {
-            //     md->engElecField = 0;  //! убрать в reset
-#ifdef TX_CHARGE
-            /*
-            float p1, p2, p3, p4;
-            p1 = tex2D(qProd, 0, 0);
-            //p1 = (float)(md->texChProd[0]);
-            p2 = tex2D(qProd, 0, 1);
-            p3 = tex2D(qProd, 1, 0);
-            p4 = tex2D(qProd, 1, 1);
-            printf("prod of charges are: %f %f %f %f\n", p1, p2, p3, p4);
-            */
-#endif
-        }
     }
     __syncthreads();
 
-#ifdef DEBUG_MODE
-    if (threadIdx.x == 0)
-        for (i = 1; i < md->nBndTypes; i++)
-            if ((md->bondTypes[i].spec1 < 0) || (md->bondTypes[i].spec2 < 0) || (md->bondTypes[i].spec1 >= MX_SPEC) || (md->bondTypes[i].spec2 >= MX_SPEC))
-            {
-                printf("bef verlete1: bl[%d] step %d bnd[%d] spec1=%d spec2=%d\n", blockIdx.x, iStep, i, md->bondTypes[i].spec1, md->bondTypes[i].spec2);
-                md->xyz[9999999999].x = 15.f;  // crash cuda
-            }
-#endif
-
-
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
-    //printf("start verlet1[%d,%d] atoms=%d .. <%d\n", blockIdx.x, threadIdx.x, id0, N);
     for (i = id0; i < N; i++)
     {
-        //if (i == 0)
-          //  printf("v1_0(%d) x=%f vls=%f PosMomX=%f\n", iStep, md->xyz[0].x, md->vls[0].x, md->posMom.x);
-        
         t = md->types[i];
-#ifdef DEBUG_MODE
-        if ((t < 0) || (t >= MX_SPEC))
-        {
-            printf("WRONG SPECIE %d of atom[%d]!\n", t, i);
-            continue;
-        }
-#endif
         charge = md->specs[t].charge;
-
 
         //the first stage of velocity update:
         //  v = v + f/m * 0.5 dt
         md->vls[i].x += md->rMasshdT[i] * md->frs[i].x;
         md->vls[i].y += md->rMasshdT[i] * md->frs[i].y;
         md->vls[i].z += md->rMasshdT[i] * md->frs[i].z;
-        //if (i == 0)
-          //  printf("v05_1(%d) x=%f vls=%f frc=%f\n", iStep, md->xyz[0].x, md->vls[0].x, md->frs[0].x);
 
         //rm = tex1Dfetch(rMassHdt, i);
         //md->vls[i].x += rm * md->frs[i].x;
         //md->vls[i].y += rm * md->frs[i].y;
         //md->vls[i].z += rm * md->frs[i].z;
 
+        //x0 = md->xyz[i].x;
+        //y0 = md->xyz[i].y;
+        //z0 = md->xyz[i].z;
 
-        x0 = md->xyz[i].x;
-        y0 = md->xyz[i].y;
-        z0 = md->xyz[i].z;
-
-        //if (isnan(x0))
-          //  printf("th(%d,%d): x0[%d]=%f, v=%f f=%f\n", blockIdx.x, threadIdx.x, i, x0, md->vls[i].x, md->frs[i].x);
 
         // x = x + v * dt
 #ifdef USE_CONST    // use constant memory for timestep
@@ -433,12 +388,11 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
             md->xyz[i].z += md->vls[i].z * md->tSt;
         }
 #endif
-        //if (i == 0)
-          //  printf("v1_1(%d) x=%f\n", iStep, md->xyz[0].x);
 
         // apply periodic boundaries
         put_periodic(md->xyz[i], md->vls[i], md->masses[i], md->types[i], md);
 
+        /*
         if (md->xyz[i].x >= md->leng.x)
             printf("verl1(%d) th(%d,%d): x[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, x0, md->xyz[i].x, md->vls[i].x, md->frs[i].x);
         else
@@ -454,17 +408,11 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
         else
             if (md->xyz[i].z < 0)
                 printf("verl1(%d) th(%d,%d): z[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, z0, md->xyz[i].z, md->vls[i].z, md->frs[i].z);
-
-
-        //if (i == 0)
-          //  printf("v1_2(%d) x=%f\n", iStep, md->xyz[0].x);
+        */
 
         //save the atom in cell list
 #ifndef USE_ALLPAIR
-        //printf("verlet1: rev=(%f %f %f)\n", md->cRevSize.x, md->cRevSize.y, md->cRevSize.z);
 #ifdef USE_FASTLIST
-        //if (isnan(md->xyz[i].x))
-          //  printf("(%d) try call count_cell with nan value, i=%d, vx=%f\n", iStep, i, md->vls[i].x);
         count_cell(i, md->xyz[i], md);
 #else
         keep_in_cell(i, md->xyz[i], md);
@@ -474,9 +422,7 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
         //  Eng = q * x * dU/dx
         engElecField += charge * (md->xyz[i].x * md->elecField.x + md->xyz[i].y * md->elecField.y + md->xyz[i].z * md->elecField.z);
 
-        //! сброшу здесь, хотя при использовании cell_list это не обязательно, это нужно если мы используем all_pair
-        //! теперь обязательно, поскольку apply_bonds выполняется до cell_list
-        //! а ещё обязательно, поскольку используется внешнее эл. поле
+        // reset force by applying of external electric field (or zero)
         md->frs[i] = make_float3(-charge * md->elecField.x, -charge * md->elecField.y, -charge * md->elecField.z);    // F = -q * dU/dx
 
         if (md->use_bnd == 2)   // variable bonds
@@ -495,17 +441,14 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
 #endif
     }
 
-
     // copy energy of elec field, at the first to the shared variable...
     atomicAdd(&shEngElField, engElecField);
     __syncthreads();
-
     //.. then to global variable
     if (threadIdx.x == 0)
     {
         atomicAdd(&md->engElecField, shEngElField);
     }
-    //printf("end verlet1[%d,%d] atoms=%d .. <%d\n", blockIdx.x, threadIdx.x, id0, N);
 
 #ifdef DEBUG_MODE
     if (threadIdx.x == 0)
@@ -516,7 +459,6 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
                 md->xyz[9999999999].x = 15.f;  // crash cuda
             }
 #endif
-
 }
 // end 'verlet_1stage' function
 
@@ -723,14 +665,6 @@ __global__ void verify_ncult(int n, int nP, int nC, cudaMD* md)
 
 }
 #endif
-
-
-__global__ void some_info(int iStep, cudaMD* md)
-{
-#ifdef DEBUG_MODE
-    printf("%d: atm in list: %d (%d dublicates, pure: %d)\n", iStep, md->atInList, md->dublInList, md->atInList - md->dublInList);
-#endif
-}
 
 __global__ void clear_clist(/*int cellPerBlock, int cellPerThread, */cudaMD* md)
 {

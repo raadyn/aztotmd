@@ -5,7 +5,6 @@
 #include "utils.h"
 #include "cuUtils.h"
 
-
 int split_cells(int div_type, float r, int add_to_even, int nAt, cudaMD* hmd)
 // div_type определяет тип разбиения: 0 - ребро ячейки  не превышает r, 1 - ребро не меньше r
 // split box into cells

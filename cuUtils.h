@@ -14,12 +14,14 @@ void cuda2DFree(void** addr, int n);
 __device__ float3 float3_dif(float3 a, float3 b);		// a - b
 __device__ void atomic_incFloat3(float3* var, float3 inc);
 __device__ void inc_float3(float3* var, float3 inc);
+__device__ void inc_float3_coef(float3* var, float3 inc, float k);	// var += inc * k
 __device__ float float3_length(float3 vect);
 __device__ float float3_sqr(float3 vect);
 __device__ float sc_prod(float3 a, float3 b);		// <a * b>
 
 
-__device__ int devNpairs(int n);	// return the number of pairs
+__device__ int dev_npair(int n);		// number of pairs
+
 void cuda_info();
 
 // random number generators:

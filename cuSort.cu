@@ -27,13 +27,12 @@ void alloc_sort(int nAt, int nCell, cudaMD* hmd)
     cudaMalloc((void**)(&hmd->sort_radii), flsize);         // for radiative thermostat only    //! not ONLY! if we used T-dependent pair pot we also need this array, even without radiative thermostat
     cudaMalloc((void**)(&hmd->sort_radstep), intsize);    // for radiative thermostat only
 
-    // for trajectories output
+    // for keeping atoms indexes
     int* arr = (int*)malloc(intsize);
-    //cudaMalloc((void**)(&hmd->sort_trajs), intsize);        
     int i;
     for (i = 0; i < nAt; i++)
         arr[i] = i;
-    data_to_device((void**)(&hmd->sort_trajs), arr, intsize);
+    data_to_device((void**)(&hmd->cur_inds), arr, intsize);
 
     //? может это относится к cell list, а не к sort?
     intsize = int_size * nCell;
@@ -61,7 +60,7 @@ void free_sort(cudaMD* hmd)
     cudaFree(hmd->sort_engs);    // for radiative thermostat only
     cudaFree(hmd->sort_radii);    // for radiative thermostat only
     cudaFree(hmd->sort_radstep);    // for radiative thermostat only
-    cudaFree(hmd->sort_trajs);        // for trajectories output
+    cudaFree(hmd->cur_inds);        // for trajectories output
 }
 
 __device__ void switch_pointers(void** p1, void** p2)
@@ -209,7 +208,7 @@ __global__ void sort_dependent(int atPerBlock, int atPerThread, cudaMD* md)
         if (md->use_bnd)
             //md->sort_parents[i] = md->sort_ind[md->sort_parents[i]]; //! I don't know how it was obtained and how does it work, the next line is correct:
             md->sort_parents[md->sort_ind[i]] = md->sort_ind[md->parents[i]];
-        md->sort_trajs[i] = md->sort_ind[md->sort_trajs[i]];
+        md->cur_inds[i] = md->sort_ind[md->cur_inds[i]];
     }
 }
 

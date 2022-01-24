@@ -7,6 +7,8 @@
 #include "sys_init.h"
 #include "vdw.h"
 #include "cuVdW.h"
+#include "cuBonds.h"
+#include "cuAngles.h"
 #include "cuElec.h"
 #include "const.h"  // kB
 #include "cuInit.h"
@@ -61,624 +63,12 @@ void angles_to_host(int4* buffer, cudaMD* md, Field* fld, hostManagMD* man)
     }
 }
 
-int code_shift(int x, int y, int z)
-// convert shifts for each direction if format -1 / 0 / 1 to one integer number
-{
-    return (x + 1) + 3 * (y + 1) + 9 * (z + 1);
-}
-
-int cell_dist(int xi, int xj, int mx, float length, float csize, float rskip, float& rmin, float& rmax, float& shift, int &int_shift)
-// вычисл€ем минимальное и максимальное рассто€ние (в кол-ве €чеек) между частицами из 2х разных €чеек, а также сдвиг, используемый при учете периодических условий
-// xi, xj - координаты 2х €чеек по 1му измерению, mx - максимальное кол-во €чеек в этом измерении, length - длина бокса в этом измерении csize - размер €чейки
-// возвращаем 1 если €чейки слишком далеко (больше rskip) иначе 0
-{
-
-    shift = 0.f;
-    int_shift = 0;
-    int delt = abs(xi - xj);
-    if (delt != 0)
-    {
-        if (delt > (double)(mx / 2))
-        {
-            delt = mx - delt;
-            if (xi > xj)
-                //shift = length;
-                int_shift = 1;
-            else
-                //shift = -length;
-                int_shift = -1;
-
-            shift = length * int_shift;
-        }
-        rmin = (delt - 1) * csize - 0.f * csize; //! -1.0 csize - temporary addtion!    //! 0.f * csize? what's meaning?
-        //! temp!
-        if (rmin < 0.f)
-            rmin = 0.f;
-        rmax = (delt + 1) * csize;
-        if (rmin > rskip)
-            return 1;
-        else
-            return 0;
-    }
-    else
-    {
-        rmin = 0.f;
-        rmax = csize;
-        return 0;
-    }
-
-}
-
-int cell_dist_int(int xi, int xj, int mx, float length, float csize, float rskip, float& rmin, float& rmax, int& shift)
-// version with integer shift (-1 / 0 / 1)
-{
-
-    shift = 0.f;
-    int delt = abs(xi - xj);
-    if (delt != 0)
-    {
-        if (delt > (double)(mx / 2))
-        {
-            delt = mx - delt;
-            if (xi > xj)
-                shift = 1;
-            else
-                shift = -1;
-        }
-        rmin = (delt - 1) * csize - 0.f * csize; //! -1.0 csize - temporary addtion!    //! * 0.f ???
-        //! temp!
-        if (rmin < 0)
-            rmin = 0.f;
-        rmax = (delt + 1) * csize;
-        if (rmin > rskip)
-            return 1;
-        else
-            return 0;
-    }
-    else
-    {
-        rmin = 0.f;
-        rmax = csize;
-        return 0;
-    }
-
-}
-
-void bonds_to_device(Atoms *atm, Field *fld, Sim *sim, cudaMD *hmd, hostManagMD *man)
-// copy bonds data to device, hmd - host exemplar of cudaMD struct
-{
-    int i, j;
-    int nsize = atm->nAt * int_size;
-
-    hmd->mxBond = fld->mxBonds;
-    hmd->nBond = fld->nBonds;
-
-    man->bndPerBlock = ceil((double)fld->mxBonds / (double)man->nMultProc);
-    man->bndPerThread = ceil((double)man->bndPerBlock / (double)man->nSingProc);
-    if (man->bndPerBlock < (man->bndPerThread * man->nSingProc))
-        man->bndPerBlock = man->bndPerThread * man->nSingProc;    // but not less 
-
-
-    cudaBond* bndTypes = (cudaBond*)malloc(fld->nBdata * sizeof(cudaBond));
-    hmd->nBndTypes = fld->nBdata;
-    for (i = 1; i < fld->nBdata; i++)   // i = 0 reserved for empty(deleted) bond
-    {
-        bndTypes[i].type = fld->bdata[i].type;
-        bndTypes[i].spec1 = fld->bdata[i].spec1;
-        bndTypes[i].spec2 = fld->bdata[i].spec2;
-        bndTypes[i].mxEx = fld->bdata[i].mxEx;
-        bndTypes[i].mnEx = fld->bdata[i].mnEx;
-        bndTypes[i].new_type[0] = fld->bdata[i].new_type[0];
-        bndTypes[i].new_type[1] = fld->bdata[i].new_type[1];
-
-        if (bndTypes[i].mnEx)
-        {
-            j = bndTypes[i].new_type[0];
-            if (j < 0)  // invert species
-            {
-                bndTypes[i].new_spec1[0] = fld->bdata[-j].spec2;
-                bndTypes[i].new_spec2[0] = fld->bdata[-j].spec1;
-            }
-            else
-            {
-                bndTypes[i].new_spec1[0] = fld->bdata[j].spec1;
-                bndTypes[i].new_spec2[0] = fld->bdata[j].spec2;
-            }
-        }
-
-        if ((bndTypes[i].mxEx) && (bndTypes[i].new_type[1] != 0))   // не удал€ем
-        {
-            j = bndTypes[i].new_type[1];
-            if (j < 0)  // invert species
-            {
-                bndTypes[i].new_spec1[1] = fld->bdata[-j].spec2;
-                bndTypes[i].new_spec2[1] = fld->bdata[-j].spec1;
-            }
-            else
-            {
-                bndTypes[i].new_spec1[1] = fld->bdata[j].spec1;
-                bndTypes[i].new_spec2[1] = fld->bdata[j].spec2;
-            }
-        }
-
-
-        bndTypes[i].new_spec1[0] = fld->bdata[i].new_spec1[0];
-        bndTypes[i].new_spec1[1] = fld->bdata[i].new_spec1[1];
-        bndTypes[i].new_spec2[0] = fld->bdata[i].new_spec2[0];
-        bndTypes[i].new_spec2[1] = fld->bdata[i].new_spec2[1];
-        bndTypes[i].hatom = fld->bdata[i].hatom;
-        bndTypes[i].evol = fld->bdata[i].evol;
-
-        //! переопределить spec2 дл€ мин и макс, если макс не удалить
-
-        bndTypes[i].p0 = (float)fld->bdata[i].p0;
-        bndTypes[i].p1 = (float)fld->bdata[i].p1;
-        bndTypes[i].p2 = (float)fld->bdata[i].p2;
-        bndTypes[i].p3 = (float)fld->bdata[i].p3;
-        bndTypes[i].p4 = (float)fld->bdata[i].p4;
-        bndTypes[i].r2min = (float)fld->bdata[i].r2min;
-        bndTypes[i].r2max = (float)fld->bdata[i].r2max;
-        bndTypes[i].count = fld->bdata[i].number;
-        bndTypes[i].rSumm = 0.0f;
-        bndTypes[i].rCount = 0;
-        bndTypes[i].ltSumm = 0;
-        bndTypes[i].ltCount = 0;
-    }
-    data_to_device((void**)&(hmd->bondTypes), bndTypes, fld->nBdata * sizeof(cudaBond));
-    free(bndTypes);
-
-    int4* bnds = (int4*)malloc(fld->nBonds * int4_size);
-    for (i = 0; i < fld->nBonds; i++)
-    {
-        bnds[i] = make_int4(fld->at1[i], fld->at2[i], fld->bTypes[i], 0);
-    }
-    cudaMalloc((void**)&(hmd->bonds), fld->mxBonds * int4_size);
-    cudaMemcpy(hmd->bonds, bnds, fld->nBonds * int4_size, cudaMemcpyHostToDevice);
-    free(bnds);
-
-    data_to_device((void**)&(hmd->nbonds), atm->nBonds, nsize);
-
-    //int* int_array;
-    int** int_int_array;
-    float** fl_fl_array;
-    int_int_array = (int**)malloc(fld->nSpec * pointer_size);
-    for (i = 0; i < fld->nSpec; i++)
-    {
-        data_to_device((void**)&(int_int_array[i]), fld->bond_matrix[i], fld->nSpec * int_size);
-    }
-    data_to_device((void**)&(hmd->def_bonds), int_int_array, fld->nSpec * pointer_size);
-    free(int_int_array);
-
-    // parents are -1?
-    /*
-    for (i = 0; i < atm->nAt; i++)
-        if (atm->parents[i] != -1)
-            printf("parents[%d]=%d\n", i, atm->parents[i]);
-
-    for (i = 0; i < atm->nAt; i++)
-        if (atm->parents[i] == -1)
-            printf("parents[%d]=-1\n", i);
-     */
-
-    data_to_device((void**)&(hmd->parents), atm->parents, nsize);
-
-    if (sim->use_bnd == 2)  // binding
-    {
-        cudaMalloc((void**)&(hmd->neighToBind), nsize);
-        cudaMalloc((void**)&(hmd->canBind), nsize);
-        cudaMalloc((void**)&(hmd->r2Min), nsize);
-
-
-        int_int_array = (int**)malloc(fld->nSpec * pointer_size);
-        fl_fl_array = (float**)malloc(fld->nSpec * pointer_size);
-        float* fl_array = (float*)malloc(fld->nSpec * sizeof(float));
-        for (i = 0; i < fld->nSpec; i++)
-        {
-            data_to_device((void**)&(int_int_array[i]), fld->bonding_matr[i], fld->nSpec * int_size);
-            for (j = 0; j < fld->nSpec; j++)
-                fl_array[j] = (float)fld->bindR2matrix[i][j];
-            data_to_device((void**)&(fl_fl_array[i]), fl_array, fld->nSpec * float_size);
-        }
-        data_to_device((void**)&(hmd->bindBonds), int_int_array, fld->nSpec * pointer_size);
-        data_to_device((void**)&(hmd->bindR2), fl_fl_array, fld->nSpec * pointer_size);
-
-        free(int_int_array);
-        free(fl_fl_array);
-        free(fl_array);
-    }
-}
-
 __global__ void save_ptrs(int **ptr_arr, cudaMD *dmd)
 // dmd - pointer device exemplar of cudaMD struct
 {
     ptr_arr[0] = &(dmd->nAt);
     ptr_arr[1] = &(dmd->nBond);
     ptr_arr[2] = &(dmd->nAngle);
-}
-
-int save_cellpair(int3* cells, int ci, int cj, int4* pairs, float3* shifts, float rmax, float mxr2vdw, cudaMD* md, Sim* sim, int& index)
-// save cell pairs ci-cj in pairs array and increase current index
-// return 1 if out of range otherwise return 0
-{
-    float dxmin, dxmax, dymin, dymax, dzmin, dzmax, dr2max;
-    float3 shift = make_float3(0.0f, 0.0f, 0.0f);
-    int shx, shy, shz;  // periodic shifts
-    //float rmax2 = rmax * rmax;
-
-    // x dimension:
-    if (cell_dist(cells[ci].x, cells[cj].x, md->cNumber.x, md->leng.x, md->cSize.x, rmax, dxmin, dxmax, shift.x, shx))
-        return 1;
-
-    // y dimension:
-    if (cell_dist(cells[ci].y, cells[cj].y, md->cNumber.y, md->leng.y, md->cSize.y, rmax, dymin, dymax, shift.y, shy))
-        return 1;
-
-    // z dimension:
-    if (cell_dist(cells[ci].z, cells[cj].z, md->cNumber.z, md->leng.z, md->cSize.z, rmax, dzmin, dzmax, shift.z, shz))
-        return 1;
-
-
-    float dr2min = dxmin * dxmin + dymin * dymin + dzmin * dzmin;
-    if (dr2min > sim->r2Max)
-        return 1;
-
-    //все невзаимодействующие €чейки уже отброшены, идЄм далее
-
-    int coul, vdw;
-    dr2max = dxmax * dxmax + dymax * dymax + dzmax * dzmax;
-    if (dr2max < sim->r2Elec)
-        coul = 1;   // гарантировано дот€гиваетс€  улоновское взаимодействие
-    else
-        coul = 0;   // может дот€гиваетс€, а может и нет
-
-    if (dr2min > mxr2vdw)
-        vdw = 0;    // гарантировано не достает ¬д¬
-    else
-        vdw = 1;    // может и достает
-
-    pairs[index].x = ci;
-    pairs[index].y = cj;
-    pairs[index].z = coul * 2 + vdw;
-    pairs[index].w = code_shift(shx, shy, shz);
-    shifts[index] = shift;
-    index++;
-    return 0;
-}
-
-int is_cellneighbors(int x0, int y0, int z0, int x, int y, int z, float rmax, float mxr2vdw, cudaMD* md, Sim* sim, int& shift_type, int& inter_type)
-// define that cells[x0;y0;z0] and [x;y;z] are neighbors (return 1 if so), save shift type and interaction type
-{
-    float dxmin, dxmax, dymin, dymax, dzmin, dzmax, dr2max;
-    int shx, shy, shz;
-    //float rmax2 = rmax * rmax;
-
-    // x dimension:
-    if (cell_dist_int(x0, x, md->cNumber.x, md->leng.x, md->cSize.x, rmax, dxmin, dxmax, shx))
-        return 0;
-
-    // y dimension:
-    if (cell_dist_int(y0, y, md->cNumber.y, md->leng.y, md->cSize.y, rmax, dymin, dymax, shy))
-        return 0;
-
-    // z dimension:
-    if (cell_dist_int(z0, z, md->cNumber.z, md->leng.z, md->cSize.z, rmax, dzmin, dzmax, shz))
-        return 0;
-
-    float dr2min = dxmin * dxmin + dymin * dymin + dzmin * dzmin;
-    if (dr2min > sim->r2Max)
-        return 0;
-
-    //все невзаимодействующие €чейки уже отброшены, идЄм далее
-
-    int coul, vdw;
-    dr2max = dxmax * dxmax + dymax * dymax + dzmax * dzmax;
-    if (dr2max < sim->r2Elec)
-        coul = 1;   // гарантировано дот€гиваетс€  улоновское взаимодействие
-    else
-        coul = 0;   // может дот€гиваетс€, а может и нет
-
-    if (dr2min > mxr2vdw)
-        vdw = 0;    // гарантировано не достает ¬д¬
-    else
-        vdw = 1;    // может и достает
-
-    inter_type = coul * 2 + vdw;
-    shift_type = code_shift(shx, shy, shz);
-    return 1;
-}
-
-int pair_exists(int3* cells, int ci, int cj, float3& shift, float rmax, float mxr2vdw, cudaMD* md, Sim* sim)
-// if pair in range return 1, otherwise - 0
-{
-    float dxmin, dxmax, dymin, dymax, dzmin, dzmax;
-    int shx, shy, shz;
-    //float dr2max;
-    //float rmax2 = rmax * rmax;
-
-    // x dimension:
-    if (cell_dist(cells[ci].x, cells[cj].x, md->cNumber.x, md->leng.x, md->cSize.x, rmax, dxmin, dxmax, shift.x, shx))
-        return 0;
-
-    // y dimension:
-    if (cell_dist(cells[ci].y, cells[cj].y, md->cNumber.y, md->leng.y, md->cSize.y, rmax, dymin, dymax, shift.y, shy))
-        return 0;
-
-    // z dimension:
-    if (cell_dist(cells[ci].z, cells[cj].z, md->cNumber.z, md->leng.z, md->cSize.z, rmax, dzmin, dzmax, shift.z, shz))
-        return 0;
-
-
-    float dr2min = dxmin * dxmin + dymin * dymin + dzmin * dzmin;
-    if (dr2min > sim->r2Max)
-        return 0;
-
-    //int coul, vdw;
-    //dr2max = dxmax * dxmax + dymax * dymax + dzmax * dzmax;
-    /*
-    if (dr2max < sim->r2Elec)
-        coul = 1;   // гарантировано дот€гиваетс€  улоновское взаимодействие
-    else
-        coul = 0;   // может дот€гиваетс€, а может и нет
-
-    if (dr2min > mxr2vdw)
-        vdw = 0;    // гарантировано не достает ¬д¬
-    else
-        vdw = 1;    // может и достает
-
-    pairs[index].x = ci;
-    pairs[index].y = cj;
-    pairs[index].z = coul * 2 + vdw;
-    shifts[index] = shift;
-    index++;
-    */
-    return 1;
-}
-
-int ncell(float minR, int add_to_even, cudaMD* hmd)
-// calculate cell size and count and return number of cells
-{
-    hmd->cNumber = make_int3(ceil(hmd->leng.x / minR), ceil(hmd->leng.y / minR), ceil(hmd->leng.z / minR));
-    //! тут получаетс€, что €чейки не об€зательно кубической формы. Ќадо подумать, критично это или нет:
-    hmd->cSize = make_float3(hmd->leng.x / hmd->cNumber.x, hmd->leng.y / hmd->cNumber.y, hmd->leng.z / hmd->cNumber.z);
-    hmd->cRevSize = make_float3(hmd->cNumber.x / hmd->leng.x, hmd->cNumber.y / hmd->leng.y, hmd->cNumber.z / hmd->leng.z);
-    hmd->cnYZ = hmd->cNumber.y * hmd->cNumber.z;
-    //printf("minimall cell size: %f  md->cSize.x=%f\n", minR, hmd->cSize.x);
-    //printf("cRev=(%f %f %f)\n", hmd->cRevSize.x, hmd->cRevSize.y, hmd->cRevSize.z);
-
-    hmd->nCell = hmd->cNumber.x * hmd->cNumber.y * hmd->cNumber.z;
-    if (add_to_even)
-        if ((hmd->nCell % 2) != 0)
-            hmd->nCell++;
-
-    return hmd->nCell;
-}
-
-void init_cellList(float minRad, float maxR2, int nAt, Elec *elec, Sim *sim, cudaMD *hmd, hostManagMD *man)
-//cell list
-//! щас € пробую разбиение, когда диагональ €чейки не превышает минимальный кутофф (т.е. частицы в одной €чейке гарантированно в радиусе действи€ друг друга)
-{
-    int i, j, k;
-    float minR = minRad / (float)sqrt(3);
-
-    int nCell = ncell(minR, 1, hmd);    // дл€ общности алгоритма доведем число €чеек до четного
-
-    hmd->maxAtPerCell = nAt / nCell * 3 + 8;          // * 3 + 4 for excess
-    hmd->maxAtPerBlock = 2 * 16 * (nAt / nCell) * 3 + 90;  // factor 3 for excess
-
-    int3* cxyz = (int3*)malloc(nCell * sizeof(int3));
-    int l = 0;
-    for (i = 0; i < hmd->cNumber.x; i++)
-        for (j = 0; j < hmd->cNumber.y; j++)
-            for (k = 0; k < hmd->cNumber.z; k++)
-            {
-                cxyz[l] = make_int3(i, j, k);
-                l++;
-            }
-    //! добавить в обработку искуственную €чейку, если их число нечетное
-
-
-    //! первые пары (0-1, 2-3, 4-5 и т.д.). ќЌ» Ќ≈ ѕ≈–≈—≈ јё“—я ѕќ ƒјЌЌџћ
-    hmd->nPair1 = nCell / 2;
-    int nPair = nCell * (nCell - 1) / 2;
-    int4* pairs1 = (int4*)malloc(nPair * sizeof(int4));
-    float3* shifts1 = (float3*)malloc(nPair * sizeof(float3));
-
-    k = 0;
-    // pairs 0-1, 2-3, 4-5 and etc
-    for (i = 0; i < hmd->nPair1; i++)
-    {
-        //if (save_cellpair(cxyz, i*2, i*2+1, pairs1, shifts1, rmax, maxR2, hmd, sim, k))
-          //  continue;
-        save_cellpair(cxyz, i * 2, i * 2 + 1, pairs1, shifts1, (float)sim->rMax, (float)sim->r2Max, hmd, sim, k);
-    }
-    if (k != hmd->nPair1)
-    {
-        printf("k=%d nPair1=%d", k, hmd->nPair1);
-        hmd->nPair1 = k;
-    }
-    // rest pairs
-    for (i = 0; i < nCell - 1; i++)
-    {
-        l = 2 - (i % 2); // учитываем, что 0-1, 2-3, 4-5 пары мы уже отобрали
-        for (j = i + l; j < nCell; j++)
-        {
-            //if (save_cellpair(cxyz, i, j, pairs1, shifts1, rmax, maxR2, hmd, sim, k))
-              //  continue;
-            save_cellpair(cxyz, i, j, pairs1, shifts1, (float)sim->rMax, (float)sim->r2Max, hmd, sim, k);
-        }
-    }
-    hmd->nPair = k;
-
-    //for (i = 256; i < 266; i++)
-      //  printf("cell[%d]=(%d, %d, %d)\n", i, cxyz[i].x, cxyz[i].y, cxyz[i].z);
-
-    //pair verifiyng:
-    for (i = 0; i < hmd->nPair; i++)
-    {
-        if (pairs1[i].x >= pairs1[i].y)
-        {
-            printf("pair %d: %d-%d\n", i, pairs1[i].x, pairs1[i].y);
-        }
-        /*
-        for (j = i + 1; j < hmd->nPair; j++)
-            if (pairs1[i].x == pairs1[j].x)
-                if (pairs1[i].y == pairs1[j].y)
-                {
-                    printf("pairs %d and %d are the same!\n", i, j);
-                }
-        */
-    }
-
-
-    /*
-    j = 0;
-    k = 1;
-    int c1, c2;
-    for (i = 0; i < hmd->nPair; i++)
-        if ((pairs1[i].x == k) || (pairs1[i].y == k))
-        {
-            c1 = pairs1[i].x;   // cell 1
-            c2 = pairs1[i].y;   // cell 2
-            //printf("pair %d: %d[%d %d %d]-%d[%d %d %d] (type=%d). shift (%f %f %f)\n", i, c1, cxyz[c1].x, cxyz[c1].y, cxyz[c1].z, c2, cxyz[c2].x, cxyz[c2].y, cxyz[c2].z, pairs1[i].z, shifts1[i].x, shifts1[i].y, shifts1[i].z);
-            j++;
-        }
-    //printf("nPair with cell[%d] (%d, %d, %d) = %d\n", k, cxyz[c1].x, cxyz[c1].y, cxyz[c1].z, j);
-    //printf("nPair1 = %d, nPair=%d, delt=%d\n", hmd->nPair1, hmd->nPair, hmd->nPair - hmd->nPair1);
-    */
-    printf("old cell list: nCell=%d nPair1=%d nPair2=%d totPair=%d\n", nCell, hmd->nPair1, hmd->nPair - hmd->nPair1, hmd->nPair);
-
-    man->nPair1Block = hmd->nPair1;
-    man->nPair2Block = hmd->nPair - hmd->nPair1;
-    man->pairPerBlock = 16;      // задаем опытным путем (число мультипроцессоров в €дре должно быть кратно ему)
-    man->memPerPairBlock = hmd->maxAtPerCell * 4 * (sizeof(int) + sizeof(float3));
-    man->memPerPairsBlock = hmd->maxAtPerBlock * 2 * (sizeof(int) + sizeof(float3)) + man->pairPerBlock * 4 * sizeof(int); // 4 = 2 * 2 поскольку 2 €чейке в паре и нужно запоминать начальный индекс и кол-во атомов
-
-
-    data_to_device((void**)&(hmd->cellPairs), pairs1, hmd->nPair * sizeof(int4));
-    data_to_device((void**)&(hmd->cellShifts), shifts1, hmd->nPair * sizeof(float3));
-
-    free(cxyz);
-    free(pairs1);
-    free(shifts1);
-
-    int** d_cells;
-    int* cells_i;
-    int** h_cells;
-
-    h_cells = (int**)malloc(nCell * sizeof(int*));
-    cudaMalloc((void**)&d_cells, nCell * sizeof(int*));
-    for (i = 0; i < nCell; i++)
-    {
-        cudaMalloc((void**)&cells_i, (hmd->maxAtPerCell + 1) * sizeof(int));
-        h_cells[i] = cells_i;
-    }
-    cudaMemcpy(d_cells, h_cells, nCell * sizeof(int*), cudaMemcpyHostToDevice);
-    hmd->cells = d_cells;
-    free(h_cells);
-}
-// end 'init_cellList' function'
-
-int cell_id(int x, int y, int z, int nyz, int nz)
-// return cell id by its coordinates (nyz = nz * ny, where nz and ny - the cell numbers in corresp directions
-// automatically apply periodic boundaries 
-{
-    return x * nyz + y * nz + z;
-}
-
-int periodic_coord(int x, int max)
-{
-    if (x < 0)
-        return x + max;
-    else
-        if (x >= max)
-            return x - max;
-        else
-            return x;
-}
-
-int cell_id_periodic(int x, int y, int z, int nx, int ny, int nz)
-// return cell id by its coordinates (nyz = nz * ny, where nz and ny - the cell numbers in corresp directions
-// automatically apply periodic boundaries 
-{
-    int nyz = ny * nz;
-    int x1 = periodic_coord(x, nx);
-    int y1 = periodic_coord(y, ny);
-    int z1 = periodic_coord(z, nz);
-
-    return x1 * nyz + y1 * nz + z1;
-}
-
-
-void cell_xyz(int id, int nyz, int nz, int &x, int &y, int &z)
-// return coordinates (as parameters) of cell with id = id
-{
-    int rest;
-    x = del_and_rest(id, nyz, rest);
-    y = del_and_rest(rest, nz, z);
-}
-
-void init_singleAtomCellList(float minRad, float maxR2, int nAt, Elec* elec, Sim* sim, cudaMD* hmd, hostManagMD* man)
-// верси€ cell list, с блоками
-{
-#ifdef USE_FASTLIST
-    int i, j, k, l, n;
-    int x, y, z;
-    int x1, y1, z1;     // coordinates of neighbour cell
-    int shift_type, inter_type;
-    float minR = minRad / (float)sqrt(3);
-    //int totPairs = 0;       // total number of pairs (for verification)
-
-    int nCell = ncell(minR, 0, hmd);
-
-    // define maximal number of neighboring cell in the each direction
-    int nxmax = ceil(sim->rMax / hmd->cSize.x);
-    int nymax = ceil(sim->rMax / hmd->cSize.y);
-    int nzmax = ceil(sim->rMax / hmd->cSize.z);
-
-    int* nNeigh = (int*)malloc(nCell * int_size);   // for keeping neighbours count
-    int3** neighList = (int3**)malloc(nCell * pointer_size);    // for keeping neighbours list
-    int3* list = (int3*)malloc((2 * nxmax + 1) * (2 * nymax + 1) * (2 * nzmax + 1) * sizeof(int3)); // list of neigbors
-    for (i = 0; i < nCell; i++)
-    {
-        cell_xyz(i, hmd->cnYZ, hmd->cNumber.z, x, y, z);
-        n = 0;
-        for (j = x - nxmax; j < x + nxmax + 1; j++)
-            for (k = y - nymax; k < y + nymax + 1; k++)
-                for (l = z - nzmax; l < z + nzmax + 1; l++)
-                    if ((j != x) || (k != y) || (l != z))
-                    {
-                        x1 = periodic_coord(j, hmd->cNumber.x);
-                        y1 = periodic_coord(k, hmd->cNumber.y);
-                        z1 = periodic_coord(l, hmd->cNumber.z);
-                        if (is_cellneighbors(x, y, z, x1, y1, z1, (float)sim->rMax, (float)sim->r2Max/*rmax, maxR2*/, hmd, sim, shift_type, inter_type))
-                        {
-                            list[n].x = cell_id(x1, y1, z1, hmd->cnYZ, hmd->cNumber.z);
-                            list[n].y = shift_type;
-                            list[n].z = inter_type;
-                            n++;
-                        }
-                    }
-        nNeigh[i] = n;
-        data_to_device((void**)&(neighList[i]), list, n * sizeof(int3));
-    }
-    data_to_device((void**)&(hmd->neighCells), neighList, nCell * pointer_size);
-    data_to_device((void**)&(hmd->nNeighCell), nNeigh, nCell * int_size);
-
-    free(nNeigh);
-    free(neighList);
-    free(list);
-
-    printf("single atom cell list. Last n = %d\n", n);
-#endif
-}
-// end 'init_singleAtomCellList' function'
-
-void free_singleAtomCellList(cudaMD* hmd)
-{
-#ifdef USE_FASTLIST
-    cudaFree(hmd->nNeighCell);
-    cuda2DFree((void**)hmd->neighCells, hmd->nCell);
-#endif
 }
 
 int read_cuda(Field *fld, cudaMD *hmd, hostManagMD *man)
@@ -764,18 +154,39 @@ int read_cuda(Field *fld, cudaMD *hmd, hostManagMD *man)
     return 1;
 }
 
+void init_cuda_box(Box *box, cudaMD *h_md)
+{
+    //! only for rectangular geometry!
+    h_md->leng = make_float3((float)box->la, (float)box->lb, (float)box->lc);
+
+    h_md->halfLeng = make_float3(0.5f * h_md->leng.x, 0.5f * h_md->leng.y, 0.5f * h_md->leng.z);   
+    h_md->revLeng = make_float3(1.f / h_md->leng.x, 1.f / h_md->leng.y, 1.f / h_md->leng.z);       
+    h_md->edgeArea = make_float3(h_md->leng.y * h_md->leng.z, h_md->leng.x * h_md->leng.z, h_md->leng.x * h_md->leng.y);    //! are they neccessary?
+    h_md->revEdgeArea = make_float3(1.f / h_md->edgeArea.x, 1.f / h_md->edgeArea.y, 1.f / h_md->edgeArea.z);
+    h_md->volume = h_md->leng.x * h_md->leng.y * h_md->leng.z;
+}
+
 cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Elec* elec, hostManagMD* man, cudaMD *h_md)
+// prepare everything for CUDA execution based on loaded data for serial execution
 {
     int i, j, k;
     int xyzsize = atm->nAt * float3_size;
     int nsize = atm->nAt * int_size;
     int flsize = atm->nAt * float_size;
 
-    // CUDA SETTINGS
+    // 0 CUDA SETTINGS
     if (!read_cuda(fld, h_md, man))
         return NULL;
 
-    // ATOMS DATA
+    // GENERAL SETTINGS: timestep, external field...
+    h_md->tSt = (float)sim->tSt;
+#ifdef USE_CONST
+    cudaMemcpyToSymbol(&tStep, &(h_md->tSt), sizeof(float), 0, cudaMemcpyHostToDevice);
+#endif
+    h_md->elecField = make_float3((float)sim->Ux, (float)sim->Uy, (float)sim->Uz);
+
+    // 1 ATOMS DATA
+    h_md->nAt = atm->nAt;
     float3* h_xyz = (float3*)malloc(xyzsize);
     float3* h_vls = (float3*)malloc(xyzsize);
     float3* h_frc = (float3*)malloc(xyzsize);
@@ -801,29 +212,30 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     free(h_masses);
     free(h_rMasshdT);
 
+    // 2 FORCE FIELD
     h_md->tdep_force = fld->is_tdep;
     cudaSpec* h_specs = (cudaSpec*)malloc(fld->nSpec * sizeof(cudaSpec));
     cudaVdW* h_ppots = (cudaVdW*)malloc(fld->nVdW * sizeof(cudaVdW));
     cudaVdW*** h_vdw = (cudaVdW***)malloc(fld->nSpec * sizeof(void*));  // 2d array to pointer to cudaVdW
 
-
-    //! € инициализурую этот массив здесь, поскольку его адреса мне уже нужны, чтобы ссылатьс€ на них из массива vdw
     cudaVdW* d_ppots;
     cudaMalloc((void**)&d_ppots, fld->nVdW * sizeof(cudaVdW));
 
     cudaVdW*** d_vdw;
     cudaVdW** vdw_i;
     cudaMalloc((void**)&d_vdw, fld->nSpec * sizeof(cudaVdW**));
+
+    // charges
 #ifdef TX_CHARGE
     float* chprods = (float*)malloc(sizeof(float) * fld->nSpec * fld->nSpec);
 #endif
-
     //float* qiqj = (float*)malloc(fld->nSpec * sizeof(float));
     float** h_chProd = (float**)malloc(fld->nSpec * pointer_size);
     float** d_chProd;
     float* chProd_i;
     cudaMalloc((void**)&d_chProd, fld->nSpec * pointer_size);
 
+    // species propreties
     h_md->nSpec = fld->nSpec;
     for (i = 0; i < fld->nSpec; i++)
     {
@@ -874,18 +286,25 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
         h_specs[i].mxEng = fld->species[i].mxEng;
     }
     cudaMemcpy(d_chProd, h_chProd, fld->nSpec * pointer_size, cudaMemcpyHostToDevice);
+    free(h_chProd);
     cudaMemcpy(d_vdw, h_vdw, fld->nSpec * pointer_size, cudaMemcpyHostToDevice);
+
+    // counters for species crossing box
+    //! fill by zero?
+    cudaMalloc((void**)&(h_md->specAcBoxPos), fld->nSpec * int3_size);
+    cudaMalloc((void**)&(h_md->specAcBoxNeg), fld->nSpec * int3_size);
 
     //van der Waals
     h_md->pairpots = d_ppots;
     h_md->vdws = d_vdw;
 
     data_to_device((void**)&(h_md->specs), h_specs, fld->nSpec * sizeof(cudaSpec));
+    free(h_specs);
     h_md->chProd = d_chProd;
 
     data_to_device((void**)&(h_md->nnumbers), fld->nnumbers, fld->nNucl * int_size);
 
-    // ѕќѕ–ќЅ”≈ћ “ј ∆≈ ѕ–ќ»«¬≈ƒ≈Ќ»≈ «ј–яƒќ¬ —¬я«ј“№ “≈ —“”–Ќќ… ѕјћя“№ё
+    // EXPERIMENTAL: put charges in texture memory
 #ifdef TX_CHARGE
     cudaChannelFormatDesc cform = cudaCreateChannelDesc<float>();// (32, 32, 0, 0, cudaChannelFormatKindFloat);
     cudaMallocArray(&(h_md->texChProd), &cform, fld->nSpec, fld->nSpec, cudaArrayDefault);
@@ -896,7 +315,6 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     cudaBindTextureToArray(&qProd, h_md->texChProd, &cform);
     delete[] chprods;
 #endif 
-    //  ќЌ≈÷ “≈ —“”–Ќќ√ќ  ”— ј
 
     if (fld->nVdW)
     {
@@ -913,9 +331,11 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
         }
         cudaMemcpy(d_ppots, h_ppots, fld->nVdW * sizeof(cudaVdW), cudaMemcpyHostToDevice);
     }
+    free(h_ppots);
+    free(h_vdw);
 
-    h_md->nAt = atm->nAt;
-
+    // 3 RESET COUNTERS
+    // energies
     h_md->engKin = 0.f;
     h_md->engTot = 0.f;
     h_md->engTemp = 0.f;    // radiative thermostat
@@ -926,6 +346,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     h_md->engVdW = 0.f;
     h_md->engPotKin = 0.f;
 
+    // momentum
     h_md->posMom = make_float3(0.f, 0.f, 0.f);
     h_md->negMom = make_float3(0.f, 0.f, 0.f);
 
@@ -939,39 +360,17 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     cudaMalloc((void**)&(h_md->posMomBuf), h_md->nMom * float_size);
     cudaMalloc((void**)&(h_md->negMomBuf), h_md->nMom * float_size);
 
-    //thermostat and temperature data
+    // 4 THEREMOSTAT & TEMPERATURE DATA
     init_cuda_tstat(atm->nAt, atm, fld, tstat, h_md, man);
 
+    // 5 BOX
+    init_cuda_box(bx, h_md);
 
-    // BOX
-    //! only for rectangular geometry!
-    h_md->leng = make_float3((float)bx->la, (float)bx->lb, (float)bx->lc);
-    h_md->halfLeng = make_float3(0.5f * h_md->leng.x, 0.5f * h_md->leng.y, 0.5f * h_md->leng.z);   //! видимо не вычисл€ютс€ эти штуки при подготовке sim и box
-    h_md->revLeng = make_float3(1.f / h_md->leng.x, 1.f / h_md->leng.y, 1.f / h_md->leng.z);       //! видимо не вычисл€ютс€ эти штуки при подготовке sim и box
-    h_md->edgeArea = make_float3(h_md->leng.y * h_md->leng.z, h_md->leng.x * h_md->leng.z, h_md->leng.x * h_md->leng.y);
-    //! может быть как раз пр€мые площади и не нужны, а только обратные?
-    h_md->revEdgeArea = make_float3(1.f / h_md->edgeArea.x, 1.f / h_md->edgeArea.y, 1.f / h_md->edgeArea.z);
-    h_md->volume = h_md->leng.x * h_md->leng.y * h_md->leng.z;
-
-    h_md->elecField = make_float3((float)sim->Ux, (float)sim->Uy, (float)sim->Uz);
-
-    h_md->tSt = (float)sim->tSt;
-#ifdef USE_CONST
-    cudaMemcpyToSymbol(&tStep, &(h_md->tSt), sizeof(float), 0, cudaMemcpyHostToDevice);
-#endif
-
-    // ELEC
-    h_md->use_coul = elec->type;
-    h_md->alpha = (float)elec->alpha;    // in Ewald summation
-    h_md->daipi2 = (float)elec->daipi2;
-    h_md->elC1 = (float)elec->scale;
-    h_md->elC2 = (float)elec->scale2;
-    h_md->rElec = (float)(elec->rReal);
-    h_md->r2Elec = (float)(elec->r2Real);
-    h_md->r2Max = (float)sim->r2Max;
+    // 6 ELEC
+    init_cuda_elec(atm, elec, sim, man, h_md);
 
 
-    // DEFINTION OF hostManagMD variables
+    // 7 DEFINTION OF hostManagMD variables
     man->atStep = ceil((double)atm->nAt / man->totCores);   // >= 1
     int mxAtPerBlock = man->atStep * man->nSingProc;
     man->nAtBlock = ceil((double)atm->nAt / mxAtPerBlock);
@@ -983,20 +382,51 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     if (man->atPerBlock < (man->atPerThread * man->nSingProc))
         man->atPerBlock = man->atPerThread * man->nSingProc;    // но не меньше, чем число атомов во всех потоках блока
 
-    //cell list
-#ifdef USE_FASTLIST
-    //alloc_sort(atm->nAt, h_md->nCell, h_md);
-    //init_singleAtomCellList(minR, maxR2, atm->nAt, elec, sim, h_md, man);
+    // some settings for old variant of cell list...
+    //dim3 dim;
+    //dim.x = 32;
+    //dim.y = 2;
+    //dim.z = 1;
+    //int nB1 = ceil((double)man->nPair1Block / (double)man->pairPerBlock);
+    //int nB2 = ceil((double)man->nPair2Block / (double)man->pairPerBlock);
 
+    // 8 CELL LIST
     init_cellList(1, 1, 6, (float)sim->desired_cell_size, atm, fld, elec, h_md, man);
-    //init_cellList(0, 1, 4, 0.0, atm, fld, elec, h_md, man);
-#else
-    init_cellList(minR, maxR2, atm->nAt, elec, sim, h_md, man);
-#endif
 
-    //! вообще их нужно заполнить нул€ми, но может это дефолтно так и делаетс€?
-    cudaMalloc((void**)&(h_md->specAcBoxPos), fld->nSpec * int3_size);
-    cudaMalloc((void**)&(h_md->specAcBoxNeg), fld->nSpec * int3_size);
+    // 9 STATISTICS
+    init_cuda_stat(h_md, man, sim, fld, tstat);
+    init_cuda_rdf(fld, sim, man, h_md);
+    //! нафиг, уже внутри init_cuda_rdf решаем делать n_ или обычный
+    if (sim->nuclei_rdf)
+        init_cuda_nrdf(fld, sim, man, h_md);
+    if (sim->frTraj)    // trajectories
+        init_cuda_trajs(atm, sim, h_md, man);
+    if (sim->nBindTrajAtoms)    // bind trajectories
+        init_cuda_bindtrajs(sim, h_md, man);
+
+    // 10 BONDS AND ANGLES
+    h_md->use_angl = sim->use_angl;
+    h_md->use_bnd = sim->use_bnd;
+    if (h_md->use_bnd)
+        init_cuda_bonds(atm, fld, sim, h_md, man);
+    if (h_md->use_angl)
+        init_cuda_angles(atm->nAt, nsize, fld, h_md, man);
+    // create oldTypes array (used for bonds and angles)
+    if (sim->use_angl || sim->use_bnd)  //! maybe == 2, ==2 ??
+    {
+        int* int_array;
+        int_array = (int*)malloc(nsize);
+        for (i = 0; i < atm->nAt; i++)
+        {
+            int_array[i] = -1;  // oldTypes[i] = -1
+        }
+        data_to_device((void**)&(h_md->oldTypes), int_array, nsize);
+        free(int_array);
+    }
+
+    // electron jumps
+    init_cuda_ejump(sim, atm, h_md);
+    man->bndPerThreadEjump = ceil((double)h_md->mxBond / 32);   //! move into init_cude_ejump
 
     // for debugging
 #ifdef DEBUG_MODE
@@ -1004,180 +434,6 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     cudaMalloc((void**)&(h_md->nPairCult), sizeof(int) * h_md->nPair);
     cudaMalloc((void**)&(h_md->nCelCult), sizeof(int) * h_md->nCell);
 #endif
-
-    // EWALD
-#ifdef USE_EWALD
-    h_md->nk = make_int3(elec->kx, elec->ky, elec->kz);
-
-    // define rKcut2 as maximal kvector
-    h_md->rKcut2 = elec->kx * h_md->revLeng.x;
-    if (h_md->rKcut2 < elec->ky * h_md->revLeng.y)
-        h_md->rKcut2 = elec->ky * h_md->revLeng.y;
-    if (h_md->rKcut2 < elec->kz * h_md->revLeng.z)
-        h_md->rKcut2 = elec->kz * h_md->revLeng.z;
-
-    h_md->rKcut2 *= twopi * 1.05; // according to DL_POLY source
-    h_md->rKcut2 *= h_md->rKcut2;
-
-    float rvol = h_md->revLeng.x * h_md->revLeng.y * h_md->revLeng.z;
-    h_md->ewEscale = (float)(twopi * rvol * Fcoul_scale / elec->eps);
-    h_md->ewFscale = (float)(2 * twopi * rvol * Fcoul_scale / elec->eps);
-
-    float* exprk2 = (float*)malloc(sizeof(float) * NTOTKVEC);
-    float3* rk = (float3*)malloc(sizeof(float3) * NTOTKVEC);
-
-    // define some ewald arrays
-    float rkx, rky, rkz, rk2;
-    int mmin = 0; int nmin = 1;
-    int m, n;
-    int ik = 0;
-    float c = -0.25 / h_md->alpha / h_md->alpha;
-    int l;
-    for (l = 0; l < h_md->nk.x; l++)
-    {
-        rkx = (float)(l * twopi * h_md->revLeng.x); // only for rect geometry!
-        for (m = mmin; m < h_md->nk.y; m++)
-        {
-            rky = (float)(m * twopi * h_md->revLeng.y);
-            for (n = nmin; n < h_md->nk.z; n++)
-            {
-                rkz = n * twopi * h_md->revLeng.z;
-                rk2 = rkx * rkx + rky * rky + rkz * rkz;
-                if (rk2 < h_md->rKcut2) // cutoff
-                {
-                    rk[ik].x = rkx;
-                    rk[ik].y = rky;
-                    rk[ik].z = rkz;
-                    exprk2[ik] = exp(c * rk2) / rk2;
-                    ik++;
-                }
-            } // end n-loop (over kz-vectors)
-            nmin = 1 - elec->kz;
-        } // end m-loop (over ky-vectors)
-        mmin = 1 - elec->ky;
-    }  // end l-loop (over kx-vectors)
-
-    h_md->nKvec = ik;
-    man->memRecEwald = ik * sizeof(float2);
-
-    data_to_device((void**)&(h_md->rk), rk, ik * float3_size);
-    data_to_device((void**)&(h_md->exprk2), exprk2, ik * float_size);
-    cudaMalloc((void**)&(h_md->qDens), ik * sizeof(float2));
-
-    delete[] rk;
-    delete[] exprk2;
-
-    float2** qiexp = (float2**)malloc(atm->nAt * pointer_size);
-    for (i = 0; i < atm->nAt; i++)
-        cudaMalloc((void**)&(qiexp[i]), ik * sizeof(float2));
-    data_to_device((void**)&(h_md->qiexp), qiexp, atm->nAt * pointer_size);
-    delete[] qiexp;
-
-    init_realEwald_tex(h_md, elec->rReal, elec->alpha);
-#endif
-
-    // statistics
-    init_cuda_stat(h_md, man, sim, fld, tstat);
-    init_cuda_rdf(fld, sim, man, h_md);
-    //! нафиг, уже внутри init_cuda_rdf решаем делать n_ или обычный
-    if (sim->nuclei_rdf)
-        init_cuda_nrdf(fld, sim, man, h_md);
-
-
-    h_md->use_angl = sim->use_angl;
-    h_md->use_bnd = sim->use_bnd;
-    if (fld->nBdata)
-        bonds_to_device(atm, fld, sim, h_md, man);
-
-    int* int_array;
-    if (sim->use_angl || sim->use_bnd)
-    {
-        // create oldTypes array
-        int_array = (int*)malloc(nsize);
-        for (i = 0; i < atm->nAt; i++)
-        {
-            int_array[i] = -1;  // oldTypes[i] = -1
-        }
-        data_to_device((void**)&(h_md->oldTypes), int_array, nsize);
-    }
-
-    // angles:
-    if (fld->nAdata)
-    {
-        h_md->nAngle = fld->nAngles;
-        h_md->mxAngle = fld->mxAngles;
-
-        man->angPerBlock = ceil((double)fld->mxAngles / (double)man->nMultProc); // число атомов на ћѕ
-        man->angPerThread = ceil((double)man->angPerBlock / (double)man->nSingProc);    //! число атомов на поток
-        if (man->angPerBlock < (man->angPerThread * man->nSingProc))
-            man->angPerBlock = man->angPerThread * man->nSingProc;    // но не меньше, чем число атомов во всех потоках блока
-
-
-        int4* int4_array = (int4*)malloc(fld->mxAngles * sizeof(int4));
-        for (i = 0; i < fld->nAngles; i++)
-        {
-            int4_array[i] = make_int4(fld->centrs[i], fld->lig1[i], fld->lig2[i], fld->angTypes[i]);
-        }
-        cudaMalloc((void**)&(h_md->angles), fld->mxAngles * sizeof(int4));
-        cudaMemcpy(h_md->angles, int4_array, fld->mxAngles * sizeof(int4), cudaMemcpyHostToDevice);
-        free(int4_array);
-
-        cudaAngle* tang = (cudaAngle*)malloc(sizeof(cudaAngle) * fld->nAdata);
-        for (i = 1; i < fld->nAdata; i++)   // i = 0 not interesting as just reffered to no angle
-        {
-            // + 1 as 0 reserved for deleted angle
-            tang[i].type = fld->adata[i].type;   
-            tang[i].p0 = (float)fld->adata[i].p0;
-            tang[i].p1 = (float)fld->adata[i].p1;
-            tang[i].p2 = (float)fld->adata[i].p2;
-        }
-        data_to_device((void**)&(h_md->angleTypes), tang, sizeof(cudaAngle) * fld->nAdata);
-        free(tang);
-
-        if (sim->use_angl)
-        {
-            //int* int_array2 = (int*)malloc(nsize);  // nangles
-            // пам€ть выделена раньше при создании oldTypes
-            for (i = 0; i < atm->nAt; i++)
-            {
-                //int_array[i] = -1;  // oldTypes[i] = -1
-                //int_array2[i] = 0;
-                int_array[i] = 0;   
-            }
-            // calculate number of angles:
-            for (i = 0; i < fld->nAngles; i++)
-                int_array/*2*/[fld->centrs[i]]++;
-
-            data_to_device((void**)&(h_md->nangles), int_array/*2*/, nsize);
-            //data_to_device((void**)&(h_md->oldTypes), int_array, nsize);
-            free(int_array);
-            //delete[] int_array2;
-
-            int_array = (int*)malloc(fld->nSpec * int_size);
-            for (i = 0; i < fld->nSpec; i++)
-                int_array[i] = fld->species[i].angleType;
-            cudaMalloc((void**)&(h_md->specAngles), fld->nSpec * int_size);
-            cudaMemcpy(h_md->specAngles, int_array, fld->nSpec * int_size, cudaMemcpyHostToDevice);
-            //delete[] int_array;
-        }
-    }
-    // end angles
-
-    if (sim->use_angl || sim->use_bnd)
-    {
-        free(int_array);
-    }
-
-    // electron jumps
-    init_cuda_ejump(sim, atm, h_md);
-
-    // trajectories
-    if (sim->frTraj)
-        init_cuda_trajs(atm, sim, h_md, man);
-
-    // bind trajectories
-    if (sim->nBindTrajAtoms)
-        init_cuda_bindtrajs(sim, h_md, man);
 
     cudaMD* d_md;
     //data_to_device((void**)&(d_md), h_md, sizeof(cudaMD));
@@ -1196,16 +452,6 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     man->nBndPtr = h_somePtrs[1];
     man->nAngPtr = h_somePtrs[2];
     free(h_somePtrs);
-
-    free(h_specs);
-    free(h_ppots);
-    for (i = 0; i < fld->nSpec; i++)
-    {
-        //delete[] h_chProd[i];
-        //delete[] h_vdw[i];
-    }
-    free(h_chProd);
-    free(h_vdw);
 
     return d_md;
 }
@@ -1323,13 +569,7 @@ void free_device_md(cudaMD* dmd, hostManagMD* man, Sim* sim, Field* fld, TStat *
     cudaFreeArray(hmd.texChProd);
 #endif
 
-#ifdef USE_EWALD
-    cudaFree(hmd->rk);
-    cudaFree(hmd->exprk2);
-    cudaFree(hmd->qDens);
-    cuda2DFree((void**)hmd->qiexp, hmd->nAt);
-    free_realEwald_tex(hmd);
-#endif
+    free_cuda_elec(hmd);
     
     // bonds:
     if (fld->nBdata)
