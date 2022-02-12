@@ -1,7 +1,8 @@
 #ifndef BOX_H
 #define BOX_H
 
-const int tpBoxRect = 1;    // rectangular box type
+const int tpBoxRect = 1;    // orthorombic periodical box
+const int tpBoxHalf = 2;	// orthorombical half-periodic box (x,y are periodic, z is not)
 
 //initialization:
 int read_box(FILE *f, Box *bx);

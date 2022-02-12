@@ -507,12 +507,14 @@ int read_atoms_box(Atoms* atm, Field *field, Sim *sim, Box *box)
 
    fscanf(f, "%d", &n);
    atm->nAt = n;
+   atm->mxAt = n;   //! temporary. must readed from control and here if defined in control < than nAt, redefine
 
    // box reading (the second line)
    if (!read_box(f, box))
      res = 0;
 
    // array allocates
+   n = atm->mxAt;
    atm->types = (int*)malloc(int_size * n);
    atm->xs = (double*)malloc(double_size * n);
    atm->ys = (double*)malloc(double_size * n);
@@ -729,7 +731,7 @@ int read_sim(Atoms *atm, Field *field, Sim *sim, Elec *elec, TStat *tstat)
   }
 
   //Temperature and thermostat parameters
-  if (read_tstat(f, tstat, atm->nAt))
+  if (read_tstat(f, tstat, atm->mxAt))
   {
      sim->tTemp = tstat->Temp;  //! вообщем-то это ненужный параметр, в sim - фактическая температура, в термостате - целевая
   }
@@ -1009,11 +1011,11 @@ void alloc_neighbors(Atoms *atm, Sim *sim)
 {
    int i, j;
 
-   sim->nNbors = (int*)malloc(atm->nAt * int_size);                 // the number of neighbors
-   sim->nbors = (int**)malloc(atm->nAt * pointer_size);             // indexes of neighbors
-   sim->distances = (double**)malloc(atm->nAt * pointer_size);      // r to neighbors
-   sim->tnbors = (int**)malloc(atm->nAt * pointer_size);            // type of neighbors
-   for (i = 0; i < atm->nAt; i++)
+   sim->nNbors = (int*)malloc(atm->mxAt * int_size);                 // the number of neighbors
+   sim->nbors = (int**)malloc(atm->mxAt * pointer_size);             // indexes of neighbors
+   sim->distances = (double**)malloc(atm->mxAt * pointer_size);      // r to neighbors
+   sim->tnbors = (int**)malloc(atm->mxAt * pointer_size);            // type of neighbors
+   for (i = 0; i < atm->mxAt; i++)
    {
       sim->nNbors[i] = 0;
       sim->nbors[i] = (int*)malloc(sim->maxNbors * int_size);

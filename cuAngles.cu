@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "cuUtils.h"
 
-void init_cuda_angles(int nAt, int nsize, Field *fld, cudaMD *h_md, hostManagMD *man)
+void init_cuda_angles(int mxAt, int nsize, Field *fld, cudaMD *h_md, hostManagMD *man)
 // nsize = n(atoms) * int_size
 {
 	int i;
@@ -43,7 +43,7 @@ void init_cuda_angles(int nAt, int nsize, Field *fld, cudaMD *h_md, hostManagMD 
 	free(tang);
 
 	int* int_array = (int*)malloc(nsize);  // nangles
-	for (i = 0; i < nAt; i++)
+	for (i = 0; i < mxAt; i++)
 	{
 		int_array[i] = 0;
 	}
@@ -273,16 +273,10 @@ __global__ void apply_angles(int iStep, int angPerBlock, int angPerThread, cudaM
 		}
 
 	// split energy to shared and then to global memory
-	//printf("eng=%f\n", eng);
 	atomicAdd(&shEng, eng);
 	__syncthreads();
 	if (threadIdx.x == 0)
 		atomicAdd(&(md->engAngl), shEng);
-
-	//if (threadIdx.x == 0)
-		//if (blockIdx.x == 0)
-		//printf("end apply_angles(%d)[%d]: perBlock=%d perThread=%d\n", iStep, blockIdx.x, angPerBlock, angPerThread);
-
 }
 
 __device__ void angle_hcos(int4* angle, cudaAngle* type, cudaMD* md, float& eng)
@@ -304,8 +298,8 @@ __device__ void angle_hcos(int4* angle, cudaAngle* type, cudaMD* md, float& eng)
 	float xij = md->xyz[l1].x - md->xyz[c].x;
 	float yij = md->xyz[l1].y - md->xyz[c].y;
 	float zij = md->xyz[l1].z - md->xyz[c].z;
-	//printf("angle: (%d-%d-%d), dij=(%f, %f, %f)\n", c, l1, l2, xij, yij, zij);
-	delta_periodic(xij, yij, zij, md);
+	//delta_periodic_orth(xij, yij, zij, md);
+	md->funcDeltaPer(xij, yij, zij, md);
 	float r2ij = xij * xij + yij * yij + zij * zij;
 	float rij = sqrt(r2ij);
 
@@ -313,7 +307,8 @@ __device__ void angle_hcos(int4* angle, cudaAngle* type, cudaMD* md, float& eng)
 	float xik = md->xyz[l2].x - md->xyz[c].x;
 	float yik = md->xyz[l2].y - md->xyz[c].y;
 	float zik = md->xyz[l2].z - md->xyz[c].z;
-	delta_periodic(xik, yik, zik, md);
+	//delta_periodic_orth(xik, yik, zik, md);
+	md->funcDeltaPer(xik, yik, zik, md);
 	float r2ik = xik * xik + yik * yik + zik * zik;
 	float rik = sqrt(r2ik);
 
@@ -322,9 +317,7 @@ __device__ void angle_hcos(int4* angle, cudaAngle* type, cudaMD* md, float& eng)
 
 	float c1 = -k * dCos;
 	float c2 = 1.0 / rij / rik;
-	//printf("rij=%f rik=%f cos=%f dcos=%f c1=%f c2=%f\n", rij, rik, cos_th, dCos, c1, c2);
 
-	//printf("f[c]x = %f\n", -c1 * (xik * c2 + xij * c2 - cos_th * (xij / r2ij + xik / r2ik)));
 	atomicAdd(&(md->frs[c].x), -c1 * (xik * c2 + xij * c2 - cos_th * (xij / r2ij + xik / r2ik)));
 	atomicAdd(&(md->frs[c].y), -c1 * (yik * c2 + yij * c2 - cos_th * (yij / r2ij + yik / r2ik)));
 	atomicAdd(&(md->frs[c].z), -c1 * (zik * c2 + zij * c2 - cos_th * (zij / r2ij + zik / r2ik)));
@@ -337,7 +330,6 @@ __device__ void angle_hcos(int4* angle, cudaAngle* type, cudaMD* md, float& eng)
 	atomicAdd(&(md->frs[l2].y), c1 * (yij * c2 - cos_th * yik / r2ik));
 	atomicAdd(&(md->frs[l2].z), c1 * (zij * c2 - cos_th * zik / r2ik));
 
-	//printf("hcos eng: %f\n", 0.5f * k * dCos * dCos);
 	eng += 0.5f * k * dCos * dCos;
 }
 

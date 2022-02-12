@@ -69,7 +69,7 @@ __device__ void put_periodic(float3& xyz, float3 vel, float mass, int type, cuda
     if (xyz.z >= md->leng.z)
         xyz.z = 0.f;
 
-    // счетчики
+    // counters
     if (nx > 0)
     {
         atomicAdd(&md->specAcBoxPos[type].x, 1); // counter of crossing in a positive direction
@@ -105,10 +105,6 @@ __device__ void put_periodic(float3& xyz, float3 vel, float mass, int type, cuda
             atomicAdd(&md->specAcBoxNeg[type].z, 1); // counter of crossing in a negative direction
             atomicAdd(&md->negMom.z, mass * (-vel.z)); // we suppose that vx in this case is negative
         }
-
-    //    if (blockIdx.x == 0)
-      //      if (threadIdx.x == 0)
-        //        printf("%f -> %f rev=%f cor=%f\n", x0, xyz.x, md->revLeng.x, xyz.x * md->revLeng.x - floor(xyz.x * md->revLeng.x) * md->leng.x);
 
     /*
         if (xyz.x < 0)
@@ -176,11 +172,67 @@ __device__ void put_periodic(float3& xyz, float3 vel, float mass, int type, cuda
 }
 // end 'put_periodic' function
 
-__device__ void delta_periodic(float& dx, float& dy, float& dz, cudaMD* md)
-// apply periodic boundary to coordinate differences: dx, dy, dz
-{
-    //!Only for rectangular geometry!
 
+__device__ void put_halfperiodic(float3& xyz, float3 vel, float mass, int type, cudaMD* md)
+// apply the half-periodic conditions to a particle coordinates and save some info if the particle cross a box
+{
+    int nx, ny, nz;
+
+    nx = floor((double)xyz.x * (double)md->revLeng.x);
+    ny = floor((double)xyz.y * (double)md->revLeng.y);
+    nz = floor((double)xyz.z * (double)md->revLeng.z);
+    xyz.x -= (float)(nx * md->leng.x);
+    xyz.y -= (float)(ny * md->leng.y);
+
+    // подстраховка
+    if (xyz.x >= md->leng.x)
+        xyz.x = 0.f;
+    if (xyz.y >= md->leng.y)
+        xyz.y = 0.f;
+
+    // counters
+    if (nx > 0)
+    {
+        atomicAdd(&md->specAcBoxPos[type].x, 1); // counter of crossing in a positive direction
+        atomicAdd(&md->posMom.x, mass * vel.x); // add momentum (mv)
+    }
+    else
+        if (nx < 0)
+        {
+            atomicAdd(&md->specAcBoxNeg[type].x, 1); // counter of crossing in a negative direction
+            atomicAdd(&md->negMom.x, mass * (-vel.x)); // we suppose that vx in this case is negative
+        }
+
+    if (ny > 0)
+    {
+        atomicAdd(&md->specAcBoxPos[type].y, 1); // counter of crossing in a positive direction
+        atomicAdd(&md->posMom.y, mass * vel.y); // add momentum (mv)
+    }
+    else
+        if (ny < 0)
+        {
+            atomicAdd(&md->specAcBoxNeg[type].y, 1); // counter of crossing in a negative direction
+            atomicAdd(&md->negMom.y, mass * (-vel.y)); // we suppose that vx in this case is negative
+        }
+
+    if (nz > 0)
+    {
+        atomicAdd(&md->specAcBoxPos[type].z, 1); // counter of crossing in a positive direction
+        atomicAdd(&md->posMom.z, mass * vel.z); // add momentum (mv)
+    }
+    else
+        if (nz < 0)
+        {
+            atomicAdd(&md->specAcBoxNeg[type].z, 1); // counter of crossing in a negative direction
+            atomicAdd(&md->negMom.z, mass * (-vel.z)); // we suppose that vx in this case is negative
+        }
+}
+// end 'put_halfperiodic' function
+
+
+__device__ void delta_periodic_orth(float& dx, float& dy, float& dz, cudaMD* md)
+// apply orhtorombic periodic boundary to coordinate differences: dx, dy, dz
+{
     // x
     if (dx > md->halfLeng.x)
         dx -= md->leng.x;
@@ -202,15 +254,15 @@ __device__ void delta_periodic(float& dx, float& dy, float& dz, cudaMD* md)
         if (dz < -md->halfLeng.z)
             dz += md->leng.z;
 }
-// end 'delta_periodic' function
+// end 'delta_periodic_orth' function
 
-__device__ float r2_periodic(int id1, int id2, cudaMD *md)
-// return square of distance between atoms id1 and id2 with account of periodic boundaries
+__device__ float dist2_periodic_orth(int i, int j, cudaMD* md)
+// square of distance between two atoms [i] and [j] in orthorombic periodic boundary conditions
 {
-    float dx = md->xyz[id1].x - md->xyz[id2].x;
-    float dy = md->xyz[id1].y - md->xyz[id2].y;
-    float dz = md->xyz[id1].z - md->xyz[id2].z;
-    delta_periodic(dx, dy, dz, md);
+    float dx = md->xyz[i].x - md->xyz[j].x;
+    float dy = md->xyz[i].y - md->xyz[j].y;
+    float dz = md->xyz[i].z - md->xyz[j].z;
+    delta_periodic_orth(dx, dy, dz, md);
     return dx * dx + dy * dy + dz * dz;
 }
 
@@ -398,27 +450,15 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
         else
             if (md->xyz[i].x < 0)
                 printf("verl1(%d) th(%d,%d): x[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, x0, md->xyz[i].x, md->vls[i].x, md->frs[i].x);
-        if (md->xyz[i].y >= md->leng.y)
-            printf("verl1(%d) th(%d,%d): y[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, y0, md->xyz[i].y, md->vls[i].y, md->frs[i].y);
-        else
-            if (md->xyz[i].y < 0)
-                printf("verl1(%d) th(%d,%d): y[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, y0, md->xyz[i].y, md->vls[i].y, md->frs[i].y);
-        if (md->xyz[i].z >= md->leng.z)
-            printf("verl1(%d) th(%d,%d): z[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, z0, md->xyz[i].z, md->vls[i].z, md->frs[i].z);
-        else
-            if (md->xyz[i].z < 0)
-                printf("verl1(%d) th(%d,%d): z[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, z0, md->xyz[i].z, md->vls[i].z, md->frs[i].z);
         */
 
         //save the atom in cell list
-#ifndef USE_ALLPAIR
 #ifdef USE_FASTLIST
         count_cell(i, md->xyz[i], md);
 #else
         keep_in_cell(i, md->xyz[i], md);
 #endif
-#endif
-        //external fields:
+        //external fields energy:
         //  Eng = q * x * dU/dx
         engElecField += charge * (md->xyz[i].x * md->elecField.x + md->xyz[i].y * md->elecField.y + md->xyz[i].z * md->elecField.z);
 
@@ -449,16 +489,6 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
     {
         atomicAdd(&md->engElecField, shEngElField);
     }
-
-#ifdef DEBUG_MODE
-    if (threadIdx.x == 0)
-        for (i = 1; i < md->nBndTypes; i++)
-            if ((md->bondTypes[i].spec1 < 0) || (md->bondTypes[i].spec2 < 0) || (md->bondTypes[i].spec1 >= MX_SPEC) || (md->bondTypes[i].spec2 >= MX_SPEC))
-            {
-                printf("aft verlete1: bl[%d] step %d bnd[%d] spec1=%d spec2=%d\n", blockIdx.x, iStep, i, md->bondTypes[i].spec1, md->bondTypes[i].spec2);
-                md->xyz[9999999999].x = 15.f;  // crash cuda
-            }
-#endif
 }
 // end 'verlet_1stage' function
 

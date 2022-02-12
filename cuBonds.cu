@@ -12,7 +12,7 @@ void init_cuda_bonds(Atoms* atm, Field* fld, Sim* sim, cudaMD* hmd, hostManagMD*
 // copy bonds data to device, hmd - host exemplar of cudaMD struct
 {
     int i, j;
-    int nsize = atm->nAt * int_size;
+    int nsize = atm->mxAt * int_size;
 
     hmd->mxBond = fld->mxBonds;
     hmd->nBond = fld->nBonds;
@@ -112,17 +112,6 @@ void init_cuda_bonds(Atoms* atm, Field* fld, Sim* sim, cudaMD* hmd, hostManagMD*
     }
     data_to_device((void**)&(hmd->def_bonds), int_int_array, fld->nSpec * pointer_size);
     free(int_int_array);
-
-    // parents are -1?
-    /*
-    for (i = 0; i < atm->nAt; i++)
-        if (atm->parents[i] != -1)
-            printf("parents[%d]=%d\n", i, atm->parents[i]);
-
-    for (i = 0; i < atm->nAt; i++)
-        if (atm->parents[i] == -1)
-            printf("parents[%d]=-1\n", i);
-     */
 
     data_to_device((void**)&(hmd->parents), atm->parents, nsize);
 
@@ -607,7 +596,8 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
                 dx = md->xyz[id1].x - md->xyz[id2].x;
                 dy = md->xyz[id1].y - md->xyz[id2].y;
                 dz = md->xyz[id1].z - md->xyz[id2].z;
-                delta_periodic(dx, dy, dz, md);
+                //delta_periodic_orth(dx, dy, dz, md);
+                md->funcDeltaPer(dx, dy, dz, md);
                 r2 = dx * dx + dy * dy + dz * dz;
                 need_r = 0;
              }
@@ -782,9 +772,6 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
                   md->vls[id2] = make_float3(0.f, 0.f, 0.f);
               }
 
-              //! temp
-              //if ((r < 1.f) || (r > 2.2f))
-                //  printf("length(%d=%d-%d)[%d]=%f, frc=%f dx=%f at1(%f,) at2(%f,) fx1=%f fx2=%f\n", iBnd, id1, id2, cur_bnd->type, r, f, dx, md->xyz[id1].x, md->xyz[id2].x, md->frs[id1].x, md->frs[id2].x);
 
               //printf("f*dx=%f\n", f* dx);
               atomicAdd(&(md->frs[id1].x), f * dx);
@@ -793,9 +780,6 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
               atomicAdd(&(md->frs[id2].y), -f * dy);
               atomicAdd(&(md->frs[id1].z), f * dz);
               atomicAdd(&(md->frs[id2].z), -f * dz);
-
-              //if ((r < 1.f) || (r > 2.2f))
-                //  printf("aft force upd: bond(%d)[%d] has length %f, force=%f dr=(%f,%f,%f) at1(%f,) at2(%f,) fx1=%f fx2=%f\n", iBnd, cur_bnd->type, r, f, dx, dy, dz, md->xyz[id1].x, md->xyz[id2].x, md->frs[id1].x, md->frs[id2].x);
 
               atomicAdd(&(cur_bnd->rSumm), r);
               atomicAdd(&(cur_bnd->rCount), 1);
@@ -889,7 +873,8 @@ __global__ void apply_const_bonds(int iStep, int bndPerBlock, int bndPerThread, 
                 dx = md->xyz[id1].x - md->xyz[id2].x;
                 dy = md->xyz[id1].y - md->xyz[id2].y;
                 dz = md->xyz[id1].z - md->xyz[id2].z;
-                delta_periodic(dx, dy, dz, md);
+                //delta_periodic_orth(dx, dy, dz, md);
+                md->funcDeltaPer(dx, dy, dz, md);
                 r2 = dx * dx + dy * dy + dz * dz;
                 r = sqrt(r2);
                 f = cur_bnd->force_eng(r2, r, eng, cur_bnd);
@@ -1204,7 +1189,7 @@ __global__ void create_bonds(int iStep, int atPerBlock, int atPerThread, cudaMD*
             delta_periodic(x, y, z, md);
             r2 = x * x + y * y + z * z;
             */
-            float r2 = r2_periodic(id1, id2, md);
+            float r2 = md->funcDist2Per(id1, id2, md);
 
             // some verification
             //if ((r2 > 4.0) || (r2 < 1.0))

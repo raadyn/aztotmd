@@ -1,7 +1,7 @@
 #ifndef CUANGLES
 #define CUANGLES
 
-void init_cuda_angles(int nAt, int nsize, Field* fld, cudaMD* h_md, hostManagMD* man);
+void init_cuda_angles(int mxAt, int nsize, Field* fld, cudaMD* h_md, hostManagMD* man);
 
 __global__ void refresh_angles(int iStep, int atPerBlock, int atPerThread, cudaMD* md);
 __global__ void clear_angles(cudaMD* md);

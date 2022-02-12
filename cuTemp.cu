@@ -8,7 +8,7 @@
 #include "cuUtils.h"
 #include "utils.h"
 
-void init_cuda_tstat(int nAt, Atoms *atm, Field *fld, TStat *tstat, cudaMD *hmd, hostManagMD *man)
+void init_cuda_tstat(int mxAt, Atoms *atm, Field *fld, TStat *tstat, cudaMD *hmd, hostManagMD *man)
 {
     int i, t, size;
 
@@ -29,21 +29,21 @@ void init_cuda_tstat(int nAt, Atoms *atm, Field *fld, TStat *tstat, cudaMD *hmd,
         hmd->curVect = 0;
         man->tstat_sign = 1;
 
-        float *phs = (float*)malloc(nAt * float_size);
-        float3 *vecs = (float3*)malloc(nAt * float3_size);
-        float* engs = (float*)malloc(nAt * float_size);
-        int* radstep = (int*)malloc(nAt * int_size);
-        for (i = 0; i < nAt; i++)
+        float *phs = (float*)malloc(mxAt * float_size);
+        float3 *vecs = (float3*)malloc(mxAt * float3_size);
+        float* engs = (float*)malloc(mxAt * float_size);
+        int* radstep = (int*)malloc(mxAt * int_size);
+        for (i = 0; i < mxAt; i++)
         {
             phs[i] = (float)tstat->photons[i];
             vecs[i] = make_float3((float)tstat->randVx[i], (float)tstat->randVy[i], (float)tstat->randVz[i]);
             engs[i] = 0.f;
             radstep[i] = 0;
         }
-        data_to_device((void**)(&hmd->engPhotons), phs, nAt * float_size);
-        data_to_device((void**)(&hmd->randVects), vecs, nAt * float3_size);
-        data_to_device((void**)(&hmd->engs), engs, nAt * float_size);
-        data_to_device((void**)(&hmd->radstep), radstep, nAt * int_size);
+        data_to_device((void**)(&hmd->engPhotons), phs, mxAt * float_size);
+        data_to_device((void**)(&hmd->randVects), vecs, mxAt * float3_size);
+        data_to_device((void**)(&hmd->engs), engs, mxAt * float_size);
+        data_to_device((void**)(&hmd->radstep), radstep, mxAt * int_size);
         free(phs);
         free(vecs);
         free(engs);
@@ -73,8 +73,8 @@ void init_cuda_tstat(int nAt, Atoms *atm, Field *fld, TStat *tstat, cudaMD *hmd,
 
     if (tstat->type == tpTermRadi || fld->is_tdep)
     {
-        float* radii = (float*)malloc(nAt * float_size);
-        for (i = 0; i < nAt; i++)
+        float* radii = (float*)malloc(mxAt * float_size);
+        for (i = 0; i < mxAt; i++)
         {
             t = atm->types[i];
             if (fld->species[t].radB != 0.0)
@@ -87,7 +87,7 @@ void init_cuda_tstat(int nAt, Atoms *atm, Field *fld, TStat *tstat, cudaMD *hmd,
               //  radii[i] = 0.578;
             //radii[i] = 0.6f;
         }
-        data_to_device((void**)(&hmd->radii), radii, nAt * float_size);
+        data_to_device((void**)(&hmd->radii), radii, mxAt * float_size);
         free(radii);
     }
 }
@@ -194,11 +194,6 @@ __global__ void tstat_nose(int atPerBlock, int atPerThread, cudaMD* md)
 #ifdef DEBUG1_MODE
     float3 old_vel;
 #endif
-
-    //if (threadIdx.x == 0)
-      //  if (blockIdx.x == 0)
-        //    printf("tscale=%f\n", md->tscale);
-
     for (i = id0; i < N; i++)
     {
 #ifdef DEBUG1_MODE
@@ -470,10 +465,10 @@ __global__ void laser_cooling(int sign, int atPerBlock, int atPerThread, cudaMD*
     {
         ei = e0 + i;
         vi = v0 + i;
-        if (ei >= md->nAt)
-            ei -= md->nAt;
-        if (vi >= md->nAt)
-            vi -= md->nAt;
+        if (ei >= md->mxAt)
+            ei -= md->mxAt;
+        if (vi >= md->mxAt)
+            vi -= md->mxAt;
         rmc = revLight / md->masses[i];
         vls0 = md->vls[i].x;
         if (rmc * md->engPhotons[ei] * md->randVects[vi].x > 1.f)
@@ -900,8 +895,8 @@ __global__ void tstat_radi9(int iStep, int atPerBlock, int atPerThread, cudaMD* 
         //tm = (iStep - md->radstep[i]) * md->tSt;
 
         ei = e0 + i;
-        if (ei >= md->nAt)
-            ei -= md->nAt;
+        if (ei >= md->mxAt)
+            ei -= md->mxAt;
 
         // photon frequency
         pe = md->engPhotons[ei];

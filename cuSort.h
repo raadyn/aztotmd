@@ -2,7 +2,7 @@
 #define CUSORT_H
 
 __device__ void count_cell(int index, float3 xyz, cudaMD* md);
-void alloc_sort(int nAt, int nCell, cudaMD* hmd);
+void alloc_sort(int mxAt, int nCell, cudaMD* hmd);
 void free_sort(cudaMD* hmd);
 
 __global__ void refresh_arrays(int use_bnd, int use_ang, cudaMD* md);

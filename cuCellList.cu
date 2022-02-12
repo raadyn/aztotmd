@@ -2,6 +2,7 @@
 #include "cuStruct.h"
 #include "cuCellList.h"
 #include "cuSort.h"
+#include "box.h"
 #include "utils.h"
 #include "cuUtils.h"
 
@@ -31,14 +32,6 @@ int split_cells(int div_type, float r, int add_to_even, int nAt, cudaMD* hmd)
     hmd->maxAtPerCell = (double)(nAt * 3) / hmd->nCell;          //! € не знаю точно, как лучше определить это кол-во
     return hmd->nCell;
 }
-
-/*
-int n_pairs(int n)
-// return number of pairs for n element
-{
-    return n * (n - 1) / 2;
-}
-*/
 
 int3 xyz_of_cell(int id, int nyz, int nz)
 // return coordinates of cell with id = id
@@ -94,29 +87,30 @@ int cell_dist(int xi, int xj, int mx, float length, float csize, float rskip, fl
 }
 */
 
-int cell_dist_int(int xi, int xj, int mx, float csize, float rskip, float& rmin, float& rmax, int& shift)
+int cell_dist_int(int xi, int xj, int mx, float csize, float rskip, float& rmin, float& rmax, int& shift, int periodic)
 // вычисл€ем минимальное и максимальное рассто€ние (в кол-ве €чеек) между частицами из 2х разных €чеек, а также сдвиг, используемый при учете периодических условий
 // xi, xj - координаты 2х €чеек в одном из измерений, mx - максимальное кол-во €чеек в этом измерении,  csize - размер €чейки
 // возвращаем 1 если €чейки слишком далеко (больше rskip) иначе 0
 // version with integer shift (-1 / 0 / 1)
-// for full periodic rectangular conditions
+// flag 'periodic' - to use or not periodic boundary conditions
 {
 
     shift = 0;
     int delt = abs(xi - xj);
     if (delt != 0)
     {
-        if (delt > (double)(mx / 2))    // periodic conditions
-        {
-            delt = mx - delt;
-            if (xi > xj)
-                shift = 1;
-            else
-                shift = -1;
-        }
+        if (periodic)   // apply periodic boundary conditions
+            if (delt > (double)(mx / 2))    
+            {
+                delt = mx - delt;
+                if (xi > xj)
+                    shift = 1;
+                else
+                    shift = -1;
+            }
+
         rmin = (delt - 1) * csize;
         rmax = (delt + 1) * csize;
-
         if (rmin > rskip)
             return 1;
         else
@@ -130,7 +124,8 @@ int cell_dist_int(int xi, int xj, int mx, float csize, float rskip, float& rmin,
     }
 }
 
-void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &index, Elec *elec, Field *fld, int in_any_case, cudaMD *hmd)
+
+void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &index, Elec *elec, Field *fld, int in_any_case, cudaMD *hmd, int box_type)
 // verify that cells cell1 and cell2 are 'in range' and add it to pairs array with saving of shift and increase index
 // 'in_any_case' parameter means that the pair is added in any case but with .w = -1 (it needed in 2a function)
 {
@@ -142,7 +137,7 @@ void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &inde
     float rmax = (float)max(elec->rReal, fld->maxRvdw);
 
     // x dimension:
-    if (cell_dist_int(xyz1.x, xyz2.x, hmd->cNumber.x, hmd->cSize.x, rmax, dxmin, dxmax, shx))
+    if (cell_dist_int(xyz1.x, xyz2.x, hmd->cNumber.x, hmd->cSize.x, rmax, dxmin, dxmax, shx, 1))
     {
         if (in_any_case)
             out_of_range = 1;
@@ -152,7 +147,7 @@ void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &inde
 
     // y dimension:
     if (!out_of_range)  // otherwise no need to calculate
-        if (cell_dist_int(xyz1.y, xyz2.y, hmd->cNumber.y, hmd->cSize.y, rmax, dymin, dymax, shy))
+        if (cell_dist_int(xyz1.y, xyz2.y, hmd->cNumber.y, hmd->cSize.y, rmax, dymin, dymax, shy, 1))
         {
             if (in_any_case)
                 out_of_range = 1;
@@ -161,8 +156,11 @@ void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &inde
         }
 
     // z dimension:
+    int periodic = 1;
+    if (box_type == tpBoxHalf)
+        periodic = 0;
     if (!out_of_range)  // otherwise no need to calculate
-        if (cell_dist_int(xyz1.z, xyz2.z, hmd->cNumber.z, hmd->cSize.z, rmax, dzmin, dzmax, shz))
+        if (cell_dist_int(xyz1.z, xyz2.z, hmd->cNumber.z, hmd->cSize.z, rmax, dzmin, dzmax, shz, periodic))
         {
             if (in_any_case)
                 out_of_range = 1;
@@ -209,7 +207,8 @@ void add_cell_pairs(int cell1, int cell2, int4 *pairs, float3 *shifts, int &inde
     index++;
 }
 
-int pair_exists_shift(int cell1, int cell2, float3 &shift, Elec* elec, Field* fld, cudaMD* hmd)
+
+int pair_exists_shift(int cell1, int cell2, float3 &shift, Elec* elec, Field* fld, cudaMD* hmd, int box_type)
 // similar to the previous function, but return 1 if cells 'are in range' and save shift as a parameter 
 {
     float dxmin, dymin, dzmin, dxmax, dymax, dzmax;
@@ -219,15 +218,18 @@ int pair_exists_shift(int cell1, int cell2, float3 &shift, Elec* elec, Field* fl
     float rmax = (float)max(elec->rReal, fld->maxRvdw);
 
     // x dimension:
-    if (cell_dist_int(xyz1.x, xyz2.x, hmd->cNumber.x, hmd->cSize.x, rmax, dxmin, dxmax, shx))
+    if (cell_dist_int(xyz1.x, xyz2.x, hmd->cNumber.x, hmd->cSize.x, rmax, dxmin, dxmax, shx, 1))
         return 0;
 
     // y dimension:
-    if (cell_dist_int(xyz1.y, xyz2.y, hmd->cNumber.y, hmd->cSize.y, rmax, dymin, dymax, shy))
+    if (cell_dist_int(xyz1.y, xyz2.y, hmd->cNumber.y, hmd->cSize.y, rmax, dymin, dymax, shy, 1))
         return 0;
 
     // z dimension:
-    if (cell_dist_int(xyz1.z, xyz2.z, hmd->cNumber.z, hmd->cSize.z, rmax, dzmin, dzmax, shz))
+    int per = 1;
+    if (box_type == tpBoxHalf)
+        per = 0;
+    if (cell_dist_int(xyz1.z, xyz2.z, hmd->cNumber.z, hmd->cSize.z, rmax, dzmin, dzmax, shz, per))
         return 0;
 
     float dr2min = sqr_sumf(dxmin, dymin, dzmin);
@@ -238,7 +240,7 @@ int pair_exists_shift(int cell1, int cell2, float3 &shift, Elec* elec, Field* fl
     return 1;
 }
 
-void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cudaMD* hmd)
+void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cudaMD* hmd, int box_type)
 // обход реализованный в алгоритмах (2a, 2b) и (3a, 3b): 2a и 2b получаютс€ при pairPerBlock == 1
 //  1а€ часть - пары вида (i)-(i+1) и их сдвиги, 2а€ часть - остальные пары и их сдвиги - отдельно. 
 //  ќбе части хран€тс€ в одних массивах md->pairs и md->shifts
@@ -260,7 +262,7 @@ void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cu
     // штука в том, что в первой части пары может и не быть, но загружать все равно надо, поскольку там обрабатываюс€ пары внутри €чейки!
     hmd->nPair1 = hmd->nCell / 2;
     for (i = 0; i < hmd->nPair1 - art_cell; i++) // не забыть про искуственную €чейку
-        add_cell_pairs(i * 2, i * 2 + 1, pairs, shifts, index, elec, fld, 1, hmd);    // verify, that cells in range and add in any case
+        add_cell_pairs(i * 2, i * 2 + 1, pairs, shifts, index, elec, fld, 1, hmd, box_type);    // verify, that cells in range and add in any case
 
     if (art_cell)
     {
@@ -280,7 +282,7 @@ void init_bypass0(int pairPerBlock, Elec *elec, Field *fld, hostManagMD *man, cu
     {
         k = 2 - (i % 2); // учитываем, что 0-1, 2-3, 4-5 пары мы уже отобрали
         for (j = i + k; j < hmd->nCell - art_cell; j++)
-            add_cell_pairs(i, j, pairs, shifts, index, elec, fld, 0, hmd);    // verify, that cells in range and add if it's so
+            add_cell_pairs(i, j, pairs, shifts, index, elec, fld, 0, hmd, box_type);    // verify, that cells in range and add if it's so
     }
     hmd->nPair = index;
 
@@ -345,14 +347,14 @@ void start_block(int cell1, int cell2, int4* cellBlocks, float3* shifts, int& bl
     shifts[0] = make_float3(-shift.x, -shift.y, -shift.z);
 }
 
-void block_loop(int cell1, int j0, int jmax, int4* cellBlocks, float3* shifts, float3** secShifts, int& blockIndex, int maxBlocks, int& totPairs, Elec *elec, Field *fld, cudaMD *hmd)
+void block_loop(int cell1, int j0, int jmax, int4* cellBlocks, float3* shifts, float3** secShifts, int& blockIndex, int maxBlocks, int& totPairs, Elec *elec, Field *fld, cudaMD *hmd, int box_type)
 {
     float3 shift;
     int open = 0;
     int j = j0;
     while (j < jmax)
     {
-        if (pair_exists_shift(cell1, j, shift, elec, fld, hmd))
+        if (pair_exists_shift(cell1, j, shift, elec, fld, hmd, box_type))
         {
             if (open)
             {
@@ -378,7 +380,7 @@ void block_loop(int cell1, int j0, int jmax, int4* cellBlocks, float3* shifts, f
     }
 }
 
-void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd, hostManagMD* man)
+void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd, hostManagMD* man, int box_type)
 // analogous to previous init_fastCellList
 {
     int i, j, k, index;
@@ -404,7 +406,7 @@ void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd,
         index = 0;
         for (j = i0; j < N - 1; j++)
             for (k = j + 1; k < N; k++)
-                add_cell_pairs(j, k, pairs, shifts, index, elec, fld, 0, hmd);    // verify, that cells in range and add if it's so
+                add_cell_pairs(j, k, pairs, shifts, index, elec, fld, 0, hmd, box_type);    // verify, that cells in range and add if it's so
         nPair[i] = index;
         totPairs += index;
         data_to_device((void**)&(pairs_arr[i]), pairs, index * int4_size);
@@ -427,13 +429,13 @@ void init_bypass4(int cellInBlock, int nAt, Elec* elec, Field *fld, cudaMD* hmd,
     int nFirstCell = (int)(sqrt(0.5) * hmd->nCell);
     for (i = 0; i < nFirstCell; i++)
     {
-        block_loop(i, (i / cellInBlock + 1) * cellInBlock, nFirstCell, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd);
+        block_loop(i, (i / cellInBlock + 1) * cellInBlock, nFirstCell, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd, box_type);
     }
 
     // оставшие€€ блоки
     for (i = nFirstCell; i < hmd->nCell; i++)
     {
-        block_loop(i, 0, (i / cellInBlock) * cellInBlock, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd);
+        block_loop(i, 0, (i / cellInBlock) * cellInBlock, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd, box_type);
     }
 
     data_to_device((void**)&(hmd->cellBlocks), cellBlocks, k * sizeof(int4));
@@ -468,7 +470,7 @@ void free_bypass4(cudaMD* hmd, hostManagMD* man)
     cuda2DFree((void**)hmd->secShifts, man->pairBlockB);
 }
 
-void init_bypass5(Elec *elec, Field *fld, cudaMD *hmd, hostManagMD* man)
+void init_bypass5(Elec *elec, Field *fld, cudaMD *hmd, hostManagMD* man, int box_type)
 // part A : interaction inside cells. Part B: between cells. Used sorted arrays
 {
     int i, j, index = 0;
@@ -478,7 +480,7 @@ void init_bypass5(Elec *elec, Field *fld, cudaMD *hmd, hostManagMD* man)
 
     for (i = 0; i < hmd->nCell - 1; i++)
         for (j = i + 1; j < hmd->nCell; j++)
-            add_cell_pairs(i, j, pairs, shifts, index, elec, fld, 0, hmd);    // verify, that cells in range and add if it's so
+            add_cell_pairs(i, j, pairs, shifts, index, elec, fld, 0, hmd, box_type);    // verify, that cells in range and add if it's so
     hmd->nPair = index;
 
     data_to_device((void**)&(hmd->cellPairs), pairs, hmd->nPair * int4_size);
@@ -502,7 +504,7 @@ void free_bypass5(cudaMD* hmd)
     cudaFree(hmd->cellShifts);
 }
 
-void init_bypass6(int cellInBlock, int nAt, Elec* elec, Field* fld, cudaMD* hmd, hostManagMD* man)
+void init_bypass6(int cellInBlock, int nAt, Elec* elec, Field* fld, cudaMD* hmd, hostManagMD* man, int box_type)
 // будет обрабатывать €чейки отдельно, как bypass5 - не требует специальных структур, а пары - все как bypass4, но все пары вообще
 {
     int i, k;// , index;
@@ -520,13 +522,13 @@ void init_bypass6(int cellInBlock, int nAt, Elec* elec, Field* fld, cudaMD* hmd,
     int nFirstCell = (int)(sqrt(0.5) * hmd->nCell);
     for (i = 0; i < nFirstCell; i++)
     {
-        block_loop(i, i + 1, nFirstCell, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd);
+        block_loop(i, i + 1, nFirstCell, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd, box_type);
     }
 
     // оставшие€€ блоки
     for (i = nFirstCell; i < hmd->nCell; i++)
     {
-        block_loop(i, 0, i, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd);
+        block_loop(i, 0, i, cellBlocks, shifts, secShifts, k, cellInBlock, totPairs, elec, fld, hmd, box_type);
     }
 
     data_to_device((void**)&(hmd->cellBlocks), cellBlocks, k * int4_size);
@@ -579,7 +581,7 @@ void free_2dlist(cudaMD *hmd)
     cuda2DFree((void**)&(hmd->cells), hmd->nCell);
 }
 
-void init_cellList(int div_type, int list_type, int bypass_type, float size, Atoms* atm, Field* fld, Elec *elec, cudaMD* hmd, hostManagMD *man)
+void init_cellList(int div_type, int list_type, int bypass_type, float size, Atoms* atm, Field* fld, Elec *elec, cudaMD* hmd, hostManagMD *man, int box_type)
 // функци€ подготавливает все переменные, инициализирует и заполн€ет массивы дл€ целл листа
 //  при необходимости выдел€ет пам€ть дл€ реализации сортировки
 // div_type определ€ет тип разбиени€: 0 - €чейка така€, чтобы диагонраль не превышала min(Rvdw), 1 - ребро не меньше максимального радиуса взаимодействи€
@@ -610,7 +612,7 @@ void init_cellList(int div_type, int list_type, int bypass_type, float size, Ato
     nCell = split_cells(div_type, r, add_to_even, atm->nAt, hmd);
 
     if (list_type == 1)     // list based on sorted arrays
-        alloc_sort(atm->nAt, nCell, hmd);
+        alloc_sort(atm->mxAt, nCell, hmd);
     else      // list as 2-d array
         alloc_2dlist(nCell, hmd);
 
@@ -618,16 +620,16 @@ void init_cellList(int div_type, int list_type, int bypass_type, float size, Ato
     switch (bypass_type)
     {
      case 0:     // for usage of cell_list2a and 2b or 3a and 3b functions (for 3a,3b first parameter must be >1)
-         init_bypass0(1, elec, fld, man, hmd);
+         init_bypass0(1, elec, fld, man, hmd, box_type);
          break;
      case 4:     // fast cell list
-         init_bypass4(9, atm->nAt, elec, fld, hmd, man);
+         init_bypass4(9, atm->nAt, elec, fld, hmd, man, box_type);
          break;
      case 5:     
-         init_bypass5(elec, fld, hmd, man);
+         init_bypass5(elec, fld, hmd, man, box_type);
          break;
      case 6:
-         init_bypass6(10, atm->nAt, elec, fld, hmd, man);
+         init_bypass6(man->mxCellInBlock, atm->nAt, elec, fld, hmd, man, box_type);
          break;
     }
 

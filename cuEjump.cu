@@ -18,8 +18,8 @@ void init_cuda_ejump(Sim *sim, Atoms *atm, cudaMD *hmd)
         hmd->dEjump = (float)sim->dEjump;
         hmd->mxFreeEls = sim->nFreeEl;
 		cudaMalloc((void**)&(hmd->electrons), sim->nFreeEl * int_size);
-		cudaMalloc((void**)&(hmd->accIds), atm->nAt * int_size);
-		cudaMalloc((void**)&(hmd->r2Jumps), atm->nAt * int_size);
+		cudaMalloc((void**)&(hmd->accIds), atm->mxAt * int_size);
+		cudaMalloc((void**)&(hmd->r2Jumps), atm->mxAt * int_size);
         hmd->nJump = 0;
         hmd->posBxJump = make_int3(0, 0, 0);
         hmd->negBxJump = make_int3(0, 0, 0);
@@ -147,7 +147,7 @@ __global__ void cuda_ejump(int bndPerThread, cudaMD* md)
         if (nei > -1)
         {
             nei_type = md->types[nei];
-            r2 = r2_periodic(donor, nei, md);
+            r2 = md->funcDist2Per(donor, nei, md);
             r = sqrt(r2);    //  determine it in VDW func
 
             //van der Waals energy difference:
@@ -182,7 +182,7 @@ __global__ void cuda_ejump(int bndPerThread, cudaMD* md)
         if (nei > -1)
         {
             nei_type = md->types[nei];
-            r2 = r2_periodic(acceptor, nei, md);
+            r2 = md->funcDist2Per(acceptor, nei, md);
             r = sqrt(r2);    //  determine it in VDW func
 
             //van der Waals energy difference:

@@ -502,11 +502,12 @@ __global__ void brute_rdf(int nSpec, int nPair, float idRDF, float r2max, cudaMD
         if (ex) break;
 
         // rdf calculation
-        dx = md->xyz[i].x - md->xyz[j].x;
-        dy = md->xyz[i].y - md->xyz[j].y;
-        dz = md->xyz[i].z - md->xyz[j].z;
-        delta_periodic(dx, dy, dz, md);
-        r2 = dx * dx + dy * dy + dz * dz;
+        //dx = md->xyz[i].x - md->xyz[j].x;
+        //dy = md->xyz[i].y - md->xyz[j].y;
+        //dz = md->xyz[i].z - md->xyz[j].z;
+        //delta_periodic_orth(dx, dy, dz, md);
+        //r2 = dx * dx + dy * dy + dz * dz;
+        r2 = md->funcDist2Per(i, j, md);
         if (r2 < r2max)
         {
             iR = sqrt((double)r2) * idRDF;                  // define id of RDF bin . Convert to double to exclude than roundation error gives iR out of range
@@ -658,7 +659,6 @@ __global__ void brute_nrdf(int nSpec, int nNucl, int nPair, int n_nPair, float i
     int m = nSpec - 1;
     int n_m = nNucl - 1;
 
-
     //degub
     //int count = 0;
 
@@ -680,11 +680,12 @@ __global__ void brute_nrdf(int nSpec, int nNucl, int nPair, int n_nPair, float i
         if (ex) break;
 
         // rdf calculation
-        dx = md->xyz[i].x - md->xyz[j].x;
-        dy = md->xyz[i].y - md->xyz[j].y;
-        dz = md->xyz[i].z - md->xyz[j].z;
-        delta_periodic(dx, dy, dz, md);
-        r2 = dx * dx + dy * dy + dz * dz;
+        //dx = md->xyz[i].x - md->xyz[j].x;
+        //dy = md->xyz[i].y - md->xyz[j].y;
+        //dz = md->xyz[i].z - md->xyz[j].z;
+        //delta_periodic_orth(dx, dy, dz, md);
+        //r2 = dx * dx + dy * dy + dz * dz;
+        r2 = md->funcDist2Per(i, j, md);
         if (r2 < r2max)
         {
             iR = sqrt((double)r2) * idRDF;                  // define id of RDF bin . Convert to double to exclude than roundation error gives iR out of range

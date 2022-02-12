@@ -94,7 +94,7 @@ struct Sim
    double clX, clY, clZ;  // (dp)    cell length in X,Y and Z-directions
 
    //vars for neighbors list
-   int *nNbors;      // numbers[nAt] of neighbors of atoms
+   int *nNbors;      // numbers[mxAt] of neighbors of atoms
    int **nbors;        // indexes of neighbors of atom
    int **tnbors;        // types of neighbors (VdW, Coulomb, bonding, e-jump, bond formation)
    double **distances;     // distances to neighbors
@@ -311,8 +311,8 @@ struct VdW  // pair potential
 
 struct Atoms
 {
-   int nAt;
-   int* types;  //! заменить на Spec*
+   int nAt, mxAt;   // current number of atoms and maximal number of atoms
+   int* types;      //! replace to Spec* ?
    double *xs, *ys, *zs;
    double *vxs, *vys, *vzs;
    double *fxs, *fys, *fzs;

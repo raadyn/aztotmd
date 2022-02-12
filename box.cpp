@@ -12,7 +12,7 @@ int read_box(FILE *f, Box *bx)
    int res = 1;
 
    fscanf(f, "%d", &bx->type);
-   if (bx->type == tpBoxRect)
+   if ((bx->type == tpBoxRect) || (bx->type == tpBoxHalf))
    {
         fscanf(f, "%lf %lf %lf", &bx->la, &bx->lb, &bx->lc);
         prepare_box(bx);
@@ -106,7 +106,7 @@ void prepare_box(Box *bx)
 
    // volume and invert volume
    //! only for rectangular case
-   if (bx->type == tpBoxRect)
+   if ((bx->type == tpBoxRect) || (bx->type == tpBoxHalf))
    {
       bx->vol = bx->la * bx->lb * bx->lc;
    }

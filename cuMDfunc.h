@@ -6,8 +6,9 @@
 // box functions:
 __device__ float3 get_shift(int shift_type, cudaMD* md);
 __device__ void put_periodic(float3& xyz, float3 vel, float mass, int type, cudaMD* md);
-__device__ void delta_periodic(float& dx, float& dy, float& dz, cudaMD* md);
-__device__ float r2_periodic(int id1, int id2, cudaMD* md);
+__device__ void delta_periodic_orth(float& dx, float& dy, float& dz, cudaMD* md);
+__device__ float dist2_periodic_orth(int i, int j, cudaMD* md);
+//__device__ float r2_periodic(int id1, int id2, cudaMD* md);
 __device__ void pass_periodic(int id1, int id2, cudaMD* md, int& px, int& py, int& pz);
 
 

@@ -4,11 +4,11 @@
 #include "cuUtils.h"
 //#include "cuTemp.h"
 
-void alloc_sort(int nAt, int nCell, cudaMD* hmd)
+void alloc_sort(int mxAt, int nCell, cudaMD* hmd)
 {
-    int flsize = sizeof(float) * nAt;
-    int xyzsize = sizeof(float3) * nAt;
-    int intsize = int_size * nAt;
+    int flsize = sizeof(float) * mxAt;
+    int xyzsize = sizeof(float3) * mxAt;
+    int intsize = int_size * mxAt;
 
     cudaMalloc((void**)&hmd->sort_xyz, xyzsize);
     cudaMalloc((void**)&hmd->sort_vls, xyzsize);
@@ -30,7 +30,7 @@ void alloc_sort(int nAt, int nCell, cudaMD* hmd)
     // for keeping atoms indexes
     int* arr = (int*)malloc(intsize);
     int i;
-    for (i = 0; i < nAt; i++)
+    for (i = 0; i < mxAt; i++)
         arr[i] = i;
     data_to_device((void**)(&hmd->cur_inds), arr, intsize);
 
@@ -128,7 +128,7 @@ __device__ void count_cell(int index, float3 xyz, cudaMD* md)
 
 __global__ void calc_firstAtomInCell(cudaMD* md)
 // define first index of atom in ordered array corresponding to each cell
-//! этот код по сути серийный
+//! in fact this is a serial code
 {
     int i;
     int cnt = 0;
@@ -138,21 +138,16 @@ __global__ void calc_firstAtomInCell(cudaMD* md)
         md->firstAtomInCell[i] = cnt;
         cnt += md->nAtInCell[i];
     }
-    //printf("end calc first atom\n");
 }
 
 __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerThread, cudaMD* md)
 // sort atoms according to the cells belonging
 {
-    //printf("BEGIN SORT ATOMS(%d, %d)\n", blockIdx.x, threadIdx.x);
     int i, j;
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
     for (i = id0; i < N; i++)
     {
-        //if (i == 0)
-          //  printf("begin sort atoms\n");
-
         // define new index:
         j = md->firstAtomInCell[md->cellIndexes[i]] + md->insideCellIndex[i];
         // copy data to ordered arrays:
@@ -169,7 +164,6 @@ __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerTh
         }
         if (md->tstat == 2 || md->tdep_force)
             md->sort_radii[j] = md->radii[i];    //! for radiative thermostat and T-dependent force field
-    //printf("SORT ATOMS bef use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
         if (use_bnd)
         {
             // сортировку родитиелей нужно делать в два действия, сначала перемещаем значение родителя на новое место
@@ -177,30 +171,23 @@ __global__ void sort_atoms(int use_bnd, int use_ang, int atPerBlock, int atPerTh
             md->sort_parents[j] = md->parents[i];
             md->sort_nbonds[j] = md->nbonds[i];
         }
-        //printf("SORT ATOMS bef use_ang(%d, %d)\n", blockIdx.x, threadIdx.x);
         if (use_ang)
         {
             md->sort_nangles[j] = md->nangles[i];
         }
-        //printf("SORT ATOMS bef use_ang || use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
         //! или если используется вывод траекторий!
         md->sort_ind[i] = j;
         if (use_bnd || use_ang)
         {
             md->sort_oldTypes[j] = md->oldTypes[i];
-            //md->sort_trajs[j] = i;
         }
-        //printf("SORT ATOMS aft use_ang || use_bnd(%d, %d)\n", blockIdx.x, threadIdx.x);
-
-        //if (i == 0)
-          //  printf("end sort atoms\n");
     }
 }
 
 __global__ void sort_dependent(int atPerBlock, int atPerThread, cudaMD* md)
 // sort data which dependent on sorting index and can be arranged only after defined of sort_ind array
 {
-    int i;// , j;
+    int i;
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
     for (i = id0; i < N; i++)
@@ -208,7 +195,7 @@ __global__ void sort_dependent(int atPerBlock, int atPerThread, cudaMD* md)
         if (md->use_bnd)
             //md->sort_parents[i] = md->sort_ind[md->sort_parents[i]]; //! I don't know how it was obtained and how does it work, the next line is correct:
             md->sort_parents[md->sort_ind[i]] = md->sort_ind[md->parents[i]];
-        md->cur_inds[i] = md->sort_ind[md->cur_inds[i]];
+        md->cur_inds[i] = md->sort_ind[md->cur_inds[i]];    // current index of i-th atom at start (used for trajectories, msd and etc)
     }
 }
 

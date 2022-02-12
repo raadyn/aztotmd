@@ -47,7 +47,7 @@ void init_cuda_ewald(Atoms *atm, Elec *elec, hostManagMD *man, cudaMD* h_md)
     int mmin = 0; int nmin = 1;
     int m, n;
     int ik = 0;
-    float c = -0.25 / h_md->alpha / h_md->alpha;
+    float c = -0.25f / h_md->alpha / h_md->alpha;
     int l;
     for (l = 0; l < h_md->nk.x; l++)
     {
@@ -83,7 +83,7 @@ void init_cuda_ewald(Atoms *atm, Elec *elec, hostManagMD *man, cudaMD* h_md)
     delete[] rk;
     delete[] exprk2;
 
-    float2** qiexp = (float2**)malloc(atm->nAt * pointer_size);
+    float2** qiexp = (float2**)malloc(atm->mxAt * pointer_size);
     for (i = 0; i < atm->nAt; i++)
         cudaMalloc((void**)&(qiexp[i]), ik * sizeof(float2));
     data_to_device((void**)&(h_md->qiexp), qiexp, atm->nAt * pointer_size);
@@ -167,7 +167,7 @@ void free_cuda_elec(cudaMD* hmd)
         cudaFree(hmd->rk);
         cudaFree(hmd->exprk2);
         cudaFree(hmd->qDens);
-        cuda2DFree((void**)hmd->qiexp, hmd->nAt);
+        cuda2DFree((void**)hmd->qiexp, hmd->mxAt);
         free_realEwald_tex(hmd);
     }
 }

@@ -94,9 +94,9 @@ double photon_engs(int n, double* engs, double T)
     return mx;
 }
 
-int read_tstat(FILE *f, TStat *tstat, int nAt)
+int read_tstat(FILE *f, TStat *tstat, int mxAt)
 // read thermostat parameters from file and return success or not
-// nAt - number of atoms
+// mxAt = maximal number of atoms
 {
    int i, j, k, res = 1;
    char str[5];
@@ -126,16 +126,16 @@ int read_tstat(FILE *f, TStat *tstat, int nAt)
            tstat->type = tpTermRadi;
 
            // photon energies, corresponding to desired temperature
-           tstat->photons = (double*)malloc(nAt * double_size);
-           tstat->mxEng = photon_engs(nAt, tstat->photons, tstat->Temp);
+           tstat->photons = (double*)malloc(mxAt * double_size);
+           tstat->mxEng = photon_engs(mxAt, tstat->photons, tstat->Temp);
 
            double phi, theta, cost;
-           int nAt2 = nAt / 2;          // only for even number of atoms
+           int nAt2 = mxAt / 2;          // only for even number of atoms
            double ransq, ran1, ran2, ranh;
 
-           tstat->randVx = (double*)malloc(nAt * double_size);
-           tstat->randVy = (double*)malloc(nAt * double_size);
-           tstat->randVz = (double*)malloc(nAt * double_size);
+           tstat->randVx = (double*)malloc(mxAt * double_size);
+           tstat->randVy = (double*)malloc(mxAt * double_size);
+           tstat->randVz = (double*)malloc(mxAt * double_size);
            for (i = 0; i < nAt2; i++)
            {
                // old variant

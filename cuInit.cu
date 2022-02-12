@@ -148,6 +148,12 @@ int read_cuda(Field *fld, cudaMD *hmd, hostManagMD *man)
     {
         printf("WARNING[a006]: 'nthread b ' directive is not specified in cuda.txt, default value of 32 is used\n");
     }
+    // maximal number of cell in cellBlock for bypassing according to the last type (with sorting)
+    if (!find_int_def(f, " maxcellinblock %d", man->mxCellInBlock, 10))
+    {
+        printf("WARNING[b014]: 'maxcellinblock' directive is not specified in cuda.txt, default value of 10 is used\n");
+    }
+
 
 
     fclose(f);
@@ -170,9 +176,9 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 // prepare everything for CUDA execution based on loaded data for serial execution
 {
     int i, j, k;
-    int xyzsize = atm->nAt * float3_size;
-    int nsize = atm->nAt * int_size;
-    int flsize = atm->nAt * float_size;
+    int xyzsize = atm->mxAt * float3_size;
+    int nsize = atm->mxAt * int_size;
+    int flsize = atm->mxAt * float_size;
 
     // 0 CUDA SETTINGS
     if (!read_cuda(fld, h_md, man))
@@ -187,6 +193,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 
     // 1 ATOMS DATA
     h_md->nAt = atm->nAt;
+    h_md->mxAt = atm->mxAt;
     float3* h_xyz = (float3*)malloc(xyzsize);
     float3* h_vls = (float3*)malloc(xyzsize);
     float3* h_frc = (float3*)malloc(xyzsize);
@@ -361,7 +368,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     cudaMalloc((void**)&(h_md->negMomBuf), h_md->nMom * float_size);
 
     // 4 THEREMOSTAT & TEMPERATURE DATA
-    init_cuda_tstat(atm->nAt, atm, fld, tstat, h_md, man);
+    init_cuda_tstat(atm->mxAt, atm, fld, tstat, h_md, man);
 
     // 5 BOX
     init_cuda_box(bx, h_md);
@@ -371,13 +378,13 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 
 
     // 7 DEFINTION OF hostManagMD variables
-    man->atStep = ceil((double)atm->nAt / man->totCores);   // >= 1
+    man->atStep = ceil((double)atm->mxAt / man->totCores);   // >= 1
     int mxAtPerBlock = man->atStep * man->nSingProc;
-    man->nAtBlock = ceil((double)atm->nAt / mxAtPerBlock);
+    man->nAtBlock = ceil((double)atm->mxAt / mxAtPerBlock);
     man->nAtThread = man->nSingProc;
 
     //!  загрузить все МП поровну, 1блок = 1МП, опустим ситуацию, когда число МП меньше кол-ва атомов, ведь для моделирования нам нужны тысячи атомов
-    man->atPerBlock = ceil((double)atm->nAt / man->nMultProc); // число атомов на МП
+    man->atPerBlock = ceil((double)atm->mxAt / man->nMultProc); // число атомов на МП
     man->atPerThread = ceil((double)man->atPerBlock / man->nSingProc);    //! число атомов на поток
     if (man->atPerBlock < (man->atPerThread * man->nSingProc))
         man->atPerBlock = man->atPerThread * man->nSingProc;    // но не меньше, чем число атомов во всех потоках блока
@@ -391,7 +398,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     //int nB2 = ceil((double)man->nPair2Block / (double)man->pairPerBlock);
 
     // 8 CELL LIST
-    init_cellList(1, 1, 6, (float)sim->desired_cell_size, atm, fld, elec, h_md, man);
+    init_cellList(1, 1, 6, (float)sim->desired_cell_size, atm, fld, elec, h_md, man, bx->type);
 
     // 9 STATISTICS
     init_cuda_stat(h_md, man, sim, fld, tstat);
@@ -410,13 +417,13 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     if (h_md->use_bnd)
         init_cuda_bonds(atm, fld, sim, h_md, man);
     if (h_md->use_angl)
-        init_cuda_angles(atm->nAt, nsize, fld, h_md, man);
+        init_cuda_angles(atm->mxAt, nsize, fld, h_md, man);
     // create oldTypes array (used for bonds and angles)
     if (sim->use_angl || sim->use_bnd)  //! maybe == 2, ==2 ??
     {
         int* int_array;
         int_array = (int*)malloc(nsize);
-        for (i = 0; i < atm->nAt; i++)
+        for (i = 0; i < atm->mxAt; i++)
         {
             int_array[i] = -1;  // oldTypes[i] = -1
         }
@@ -430,7 +437,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
 
     // for debugging
 #ifdef DEBUG_MODE
-    cudaMalloc((void**)&(h_md->nCult), sizeof(int) * atm->nAt);
+    cudaMalloc((void**)&(h_md->nCult), sizeof(int) * atm->mxAt);
     cudaMalloc((void**)&(h_md->nPairCult), sizeof(int) * h_md->nPair);
     cudaMalloc((void**)&(h_md->nCelCult), sizeof(int) * h_md->nCell);
 #endif
@@ -456,16 +463,6 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     return d_md;
 }
 // end 'init_cudaMD' function
-
-/*
-void nxyz_to_host(float3 *buffer, Atoms* atm, cudaMD* hmd, hostManagMD* man)
-// copy the number of atoms and coordinates array {xyz} from device to host
-{
-    cudaMemcpy(&(atm->nAt), man->nAtPtr, int_size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(buffer, hmd->xyz, atm->nAt * sizeof(int3), cudaMemcpyDeviceToHost);
-}
-*/
-
 
 void md_to_host(Atoms* atm, Field* fld, cudaMD *hmd, cudaMD *dmd, hostManagMD* man)
 // copy md results from device to host (hmd - host exemplar of cudaMD)

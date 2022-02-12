@@ -181,7 +181,7 @@ __global__ void calc_quantities(int iStep, cudaMD* md)
     }
 }
 
-__global__ void define_global_func(cudaMD *md)
+__global__ void define_global_func(int boxtype, cudaMD *md)
 {
     switch (md->use_coul)
     {
@@ -202,6 +202,18 @@ __global__ void define_global_func(cudaMD *md)
           printf("ERROR[b008] Something wrong: wrong value of use_coul variable (%d)\n", md->use_coul);
     }
     //printf("arr[%d]=%f fetch=%f\n", 250, md->coulEng[250], fetch1D);
+
+    switch (boxtype)
+    {
+      case 1:   // orthorombic boundary conditions
+        md->funcDeltaPer = &delta_periodic_orth;
+        md->funcDist2Per = &dist2_periodic_orth;
+        break;
+      case 2:   //
+        break;
+      default:
+        printf("ERROR[b019] Unknown box type (%d)\n", boxtype);
+    }
 }
 
 int main()
@@ -231,7 +243,7 @@ int main()
 
     cuda_info();    // print some information about videocard
 
-    define_global_func << <1, 1 >> > (devMD);
+    define_global_func << <1, 1 >> > (box->type, devMD);
     define_vdw_func << <1, field->nVdW >> > (devMD);
     define_bond_potential << <1, field->nBdata >> > (devMD);
     define_ang_potential << <1, field->nAdata >> > (devMD);

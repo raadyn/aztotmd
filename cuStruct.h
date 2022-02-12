@@ -103,6 +103,7 @@ struct hostManagMD
     // for pairs bypass implementation
     int pairMemA, pairMemB, pairBlockA, pairBlockB, pairThreadA, pairThreadB;
     int cellPerBlockA, cellPerBlockB;
+    int mxCellInBlock;
 
     //for pairs:
     int div_type, list_type, bypass_type;
@@ -328,10 +329,14 @@ struct cudaMD
     // functions!
     //float (*funcCoul)(float r2, float& r, float chprd, float alpha, float& eng);     // function for coulombic interaction in the system (in pair calculations)
     float (*funcCoul)(float r2, float& r, float chprd, cudaMD *md, float& eng);     // function for coulombic interaction in the system (in pair calculations)
+    void (*funcDeltaPer)(float& dx, float& dy, float& dz, cudaMD* md);             // function for delta coordinates in periodic boundary conditions
+    float (*funcDist2Per)(int i, int j, cudaMD* md);                                 // function for square of distance between i-th and j-th atoms in periodic boundary conditions
+    void (*funcPutPer)(float3 xyz, float3 vls, float mass, int type, cudaMD *md);
 
 
 
     //CONSTANTS
+    int mxAt;       // maximal number of atoms
     float tSt;      // timestep
 
     // general
