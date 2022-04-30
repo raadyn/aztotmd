@@ -105,6 +105,7 @@ __device__ unsigned int rand1()
 
 __device__ unsigned int rnd_xor128(uint4 &s)
 // https://habr.com/ru/post/99876/ (XorShift)
+// variant with blockIdx and threadIdx
 {
     unsigned int t;
 
@@ -117,8 +118,67 @@ __device__ unsigned int rnd_xor128(uint4 &s)
 
     s.w = (s.w ^ (s.w >> 19)) ^ (t ^ (t >> 8));
     atomicAdd(&s.w, blockIdx.x * blockDim.x + threadIdx.x);
+    printf("sw=%d\n", s.w);
 
     return s.w;
+}
+
+__device__ unsigned int rnd_xor128_single(uint4& s)
+// https://habr.com/ru/post/99876/ (XorShift)
+// simple variant with individual buffer variable
+{
+    unsigned /*long long*/ int t;
+
+    //atomicAdd(&s.x, blockIdx.x * blockDim.x + threadIdx.x);
+    //s.x += blockIdx.x * blockDim.x + threadIdx.x;
+    //if (s.x == 0)
+      //  s.x = 1;
+    t = s.x ^ (s.x << 11);
+
+    s.x = s.y;
+    s.y = s.z;
+    s.z = s.w;
+
+    s.w = (s.w ^ (s.w >> 19)) ^ (t ^ (t >> 8));
+    //printf("s=%d t=%d x=%d y=%d z=%d sw=%d\n", sizeof(t), t, s.x, s.y, s.z, s.w);
+    return s.w;
+    
+/*
+    t = s.x;
+    if (t == 0)
+        t = 1;
+    unsigned long long int const w = s.y;
+    s.x = w;
+    t ^= t << 23;		// a
+    t ^= t >> 18;		// b -- Again, the shifts and the multipliers are tunable
+    t ^= w ^ (w >> 5);	// c
+    s.y = t;
+    printf("w=%d t=%d\n", w, t);
+    return t + w;
+*/
+
+}
+
+__device__ float3 rand_usphere_single(uint4& var)
+// get random vector on unit sphere
+// based on Daan Frenkel "understanding of moleular dynamics..." p. 578
+{
+    float ran1, ran2;
+    float ransq = 2.f;
+    while (ransq > 1.f)
+    {
+        ran1 = 1.f - 2.f * (float)(rnd_xor128_single(var) % 128) / 127.f;     //rnd_xor128(var) % 128) / 127.f = random number from 0 to 1
+        ran2 = 1.f - 2.f * (float)(rnd_xor128_single(var) % 128) / 127.f;     //rnd_xor128(var) % 128) / 127.f = random number from 0 to 1
+        //printf("%f %f\n", ran1, ran2);
+        ransq = ran1 * ran1 + ran2 * ran2;
+    }
+
+    float ranh = 2.f * sqrt(1.f - ransq);
+    float x = ran1 * ranh;
+    float y = ran2 * ranh;
+    float z = (1.f - 2.f * ransq);
+
+    return make_float3(x, y, z);
 }
 
 void cuda_info()

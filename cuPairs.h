@@ -5,7 +5,7 @@
 
 
 void iter_cellList(int iStep, int nB1, int nB2, dim3 dim, hostManagMD* man, cudaMD* devMD);
-void iter_fastCellList(int iStep, Field* fld, cudaMD* dmd, hostManagMD* man);
+void iter_fastCellList(int iStep, Field* fld, Box* bx, cudaMD* dmd, hostManagMD* man);
 
 
 #endif  // CUPAIRS_H

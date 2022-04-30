@@ -507,11 +507,34 @@ int read_atoms_box(Atoms* atm, Field *field, Sim *sim, Box *box)
 
    fscanf(f, "%d", &n);
    atm->nAt = n;
-   atm->mxAt = n;   //! temporary. must readed from control and here if defined in control < than nAt, redefine
 
    // box reading (the second line)
    if (!read_box(f, box))
      res = 0;
+
+   // define maximal number of atoms
+   if (box->type == tpBoxHalf)  // for these case we need variable number of atoms and usually will add atoms during simulation, so go to control file and find mxatoms
+   {
+       FILE *cf = fopen("control.txt", "r");
+       if (cf != NULL)
+       {
+           if (!find_int(cf, " maxatoms %d", atm->mxAt))
+           {
+               printf("WARNING[b015] no directive mxatoms in control.txt file for half-periodic boundaries. The current number of atoms is used.");
+               atm->mxAt = n;
+           }
+           fclose(cf);
+       }
+       else
+       {
+           printf("ERROR[b020] control.txt can't be open!");
+           fclose(f);
+           return 0;
+       }
+   }
+   else
+       atm->mxAt = n;   // number of atoms is fixed, use nAtom from atoms.xyz
+
 
    // array allocates
    n = atm->mxAt;

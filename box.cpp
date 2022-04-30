@@ -12,16 +12,19 @@ int read_box(FILE *f, Box *bx)
    int res = 1;
 
    fscanf(f, "%d", &bx->type);
-   if ((bx->type == tpBoxRect) || (bx->type == tpBoxHalf))
+   switch (bx->type)
    {
-        fscanf(f, "%lf %lf %lf", &bx->la, &bx->lb, &bx->lc);
-        prepare_box(bx);
+   case tpBoxRect:
+       fscanf(f, "%lf %lf %lf", &bx->la, &bx->lb, &bx->lc);
+       break;
+   case tpBoxHalf:
+       fscanf(f, "%lf %lf %lf %lf", &bx->la, &bx->lb, &bx->lc, &bx->dz);
+       break;
+   default:
+       printf("ERROR[008] Unknown box type!\n");
+       return 0;
    }
-   else
-   {
-        printf("ERROR[008] Unknown box type!\n");
-        res = 0;
-   }
+   prepare_box(bx);
 
    return res;
 }
@@ -43,7 +46,7 @@ void prepare_box(Box *bx)
    double det, rdet;
 
    // if rectangular box we read box lengths, otherwise we read vectors and convert them into lengths
-   if (bx->type == tpBoxRect)
+   if ((bx->type == tpBoxRect) || (bx->type == tpBoxHalf))
    {
        bx->ay = 0.0; bx->az = 0.0; bx->bx = 0.0; bx->bz = 0.0; bx->cx = 0.0; bx->cy = 0.0;
        bx->ax = bx->la;
@@ -169,7 +172,7 @@ void prepare_box(Box *bx)
 void save_box(FILE *f, Box *bx)
 // save box parameter in file
 {
-   if (bx->type == tpBoxRect)
+   if ((bx->type == tpBoxRect)||(bx->type == tpBoxHalf))
    {
         fprintf(f, "%d %f %f %f\n", bx->type, bx->la, bx->lb, bx->lc);
    }

@@ -189,11 +189,11 @@ double er_746(double r2, double r, VdW *vdw)
 }
 // END PP functions definition
 
-const int nVdWType = 7;
-const char vdw_abbr[nVdWType][5] = {"lnjs", "buck", "p746", "bmhs", "elin", "einv", "surk"};
+const int nVdWType = 8;
+const char vdw_abbr[nVdWType][5] = {"lnjs", "buck", "p746", "bmhs", "elin", "einv", "surk", "sur1"};
 // number of parameters for potential (0th element is reserved)
-const int vdw_nparam[nVdWType + 1] = {0, 2, 3, 3, 5, 3, 3, 4};
-//                                  none LJ  buck   746 BHM eline   einv surk
+const int vdw_nparam[nVdWType + 1] = {0, 2, 3, 3, 5, 3, 3, 4, 4};
+//                                  none LJ  buck   746 BHM eline   einv surk surk1
 
 //define function types:
 typedef double(*feng_r)(double r2, double &r, VdW *vdw, double &eng);
@@ -211,12 +211,12 @@ const double r4scale = r_scale * r_scale * r_scale * r_scale;
 const double r6scale = r4scale * r_scale * r_scale;
 const double r8scale = r4scale * r4scale;
 // массивы для каждого параметра в парном потенциале. Элемент массива - тип потенциала
-const double vdw_scale0[nVdWType + 1] = {0, 4*E_scale, E_scale/*A[eV]*/, E_scale * r_scale * r6scale/*A[eV*A^7]*/, E_scale/*A[eV]*/, E_scale/*A[eV]*/, E_scale/*A[eV]*/, E_scale * r_scale};
+const double vdw_scale0[nVdWType + 1] = {0, 4*E_scale, E_scale/*A[eV]*/, E_scale * r_scale * r6scale/*A[eV*A^7]*/, E_scale/*A[eV]*/, E_scale/*A[eV]*/, E_scale/*A[eV]*/, E_scale * r_scale, E_scale * r_scale };
                              // for LJ p0 =  4*epsilon //(?)
-const double vdw_scale1[nVdWType + 1] = {0, r_scale, r_scale, E_scale*r4scale/*B[eVA^4]*/, 1.0/r_scale/*B[1/A]*/, r_scale, r_scale, E_scale * r4scale * r_scale};
-const double vdw_scale2[nVdWType + 1] = {0, 0.0, r6scale*E_scale/*C[eV*A^6]*/, E_scale*r6scale/*C[eV*A^6]*/, r_scale/*s[1/A]*/, E_scale / r_scale, E_scale * r_scale, 1.0};
-const double vdw_scale3[nVdWType + 1] = {0, 0.0, 0.0, 0.0, E_scale*r6scale/*C[eV*A^6]*/, 0, 0, 1.0};
-const double vdw_scale4[nVdWType + 1] = {0, 0.0, 0.0, 0.0, E_scale*r8scale/*D[eV*A^8]*/, 0, 0, 0};
+const double vdw_scale1[nVdWType + 1] = {0, r_scale, r_scale, E_scale*r4scale/*B[eVA^4]*/, 1.0/r_scale/*B[1/A]*/, r_scale, r_scale, E_scale * r4scale * r_scale, E_scale * r4scale * r_scale };
+const double vdw_scale2[nVdWType + 1] = {0, 0.0, r6scale*E_scale/*C[eV*A^6]*/, E_scale*r6scale/*C[eV*A^6]*/, r_scale/*s[1/A]*/, E_scale / r_scale, E_scale * r_scale, 1.0, 1.0};
+const double vdw_scale3[nVdWType + 1] = {0, 0.0, 0.0, 0.0, E_scale*r6scale/*C[eV*A^6]*/, 0, 0, 1.0, 1.0};
+const double vdw_scale4[nVdWType + 1] = {0, 0.0, 0.0, 0.0, E_scale*r8scale/*D[eV*A^8]*/, 0, 0, 0, 0};
                 //                      none LJ  buck   746 BHM eline   einv
 
 int vdwtype_by_name(char *name)
@@ -286,7 +286,7 @@ int read_vdw(int id, FILE *f, Field *field, Sim *sim)
          pp.p2 = 6 * pp.p0;    // 24*epsilon for force calculation
          //p0 = 4e;  p1 = s^2;  p2 = 24e;
    }
-   if (type == surk_type)
+   if ((type == surk_type)||(type == surk1_type))
    {
        pp.use_radii = 1;
 
@@ -306,7 +306,7 @@ int read_vdw(int id, FILE *f, Field *field, Sim *sim)
    if (field->vdws[at1][at2] != NULL)
        printf("WARNING[002]: Pair potential between %s and %s redeclarated\n", aname, bname);
    field->vdws[at1][at2] = &field->pairpots[id];
-   if (type != surk_type) //! this potential is assymetric relatively particles switching
+   if ((type != surk_type)||(type != surk1_type)) //! this potential is assymetric relatively particles switching
      field->vdws[at2][at1] = &field->pairpots[id];
 
    return 1;

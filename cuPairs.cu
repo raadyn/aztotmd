@@ -7,6 +7,7 @@
 #include "cuUtils.h"
 #include "cuSort.h"
 #include "cuEjump.h"
+#include "box.h"        // box types
 
 __device__ float delta_and_r2(float3 xyz1, float3 xyz2, float3 &delta)
 // return delta coordinates and r2 = dx2 + dy2 + dz2
@@ -2296,13 +2297,16 @@ __global__ void cell_list5b(cudaMD* md)
 }
 // end 'cell_list5b' function
 
-void iter_fastCellList(int iStep, Field* fld, cudaMD* dmd, hostManagMD* man)
+void iter_fastCellList(int iStep, Field* fld, Box* bx, cudaMD* dmd, hostManagMD* man)
 {
     //int need_to_sync = 0;
+    int addit = 0;
+    if (bx->type == tpBoxHalf)
+        addit = 1;
 
     if (1) //!(need_sort) - you can't do in such manner, as cell_list4 and 5 (used furher) based on nAtInCell and firstAtInCell arrays, formed during sorting
     {
-        calc_firstAtomInCell << <1, 1 >> > (dmd);
+        calc_firstAtomInCell << <1, 1 >> > (addit, dmd);
         cudaThreadSynchronize();
 
         sort_atoms << <man->nAtBlock, man->nAtThread/*man->nMultProc, man->nSingProc*/ >> > (fld->nBdata, fld->nAdata, man->atPerBlock, man->atPerThread, dmd);
@@ -2325,7 +2329,7 @@ void iter_fastCellList(int iStep, Field* fld, cudaMD* dmd, hostManagMD* man)
           //  printf("(%d) no angles\n", iStep);
         //if (need_to_sync)
             cudaThreadSynchronize();
-        refresh_arrays << <1, 1 >> > (fld->nBdata, fld->nAdata, dmd);
+        refresh_arrays_natoms << <1, 1 >> > (fld->nBdata, fld->nAdata, addit, dmd);
         cudaThreadSynchronize();
     }
 

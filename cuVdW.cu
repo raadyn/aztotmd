@@ -250,10 +250,30 @@ __device__ float surk_pot(float r2, float rad1, float rad2, cudaVdW* vdw, float&
     float ir = 1.f / r;
 
     float val = r_prod * ir6 * (C1ab2 * ir - Ñ2ir_sum);
-    //printf("U=%f: ra=%f rb=%f (%f %f %f %f)\n", val, rad1, rad2, vdw->p0, vdw->p1, vdw->p2, vdw->p3);
 
     eng += val;
     return r_prod * ir6 / r2 * (7.f * C1ab2 * ir - 6.f * Ñ2ir_sum);
+}
+
+__device__ float surk1_pot(float r2, float rad1, float rad2, cudaVdW* vdw, float& eng)
+// potential derived by Platon Surkov (variant 2):
+//   U = ri*rj*(C1 ri^2 rj^2 / rij^6 / (rij - ri - rj)  - C2 / (ki*ri + kj * rj) / r^6
+//   p0 = C1, p1 = C2, p2 = ki, p3 = kj
+{
+    float Ñ2ir_sum = vdw->p1 / (vdw->p2 * rad1 + vdw->p3 * rad2);   // C2 / (ka + kb)
+    float r_prod = rad1 * rad2;
+    float C1ab2 = r_prod * r_prod * vdw->p0;        // C1 * a^2 b^2
+    float r6 = r2 * r2 * r2;
+    float r = sqrt(r2);
+    float ir6 = 1.f / r6;
+    float ir = 1.f / r;
+    float a_b = rad1 + rad2;    // ri + rj
+
+    float val = r_prod * ir6 * (C1ab2 / (r - rad1 - rad2) - Ñ2ir_sum);
+
+    eng += val;
+    //! correct this
+    return r_prod * ir6 / r2 * (C1ab2 * (7.f * r - 6.f * a_b) / (a_b - r) / (a_b - r) - 6.f * Ñ2ir_sum);
 }
 
 
@@ -296,6 +316,9 @@ __global__ void define_vdw_func(cudaMD* md)
         break;
     case surk_type:
         vdw->radi_func = &surk_pot;
+        break;
+    case surk1_type:
+        vdw->radi_func = &surk1_pot;
         break;
 
     }

@@ -219,6 +219,7 @@ struct Box
    double ra, rb, rc;   //  invert length of box vectors (a, b, c)
    double ha, hb, hc;   // half of length a, b, c
    double nha, nhb, nhc;// negative ha, hb, hc = -0.5*la, ...
+   double dz;           // width of upper and lower box layer for implementation of half-periodic boundaryb
 
    double vol; // volume
    double rvol; // 1/volume

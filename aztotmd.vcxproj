@@ -86,6 +86,7 @@
     <CudaCompile Include="cuCellList.cu" />
     <CudaCompile Include="cuEjump.cu" />
     <CudaCompile Include="cuElec.cu" />
+    <CudaCompile Include="cuFlow.cu" />
     <CudaCompile Include="cuInit.cu" />
     <CudaCompile Include="cuMDfunc.cu" />
     <CudaCompile Include="cuPairs.cu" />
@@ -106,6 +107,7 @@
     <ClInclude Include="cuBonds.h" />
     <ClInclude Include="cuCellList.h" />
     <ClInclude Include="cuEjump.h" />
+    <ClInclude Include="cuFlow.h" />
     <ClInclude Include="cuInit.h" />
     <ClInclude Include="cuMDfunc.h" />
     <ClInclude Include="cuPairs.h" />

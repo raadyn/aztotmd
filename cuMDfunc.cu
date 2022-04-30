@@ -33,8 +33,9 @@ __device__ float3 get_shift(int shift_type, cudaMD* md)
     return res;
 }
 
-__device__ void put_periodic(float3& xyz, float3 vel, float mass, int type, cudaMD* md)
+__device__ void put_periodic(float z0, float3& xyz, float3 vel, float mass, int type, cudaMD* md)
 // apply the periodic conditions to a particle coordinates and save some info if the particle cross a box
+// z0 is here for compability
 {
     int nx, ny, nz;
     //float x0 = xyz.x;
@@ -173,14 +174,15 @@ __device__ void put_periodic(float3& xyz, float3 vel, float mass, int type, cuda
 // end 'put_periodic' function
 
 
-__device__ void put_halfperiodic(float3& xyz, float3 vel, float mass, int type, cudaMD* md)
+__device__ void put_halfperiodic(float z0, float3& xyz, float3 vel, float mass, int type, cudaMD* md)
 // apply the half-periodic conditions to a particle coordinates and save some info if the particle cross a box
+// z0 initial z-coordinate
 {
-    int nx, ny, nz;
+    int nx, ny;// , nz;
 
     nx = floor((double)xyz.x * (double)md->revLeng.x);
     ny = floor((double)xyz.y * (double)md->revLeng.y);
-    nz = floor((double)xyz.z * (double)md->revLeng.z);
+    //nz = floor((double)xyz.z * (double)md->revLeng.z);
     xyz.x -= (float)(nx * md->leng.x);
     xyz.y -= (float)(ny * md->leng.y);
 
@@ -215,16 +217,23 @@ __device__ void put_halfperiodic(float3& xyz, float3 vel, float mass, int type, 
             atomicAdd(&md->negMom.y, mass * (-vel.y)); // we suppose that vx in this case is negative
         }
 
-    if (nz > 0)
+    //! need to replace this part!
+    if (xyz.z > md->maxZ)
     {
-        atomicAdd(&md->specAcBoxPos[type].z, 1); // counter of crossing in a positive direction
-        atomicAdd(&md->posMom.z, mass * vel.z); // add momentum (mv)
+        if (z0 <= md->maxZ) // we cross boundary in this step
+        {
+            atomicAdd(&md->specAcBoxPos[type].z, 1); // counter of crossing in a positive direction
+            atomicAdd(&md->posMom.z, mass * vel.z); // add momentum (mv)
+        }
     }
     else
-        if (nz < 0)
+        if (xyz.z < md->minZ)
         {
-            atomicAdd(&md->specAcBoxNeg[type].z, 1); // counter of crossing in a negative direction
-            atomicAdd(&md->negMom.z, mass * (-vel.z)); // we suppose that vx in this case is negative
+            if (z0 >= md->minZ) // we cross boundary in this step
+            {
+                atomicAdd(&md->specAcBoxNeg[type].z, 1); // counter of crossing in a negative direction
+                atomicAdd(&md->negMom.z, mass * (-vel.z)); // we suppose that vx in this case is negative
+            }
         }
 }
 // end 'put_halfperiodic' function
@@ -256,6 +265,26 @@ __device__ void delta_periodic_orth(float& dx, float& dy, float& dz, cudaMD* md)
 }
 // end 'delta_periodic_orth' function
 
+__device__ void delta_periodic_half(float& dx, float& dy, float& dz, cudaMD* md)
+// apply orhtorombic half-periodic boundary to coordinate differences: dx, dy, dz
+{
+    // x
+    if (dx > md->halfLeng.x)
+        dx -= md->leng.x;
+    else
+        if (dx < -md->halfLeng.x)
+            dx += md->leng.x;
+
+    // y
+    if (dy > md->halfLeng.y)
+        dy -= md->leng.y;
+    else
+        if (dy < -md->halfLeng.y)
+            dy += md->leng.y;
+}
+// end 'delta_periodic_half' function
+
+
 __device__ float dist2_periodic_orth(int i, int j, cudaMD* md)
 // square of distance between two atoms [i] and [j] in orthorombic periodic boundary conditions
 {
@@ -263,6 +292,16 @@ __device__ float dist2_periodic_orth(int i, int j, cudaMD* md)
     float dy = md->xyz[i].y - md->xyz[j].y;
     float dz = md->xyz[i].z - md->xyz[j].z;
     delta_periodic_orth(dx, dy, dz, md);
+    return dx * dx + dy * dy + dz * dz;
+}
+
+__device__ float dist2_periodic_half(int i, int j, cudaMD* md)
+// square of distance between two atoms [i] and [j] in orthorombic periodic boundary conditions
+{
+    float dx = md->xyz[i].x - md->xyz[j].x;
+    float dy = md->xyz[i].y - md->xyz[j].y;
+    float dz = md->xyz[i].z - md->xyz[j].z;
+    delta_periodic_half(dx, dy, dz, md);
     return dx * dx + dy * dy + dz * dz;
 }
 
@@ -337,6 +376,7 @@ __global__ void reset_quantities(cudaMD* md)
     md->engAngl = 0.f;
     md->virial = 0.f;
     md->G = 0.f;
+    md->momSum = make_float3(0.f, 0.f, 0.f);
 
     if (md->use_coul == 2) // Ewald
         for (i = 0; i < md->nKvec; i++)
@@ -380,7 +420,7 @@ __global__ void print_stat(int iStep, cudaMD* md)
     printf(" Tk=%.3G Kin=%.3G Vdw=%.3G", md->kinTemp, md->engKin, md->engVdW);
     if (md->tstat == 2) // radiative thermostat
         printf(" K+P=%.3G U=%.3G", md->engPotKin, md->engTemp);
-    printf(" Tot=%.3G P=%.0f V=%.3G G=%.3G", md->engTot, md->pressure, md->virial, md->G);
+    printf(" Tot=%.3G P=%.0f V=%.3G G=%.3G, momSm=(%.3G %.3G %.3G)", md->engTot, md->pressure, md->virial, md->G, md->momSum.x, md->momSum.y, md->momSum.z);
     printf("\n");
 }
 
@@ -390,10 +430,11 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
     int i, t;
     float charge;
     float engElecField = 0.f;
+    float z0;                        // initial value of z-coordinate
     __shared__ float shEngElField;   // shared copy of external electric field energy
 
-    //float rm;
-    //float x0, y0, z0;   // to debug
+
+
 
     if (threadIdx.x == 0)   // 0th thread of 0th block, reset some energies
     {
@@ -421,7 +462,7 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
 
         //x0 = md->xyz[i].x;
         //y0 = md->xyz[i].y;
-        //z0 = md->xyz[i].z;
+        z0 = md->xyz[i].z;
 
 
         // x = x + v * dt
@@ -442,22 +483,12 @@ __global__ void verlet_1stage(int iStep, int atPerBlock, int atPerThread, cudaMD
 #endif
 
         // apply periodic boundaries
-        put_periodic(md->xyz[i], md->vls[i], md->masses[i], md->types[i], md);
-
-        /*
-        if (md->xyz[i].x >= md->leng.x)
-            printf("verl1(%d) th(%d,%d): x[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, x0, md->xyz[i].x, md->vls[i].x, md->frs[i].x);
-        else
-            if (md->xyz[i].x < 0)
-                printf("verl1(%d) th(%d,%d): x[%d]=%f->%f, v=%f f=%f\n", iStep, blockIdx.x, threadIdx.x, i, x0, md->xyz[i].x, md->vls[i].x, md->frs[i].x);
-        */
+        //put_periodic(md->xyz[i], md->vls[i], md->masses[i], md->types[i], md);
+        md->funcPutPer(z0, md->xyz[i], md->vls[i], md->masses[i], md->types[i], md);
 
         //save the atom in cell list
-#ifdef USE_FASTLIST
-        count_cell(i, md->xyz[i], md);
-#else
-        keep_in_cell(i, md->xyz[i], md);
-#endif
+        md->funcAtToCell(i, md->xyz[i], md);
+
         //external fields energy:
         //  Eng = q * x * dU/dx
         engElecField += charge * (md->xyz[i].x * md->elecField.x + md->xyz[i].y * md->elecField.y + md->xyz[i].z * md->elecField.z);
@@ -501,10 +532,12 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
     float kinE = 0.f;  // kinetic energy
     float vir = 0.f;    // virial
     float G = 0.f;      // virial analog for momentum
+    float3 momSum = make_float3(0.f, 0.f, 0.f);     
     // their shared versions:
     __shared__ float shKinE;  // shared version of kinetic energy
     __shared__ float shvir;
     __shared__ float shG;
+    __shared__ float3 shMomSum;      
 
     int id0 = blockIdx.x * atPerBlock + threadIdx.x * atPerThread;
     int N = min(id0 + atPerThread, md->nAt);
@@ -521,6 +554,7 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
         shKinE = 0.f;
         shvir = 0.f;
         shG = 0.f;
+        shMomSum = make_float3(0.f, 0.f, 0.f);
     }
     __syncthreads();
 
@@ -581,6 +615,9 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
         kinE += (md->vls[i].x * md->vls[i].x + md->vls[i].y * md->vls[i].y + md->vls[i].z * md->vls[i].z) * md->masses[i];
         vir += sc_prod(md->xyz[i], md->frs[i]);
         G += sc_prod(md->xyz[i], md->vls[i]) * md->masses[i];
+        momSum.x += md->vls[i].x * md->masses[i];
+        momSum.y += md->vls[i].y * md->masses[i];
+        momSum.z += md->vls[i].z * md->masses[i];
 
 #ifdef DEBUG_MODE
         md->nCult[i]++;
@@ -591,6 +628,9 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
     atomicAdd(&shKinE, 0.5f * kinE);   // kinE = mv2/2
     atomicAdd(&shvir, vir);
     atomicAdd(&shG, G);
+    atomicAdd(&shMomSum.x, momSum.x);
+    atomicAdd(&shMomSum.y, momSum.y);
+    atomicAdd(&shMomSum.z, momSum.z);
     __syncthreads();
     //... then to global memory
     if (threadIdx.x == 0) // 0th thread
@@ -598,6 +638,9 @@ __global__ void verlet_2stage(int atPerBlock, int atPerThread, int iStep, cudaMD
         atomicAdd(&md->engKin, shKinE);
         atomicAdd(&md->virial, shvir);
         atomicAdd(&md->G, shG);
+        atomicAdd(&md->momSum.x, shMomSum.x);
+        atomicAdd(&md->momSum.y, shMomSum.y);
+        atomicAdd(&md->momSum.z, shMomSum.z);
     }
 
 #ifdef DEBUG_MODE

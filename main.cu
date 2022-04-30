@@ -24,8 +24,10 @@
 #include "cuVdW.h"
 #include "angles.h"
 #include "bonds.h"
+#include "box.h"        // tpBoxRect, tpBoxHalf
 #include "cuStat.h"
 #include "cuPairs.h"
+#include "cuSort.h"     // count_cell
 #include "cuTemp.h"
 #include "cuUtils.h"
 #include "temperature.h"
@@ -113,7 +115,7 @@ int out_thermalchar(Atoms* atm, Field* field, char* fname, cudaMD* md)
     return 1;
 }
 
-__global__ void calc_quantities(int iStep, cudaMD* md)
+__global__ void calc_quantities(int iStep, cudaMD* md, int box_type)
 // calculate derived parameters as total energy, pressure, mean bonds lifetime and etc
 {
     int i;
@@ -132,7 +134,7 @@ __global__ void calc_quantities(int iStep, cudaMD* md)
     if (iStep >= md->nMom - 1)
     {
         i = md->iMom;
-        k = 2.f * 1.58e6f / (md->tSt * (md->nMom - 1));
+        k = 2.f * 1.58e6f / (md->tSt * (md->nMom - 1));             // I'm not sure in factor 2. Its derived for the case the particle change your velocity to opposite after collision with wall
         md->posPres.x = k * (md->posMom.x - md->posMomBuf[i].x) * md->revEdgeArea.x;
         md->posPres.y = k * (md->posMom.y - md->posMomBuf[i].y) * md->revEdgeArea.y;
         md->posPres.z = k * (md->posMom.z - md->posMomBuf[i].z) * md->revEdgeArea.z;
@@ -152,7 +154,15 @@ __global__ void calc_quantities(int iStep, cudaMD* md)
         //if (md->jMom >= md->nMom)
         //    md->jMom = 0;
 
-        md->pressure = (md->posPres.x + md->posPres.y + md->posPres.z + md->negPres.x + md->negPres.y + md->negPres.z) / 6.f;
+        // calculate pressure in all dimensions
+        md->pressDim.x = 0.5f * (md->posPres.x + md->negPres.x);
+        md->pressDim.y = 0.5f * (md->posPres.y + md->negPres.y);
+        md->pressDim.z = 0.5f * (md->posPres.z + md->negPres.z);
+
+        if (box_type == tpBoxHalf)
+            md->pressure = 0.5f * (md->pressDim.x + md->pressDim.y);
+        else
+            md->pressure = (md->pressDim.x + md->pressDim.y + md->pressDim.z) / 3.f;
     }
     else
     {
@@ -174,7 +184,7 @@ __global__ void calc_quantities(int iStep, cudaMD* md)
             if (md->bondTypes[i].rCount)
                 md->bondTypes[i].rMean = (float)md->bondTypes[i].rSumm / md->bondTypes[i].rCount;
             else // эту ветку надо убрать, задав дефолтное значение
-                md->bondTypes[i].rMean = 0;
+                md->bondTypes[i].rMean = 0.f;
 
             //printf("ltMena[%d]=%f rMean = %f\n", i, md->bondTypes[i].ltMean, md->bondTypes[i].rMean);
         }
@@ -208,9 +218,20 @@ __global__ void define_global_func(int boxtype, cudaMD *md)
       case 1:   // orthorombic boundary conditions
         md->funcDeltaPer = &delta_periodic_orth;
         md->funcDist2Per = &dist2_periodic_orth;
+
+        md->funcPutPer = &put_periodic;
+        md->funcAtToCell = &count_cell;
+        // old variant of cell list, without sorting:
+        //md->funcAtToCell = &keep_in_cell;
+
         break;
       case 2:   //
-        break;
+          md->funcDeltaPer = &delta_periodic_half;
+          md->funcDist2Per = &dist2_periodic_half;
+
+          md->funcPutPer = &put_halfperiodic;
+          md->funcAtToCell = &count_cell_halfper;
+          break;
       default:
         printf("ERROR[b019] Unknown box type (%d)\n", boxtype);
     }
@@ -286,7 +307,7 @@ int main()
             cudaThreadSynchronize();
         }
 
-        iter_fastCellList(iStep, field, devMD, man);
+        iter_fastCellList(iStep, field, box, devMD, man);
         //verify_forces << <man->nAtBlock, man->nAtThread >> > (man->atPerBlock, man->atPerThread, iStep, devMD, 2);
         if (elec->type == tpElecEwald)
         {
@@ -340,7 +361,7 @@ int main()
 
         cudaThreadSynchronize();
         apply_tstat(iStep, tstat, sim, devMD, man);
-        calc_quantities<<<1, 1>>>(iStep, devMD);
+        calc_quantities<<<1, 1>>>(iStep, devMD, box->type);
         cudaThreadSynchronize();
 
         // statistics block:

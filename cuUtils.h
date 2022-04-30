@@ -27,6 +27,10 @@ void cuda_info();
 // random number generators:
 __device__ unsigned int rand1();
 __device__ unsigned int rnd_xor128(uint4& s);
+__device__ unsigned int rnd_xor128_single(uint4& s);
+__device__ float3 rand_usphere_single(uint4& var);
+// get random vector on unit sphere
+
 
 
 #endif // CUUTILS_H

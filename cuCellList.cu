@@ -612,7 +612,11 @@ void init_cellList(int div_type, int list_type, int bypass_type, float size, Ato
     nCell = split_cells(div_type, r, add_to_even, atm->nAt, hmd);
 
     if (list_type == 1)     // list based on sorted arrays
+    {
+        if (box_type == tpBoxHalf)  // we need only call alloc_sort with increased number of cell, for arrays allocation
+            nCell++;
         alloc_sort(atm->mxAt, nCell, hmd);
+    }
     else      // list as 2-d array
         alloc_2dlist(nCell, hmd);
 

@@ -70,17 +70,15 @@ __device__ void switch_pointers(void** p1, void** p2)
     *p2 = ptr;
 }
 
-__global__ void refresh_arrays(int use_bnd, int use_ang, cudaMD* md)
+__global__ void refresh_arrays_natoms(int use_bnd, int use_ang, int var_natom, cudaMD* md)
+// switch pointers between sorted and unsorted atom arrays and number of atom (if needed)
 {
-    //printf("beging refresh arrays\n");
-
     switch_pointers((void**)&(md->xyz), (void**)&(md->sort_xyz));
     switch_pointers((void**)&(md->vls), (void**)&(md->sort_vls));
     switch_pointers((void**)&(md->frs), (void**)&(md->sort_frs));   //! не всегда, возможно, что только если есть связи (т.е. есть что-то, что определяет силы перед сортировкой)
     switch_pointers((void**)&(md->types), (void**)&(md->sort_types));
     if (use_bnd)
     {
-        //printf("switch_bnd\n");
         switch_pointers((void**)&(md->parents), (void**)&(md->sort_parents));
         switch_pointers((void**)&(md->nbonds), (void**)&(md->sort_nbonds));
         switch_pointers((void**)&(md->oldTypes), (void**)&(md->sort_oldTypes));
@@ -95,7 +93,11 @@ __global__ void refresh_arrays(int use_bnd, int use_ang, cudaMD* md)
     switch_pointers((void**)&(md->radii), (void**)&(md->sort_radii));    // for radiative thermostat only //! not ONLY! for T-dependent FF also
     switch_pointers((void**)&(md->radstep), (void**)&(md->sort_radstep));    // for radiative thermostat only
 
-    //printf("end refresh arrays\n");
+    if (var_natom)
+    {
+        md->nAt -= md->nAtInCell[md->nCell];    // 'escaped' atoms are kept in this fictious cell out of 'normal' cell indexes, see count_cell_halfper function
+        md->nAtInCell[md->nCell] = 0;           // clear this cell here, because clear_clist function use loop by i < nCell
+    }
 }
 
 /* уже есть в другом модуле
@@ -111,7 +113,7 @@ __global__ void clear_list(int cellPerBlock, int cellPerThread, cudaMD* md)
 */
 
 __device__ void count_cell(int index, float3 xyz, cudaMD* md)
-// save atom index with coordinates xyz in the cell list
+// save atom index with coordinates xyz in the cell list    (for orthorombic periodic)
 {
     int c, j;
 
@@ -126,14 +128,41 @@ __device__ void count_cell(int index, float3 xyz, cudaMD* md)
     md->insideCellIndex[index] = j;
 }
 
-__global__ void calc_firstAtomInCell(cudaMD* md)
+__device__ void count_cell_halfper(int index, float3 xyz, cudaMD* md)
+// save atom index with coordinates xyz in the cell list in the condition of half-periodic boundary conditions (x,y - periodic, z - not) (for orthorombic half-periodic)
+{
+    int c, j;
+
+    if ((xyz.z < 0.f) || (xyz.z >= md->leng.z))
+    {
+        c = md->nCell;
+        // so, "escaped" particles will be placed in the last, fictitious cell
+    }
+    else
+    {
+        // the same as in count_cell function
+        c = floor((double)xyz.x * (double)md->cRevSize.x) * md->cnYZ + floor((double)xyz.y * (double)md->cRevSize.y) * md->cNumber.z + floor((double)xyz.z * (double)md->cRevSize.z);
+        if (c >= md->nCell)
+            printf("count cell: xyz=(%f; %f; %f)revsizes:[%f %f %f] c = %d\n", xyz.x, xyz.y, xyz.z, md->cRevSize.x, md->cRevSize.y, md->cRevSize.z, c);
+        if (c < 0)
+            printf("count cell: xyz=(%f; %f; %f) c = %d\n", xyz.x, xyz.y, xyz.z, c);
+    }
+
+    md->cellIndexes[index] = c;
+    j = atomicAdd(&(md->nAtInCell[c]), 1);    // increase the number of particles in cell[c] (it keeps in the 0th element of cell[cell_index] array)
+    md->insideCellIndex[index] = j;
+}
+
+
+__global__ void calc_firstAtomInCell(int addit, cudaMD* md)
 // define first index of atom in ordered array corresponding to each cell
+// addit - additional cells (used for half-periodic boundary conditions)
 //! in fact this is a serial code
 {
     int i;
     int cnt = 0;
     //printf("start calc first atom\n");
-    for (i = 0; i < md->nCell; i++)
+    for (i = 0; i < md->nCell + addit; i++)
     {
         md->firstAtomInCell[i] = cnt;
         cnt += md->nAtInCell[i];

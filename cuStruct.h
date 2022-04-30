@@ -202,6 +202,7 @@ struct cudaMD
     float* radii;   // atom's radii (for radiative thermostat only)
     int* radstep;       // number of timestep when atom radiates photon (for radiative thermostat only)
     int* types;  // types (index of species array)
+    uint4* rnds;        // variables for individual random number generator for each atom (for radiative thermostat)
 //#ifdef USE_FASTLIST
     // sorted arrays:
     float3* sort_xyz; // coordinates
@@ -238,6 +239,7 @@ struct cudaMD
     float teKin;            // target kinetic energy
     float kinTemp;          // "kinetic" temperature
     float virial, G;        // virial and G (analog of virial for momentum)
+    float3 momSum;           // sum of momentum (must be zero)
 
     //other characteristics
     float3 posMom;  // momentum per box edge in positive directions
@@ -245,11 +247,12 @@ struct cudaMD
     // buffers for momentum
     float3* posMomBuf;
     float3* negMomBuf;
-    int nMom;         // number of data of momentum kept in buffer
+    int nMom;           // number of data of momentum kept in buffer
     int iMom/*, jMom*/;           // index of current element of buffer
-    float3 posPres; // pressure on box edge in positive directions
-    float3 negPres; // pressure on box edge in negative directions
-    float pressure; // mean pressure = (posPres + negPres)/6
+    float3 posPres;     // pressure on box edge in positive directions
+    float3 negPres;     // pressure on box edge in negative directions
+    float3 pressDim;    // pressure for each dimension
+    float pressure;     // mean pressure = (posPres + negPres)/6
 
     //thermostat and temperature data
     float chit, consInt;
@@ -267,6 +270,7 @@ struct cudaMD
     float3 leng, halfLeng, revLeng; // length, half of length and reversible length
     float3 edgeArea;        // areas of box edges perpendicular to corresponding direction (for example edgeArea.x = S(Oyz edge))
     float3 revEdgeArea;     // = 1 / edgeArea
+    float minZ, maxZ;       // z coordinates which separate main part of box and boundary area (used for half-periodic boundaries)
     float volume;
 
     //cell list
@@ -331,7 +335,8 @@ struct cudaMD
     float (*funcCoul)(float r2, float& r, float chprd, cudaMD *md, float& eng);     // function for coulombic interaction in the system (in pair calculations)
     void (*funcDeltaPer)(float& dx, float& dy, float& dz, cudaMD* md);             // function for delta coordinates in periodic boundary conditions
     float (*funcDist2Per)(int i, int j, cudaMD* md);                                 // function for square of distance between i-th and j-th atoms in periodic boundary conditions
-    void (*funcPutPer)(float3 xyz, float3 vls, float mass, int type, cudaMD *md);
+    void (*funcPutPer)(float z0, float3 &xyz, float3 vls, float mass, int type, cudaMD *md);
+    void (*funcAtToCell)(int index, float3 xyz, cudaMD* md); // place atom in corresponding cell of cell list (depending on the algorithm)
 
 
 
@@ -423,6 +428,9 @@ struct cudaMD
     int mxAngle;
     cudaAngle* angleTypes;  // [0] reserved as deleted
     int* specAngles;    // a[nSp] angle type formed by given species
+
+    // for flow:
+    float3* flow_xyz;         // array of atomic coordinates of flow
 
 #ifdef DEBUG_MODE
     //DEBUGGING

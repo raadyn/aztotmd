@@ -6,6 +6,7 @@
 #include "dataStruct.h" 
 #include "sys_init.h"
 #include "vdw.h"
+#include "box.h"        // tpBoxHalf
 #include "cuVdW.h"
 #include "cuBonds.h"
 #include "cuAngles.h"
@@ -164,6 +165,11 @@ void init_cuda_box(Box *box, cudaMD *h_md)
 {
     //! only for rectangular geometry!
     h_md->leng = make_float3((float)box->la, (float)box->lb, (float)box->lc);
+    if (box->type == tpBoxHalf)
+    {
+        h_md->maxZ = h_md->leng.z - box->dz;
+        h_md->minZ = box->dz;
+    }
 
     h_md->halfLeng = make_float3(0.5f * h_md->leng.x, 0.5f * h_md->leng.y, 0.5f * h_md->leng.z);   
     h_md->revLeng = make_float3(1.f / h_md->leng.x, 1.f / h_md->leng.y, 1.f / h_md->leng.z);       
@@ -213,6 +219,14 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     data_to_device((void**)&(h_md->types), atm->types, nsize);
     data_to_device((void**)&(h_md->masses), h_masses, flsize);
     data_to_device((void**)&(h_md->rMasshdT), h_rMasshdT, flsize);
+    if (tstat->type == tpTermRadi)
+    {
+        // create random number generators and initialize them
+        uint4* rnds = (uint4*)malloc(atm->mxAt * sizeof(uint4));
+        for (i = 0; i < atm->mxAt; i++)
+            rnds[i].x = rand();
+        data_to_device((void**)&h_md->rnds, rnds, atm->mxAt * sizeof(uint4));
+    }
     free(h_xyz);
     free(h_vls);
     free(h_frc);
@@ -352,6 +366,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     h_md->engCoul3 = 0.f;
     h_md->engVdW = 0.f;
     h_md->engPotKin = 0.f;
+    h_md->momSum = make_float3(0.f, 0.f, 0.f);
 
     // momentum
     h_md->posMom = make_float3(0.f, 0.f, 0.f);
@@ -363,6 +378,7 @@ cudaMD* init_cudaMD(Atoms* atm, Field* fld, Sim* sim, TStat* tstat, Box* bx, Ele
     //h_md->jMom = 0;
     h_md->posPres = make_float3(0.f, 0.f, 0.f);
     h_md->negPres = make_float3(0.f, 0.f, 0.f);
+    h_md->pressDim = make_float3(0.f, 0.f, 0.f);
     h_md->pressure = 0.f;
     cudaMalloc((void**)&(h_md->posMomBuf), h_md->nMom * float_size);
     cudaMalloc((void**)&(h_md->negMomBuf), h_md->nMom * float_size);
@@ -531,6 +547,8 @@ void free_device_md(cudaMD* dmd, hostManagMD* man, Sim* sim, Field* fld, TStat *
     cudaFree(hmd->types);
     cudaFree(hmd->masses);
     cudaFree(hmd->rMasshdT);
+    if (tstat->type == tpTermRadi)
+        cudaFree(hmd->rnds);          
     //cudaUnbindTexture(rMassHdt);
 
     cudaFree(hmd->pairpots);

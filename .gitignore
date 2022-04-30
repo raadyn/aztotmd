@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 *.dat
+/*.dat
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -362,3 +363,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/atoms - melt 1500.xyz
+/atoms 40000Ar.xyz
+/atoms melt.xyz
+/atoms_.xyz
+/control Ar.txt
+/field Ar.txt
+/field0.txt

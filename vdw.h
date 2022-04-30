@@ -18,9 +18,10 @@ const int BHM_type = 4;    // U = Aexp[B(s-r)] - C/r^6 - D/r^8
 const int elin_type = 5;	// U = A*exp(-r/ro) + c*x
 const int einv_type = 6;	// U = A*exp(-r/ro) - c/x
 const int surk_type = 7;	// potential derived by Platon Surkov
+const int surk1_type = 8;	// little corrected the previous potential
 
 // names[type]
-const char vdw_names[8][20] = {"", "Lenard-Jones", "Buckingham", "CuCl(7-4-6)", "Born-Mayer-Huggins", "exp+line", "exp-inv", "Platon Surkov"};
+const char vdw_names[9][20] = {"", "Lenard-Jones", "Buckingham", "CuCl(7-4-6)", "Born-Mayer-Huggins", "exp+line", "exp-inv", "Platon Surkov", "corrected Surkov"};
 
 
 int read_vdw(int id, FILE *f, Field *field, Sim *sim);

@@ -463,56 +463,24 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
     }
     __syncthreads();
 
-    /*
-    if (threadIdx.x == 0)
-        if (blockIdx.x == 0)
-            printf("STEP %d\n", iStep);
-    */
-
     int id0 = blockIdx.x * bndPerBlock + threadIdx.x * bndPerThread;
     int N = min(id0 + bndPerThread, md->nBond);
     int iBnd;
 
     for (iBnd = id0; iBnd < N; iBnd++)
-#ifdef DEBUG_MODE
-        if ((iBnd < 0) || (iBnd > md->nBond))
-            printf("iBnd=%d!\n", iBnd);
-        else
-#endif
+
       if (md->bonds[iBnd].z)  // the bond is not broken
       {
-/*  к сожалению прийдется перенести эту часть сразу после сортировки, поскольку она важна для процедуры refresh_angles, что идет вначале
-          // take sorting into account
-#ifdef USE_FASTLIST
-          md->bonds[iBnd].x = md->sort_ind[md->bonds[iBnd].x];
-          md->bonds[iBnd].y = md->sort_ind[md->bonds[iBnd].y];
-#endif
-*/
           //printf("bnd[%d] type=%d exists (nBond=%d), thread=%d\n", iBnd, md->bonds[iBnd].z, md->nBond, threadIdx.x);
-#ifdef DEBUG_MODE
-          int z = md->bonds[iBnd].z;
-          if (z < 0)
-              printf("z=%d!\n", z);
-          if (z >= md->nBndTypes)
-              printf("z=%d!\n", z);
-#endif
 
           // atom indexes
           id1 = md->bonds[iBnd].x;
           id2 = md->bonds[iBnd].y;
 
-#ifdef DEBUG_MODE
-          if ((id1 < 0)||(id2 < 0)|| (id1 >= md->nAt) || (id2 >= md->nAt))
-              printf("id1=%d id2=%d!\n", id1, id2);
-#endif
-
           // atom types
           spec1 = md->types[id1];
           spec2 = md->types[id2];
-#ifdef DEBUG_MODE
-          if ((spec1 < 0) || (spec1 >= MX_SPEC) || (spec2 < 0) || (spec2 >= MX_SPEC))
-              printf("ERROR[001] %d step. Atom types have wrong values: %d and %d. cur_bnd(%d)=%p\n", iStep, spec1, spec2, z, cur_bnd);
-#endif
+
           old_bnd = &(md->bondTypes[md->bonds[iBnd].z]);
           cur_bnd = old_bnd;
 /////     H-bonds addition
@@ -536,9 +504,6 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
           if ((cur_bnd->spec1 == spec1)&&(cur_bnd->spec2 == spec2))
           {
               //ok
-#ifdef DEBUG_MODE
-              //printf("ok\n");
-#endif
           }
           else
               if ((cur_bnd->spec1 == spec2) && (cur_bnd->spec2 == spec1) && (spec1 != spec2))
@@ -556,6 +521,16 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
                   //printf("modified bond type detected\n");
 #endif
               }
+
+          // it's actual for half-periodic box, some atoms can escape box and we need to delete such bonds:
+          //! maybe it's necessary to add verify if (box_type == tpBoxRect) .... to avoid meaningless check
+          if ((md->xyz[id1].z < 0) || (md->xyz[id2].z < 0) || (md->xyz[id1].z > md->leng.z) || (md->xyz[id2].z > md->leng.z))
+          {
+              save_lt = 1;  // save lifetime
+              action = 1;   // delete this bond
+              loop = 0;     // do not perform the cycle (see further code)
+          }
+
 
           // end initial stage
           while (loop)
@@ -766,12 +741,13 @@ __global__ void apply_bonds(int iStep, int bndPerBlock, int bndPerThread, cudaMD
               f = cur_bnd->force_eng(r2, r, eng, cur_bnd);
 
               //! ВРЕМЕННО! для уравновешивания связей
+              /*
               if ((f > -0.1f) && (f < 0.1f))
               {
                   md->vls[id1] = make_float3(0.f, 0.f, 0.f);
                   md->vls[id2] = make_float3(0.f, 0.f, 0.f);
               }
-
+              */
 
               //printf("f*dx=%f\n", f* dx);
               atomicAdd(&(md->frs[id1].x), f * dx);
